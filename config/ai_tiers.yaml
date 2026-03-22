@@ -1,0 +1,60 @@
+# AI Tier Configuration
+# Each tier maps to a provider + model. Override role assignments below.
+
+providers:
+  claude:
+    api_key_env: ANTHROPIC_API_KEY
+  openai:
+    api_key_env: OPENAI_API_KEY
+  google:
+    api_key_env: GOOGLE_API_KEY
+
+tiers:
+  apex:
+    provider: claude
+    model: claude-opus-4-6
+    max_tokens: 1024
+    rate_limit_per_min: 10
+    description: "Top-tier reasoning for critical decisions"
+
+  standard:
+    provider: claude
+    model: claude-sonnet-4-6
+    max_tokens: 512
+    rate_limit_per_min: 30
+    description: "Balanced quality and speed for important roles"
+
+  fast:
+    provider: google
+    model: gemini-2.0-flash
+    max_tokens: 256
+    rate_limit_per_min: 60
+    description: "Quick decisions for common entities"
+
+  rule_based:
+    provider: none
+    description: "No API call — uses hardcoded behavior trees"
+
+# Map roles to tiers. Override any role here.
+role_assignments:
+  shadow_whisperer: apex
+  village_elder: apex
+  hero: apex
+  captain: standard
+  scout: standard
+  blacksmith: standard
+  healer: standard
+  villager: fast
+  monster_grunt: fast
+  shade: fast
+  ghoul: fast
+  wraith: standard
+  corruptor: standard
+  dread_knight: apex
+  wildlife: rule_based
+
+# Cost controls
+budget:
+  max_tokens_per_tick: 5000
+  max_api_calls_per_tick: 20
+  cache_ttl_ticks: 5

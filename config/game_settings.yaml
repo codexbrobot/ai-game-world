@@ -1,0 +1,38 @@
+# Game Settings
+
+world:
+  initial_map_size: 30        # Starting revealed area (NxN tiles)
+  max_map_size: 150           # Maximum expanded map size
+  tile_size_px: 32            # Pixel size of each tile
+
+village:
+  starting_villagers: 8
+  max_villagers: 40
+  starting_resources:
+    wood: 50
+    stone: 30
+    food: 40
+    herbs: 10
+    iron: 5
+
+timing:
+  tick_interval_ms: 5000      # 5 seconds per tick
+  ticks_per_day: 24
+  day_ticks: [1, 12]          # Day phase
+  dusk_ticks: [13, 14]        # Dusk phase
+  night_ticks: [15, 22]       # Night phase
+  dawn_ticks: [23, 24]        # Dawn phase
+
+difficulty:
+  shadow_whisperer_aggression: 0.5   # 0.0 = passive, 1.0 = relentless
+  corruption_rate: 0.3               # How fast corruption spreads
+  raid_escalation_per_day: 0.05      # Difficulty increase per day cycle
+  max_day_cycles: 100                # Days before Source reaches full power
+
+voice:
+  starting_energy: 100
+  max_energy: 200
+  energy_regen_per_tick: 2
+  counsel_cost: 0                    # Free — they come to you
+  inspire_cost: 20
+  warn_cost: 30

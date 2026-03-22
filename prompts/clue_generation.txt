@@ -1,0 +1,30 @@
+Generate a clue fragment about the Source of Evil for the game "AI Village: Realm of Shadows."
+
+## Source of Evil Details
+- Location: {source_location}
+- Type: {source_type}
+- The Source is hidden at: {source_description}
+
+## Clue Context
+- Discovery method: {discovery_method} (scout report / survivor story / ancient text / monster behavior / corrupted villager confession)
+- Clue number: {clue_index} of {total_clues_needed}
+- Previously discovered clues: {existing_clues}
+
+## Requirements
+- The clue must be a FRAGMENT — not enough to locate the Source alone
+- It should be atmospheric and medieval in tone
+- It must be truthful (this is not a false clue)
+- Combined with other clues, it should help narrow down the location
+
+## For false clues (is_false = {is_false})
+If this is a false clue planted by the Shadow Whisperer:
+- It should be plausible but point in the wrong direction
+- It should contradict one existing true clue subtly
+
+Respond in JSON:
+{{
+  "clue_text": "The clue as a villager would describe it",
+  "clue_type": "direction|landmark|history|behavior|artifact",
+  "points_toward": "What this clue suggests about the Source location",
+  "reliability": 0-100
+}}

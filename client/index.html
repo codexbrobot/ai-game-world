@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Village: Realm of Shadows</title>
+  <link rel="stylesheet" href="/static/css/game.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="ui-overlay">
+      <div id="minimap"></div>
+      <div id="resource-bar">
+        <span id="wood">Wood: 0</span>
+        <span id="stone">Stone: 0</span>
+        <span id="food">Food: 0</span>
+        <span id="iron">Iron: 0</span>
+      </div>
+      <div id="time-display">Day 1 — Dawn</div>
+      <div id="guidance-panel" class="hidden">
+        <div id="villager-question"></div>
+        <textarea id="guidance-input" placeholder="Speak, Voice..."></textarea>
+        <button id="send-guidance">Counsel</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/js/main.js" type="module"></script>
+</body>
+</html>
