@@ -28,6 +28,7 @@
         <button id="btn-speed1" class="active">▶</button>
         <button id="btn-speed2">▶▶</button>
         <button id="btn-speed3">▶▶▶</button>
+        <button id="btn-settings" title="Settings">⚙</button>
       </div>
       <div id="guidance-panel" class="hidden">
         <div id="guidance-header">A villager seeks your counsel...</div>
@@ -35,6 +36,36 @@
         <textarea id="guidance-input" placeholder="Speak, Voice..." rows="3"></textarea>
         <button id="send-guidance">Counsel</button>
       </div>
+      <!-- Settings Modal -->
+      <div id="settings-overlay" class="hidden">
+        <div id="settings-modal">
+          <div id="settings-header">Settings</div>
+          <div class="settings-section">
+            <label for="openai-key">OpenAI API Key</label>
+            <div class="key-input-row">
+              <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off">
+              <button id="toggle-key-vis" title="Show/hide key">Show</button>
+            </div>
+            <div class="settings-note">Stored in your browser only. Sent directly to OpenAI — never to any other server.</div>
+          </div>
+          <div class="settings-section">
+            <label for="openai-model">Model</label>
+            <select id="openai-model">
+              <option value="gpt-4o-mini">GPT-4o Mini (fast, cheap)</option>
+              <option value="gpt-4o">GPT-4o (smarter, costs more)</option>
+            </select>
+          </div>
+          <div class="settings-section">
+            <button id="test-connection">Test Connection</button>
+            <span id="test-result"></span>
+          </div>
+          <div class="settings-actions">
+            <button id="save-settings">Save</button>
+            <button id="close-settings">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <div id="event-log">
         <div id="log-entries"></div>
       </div>

@@ -9,6 +9,7 @@ import { getDayNightState, applyDayNightOverlay, drawPointLight, PHASES } from '
 import { drawBuildings, getBuildingLights } from './buildings.js';
 import { drawMinimap } from './minimap.js';
 import { createInputHandler } from './input.js';
+import { getApiKey, setApiKey, getModel, setModel, isAiEnabled, testConnection, getGuidanceResponse } from './ai.js';
 
 // --- Configuration ---
 const TILE_SIZE = 32;
@@ -352,9 +353,10 @@ function showGuidanceRequest(villager) {
   addEvent(`${villager.name} seeks your counsel...`, 'guidance');
 }
 
-document.getElementById('send-guidance').addEventListener('click', () => {
+document.getElementById('send-guidance').addEventListener('click', async () => {
   const panel = document.getElementById('guidance-panel');
   const inputEl = document.getElementById('guidance-input');
+  const sendBtn = document.getElementById('send-guidance');
   const guidance = inputEl.value.trim();
 
   if (!guidance) return;
@@ -362,17 +364,99 @@ document.getElementById('send-guidance').addEventListener('click', () => {
   const villagerId = parseInt(panel.dataset.villagerId);
   const villager = villagers.find(v => v.id === villagerId);
 
-  if (villager) {
-    // In Phase 1, just show the response. In Phase 2, this goes to the AI.
+  if (!villager) { panel.classList.add('hidden'); return; }
+
+  addEvent(`You counseled ${villager.name}: "${guidance.substring(0, 60)}${guidance.length > 60 ? '...' : ''}"`, 'guidance');
+  gameState.faith = Math.min(100, gameState.faith + 3);
+
+  if (isAiEnabled()) {
+    // Show thinking state
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Interpreting...';
+    villager.speech = '* pondering your words... *';
+    villager.speechTimer = 30;
+
+    const question = document.getElementById('villager-question').textContent;
+    const interpreted = await getGuidanceResponse(villager, question, guidance);
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Counsel';
+
+    if (interpreted) {
+      villager.speech = interpreted;
+      villager.speechTimer = 8;
+      addEvent(`${villager.name} interprets: "${interpreted.substring(0, 80)}${interpreted.length > 80 ? '...' : ''}"`, 'guidance');
+    } else {
+      villager.speech = `The Voice says: "${guidance.substring(0, 40)}${guidance.length > 40 ? '...' : ''}"`;
+      villager.speechTimer = 5;
+    }
+  } else {
     villager.speech = `The Voice says: "${guidance.substring(0, 40)}${guidance.length > 40 ? '...' : ''}"`;
     villager.speechTimer = 5;
-    villager.state = 'idle';
-    villager.stateTimer = 3;
-    addEvent(`You counseled ${villager.name}: "${guidance.substring(0, 60)}${guidance.length > 60 ? '...' : ''}"`, 'guidance');
-    gameState.faith = Math.min(100, gameState.faith + 3);
   }
 
+  villager.state = 'idle';
+  villager.stateTimer = 3;
   panel.classList.add('hidden');
+});
+
+// --- Settings Panel ---
+document.getElementById('btn-settings').addEventListener('click', () => {
+  const overlay = document.getElementById('settings-overlay');
+  const keyInput = document.getElementById('openai-key');
+  const modelSelect = document.getElementById('openai-model');
+  keyInput.value = getApiKey();
+  modelSelect.value = getModel();
+  document.getElementById('test-result').textContent = '';
+  overlay.classList.remove('hidden');
+});
+
+document.getElementById('close-settings').addEventListener('click', () => {
+  document.getElementById('settings-overlay').classList.add('hidden');
+});
+
+document.getElementById('save-settings').addEventListener('click', () => {
+  setApiKey(document.getElementById('openai-key').value);
+  setModel(document.getElementById('openai-model').value);
+  document.getElementById('settings-overlay').classList.add('hidden');
+  if (isAiEnabled()) {
+    addEvent('AI guidance enabled. Villagers will now interpret your counsel.', 'discovery');
+  }
+});
+
+document.getElementById('toggle-key-vis').addEventListener('click', () => {
+  const input = document.getElementById('openai-key');
+  const btn = document.getElementById('toggle-key-vis');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = 'Hide';
+  } else {
+    input.type = 'password';
+    btn.textContent = 'Show';
+  }
+});
+
+document.getElementById('test-connection').addEventListener('click', async () => {
+  const resultEl = document.getElementById('test-result');
+  const btn = document.getElementById('test-connection');
+  // Temporarily save the key for testing
+  setApiKey(document.getElementById('openai-key').value);
+  setModel(document.getElementById('openai-model').value);
+
+  btn.disabled = true;
+  resultEl.textContent = 'Testing...';
+  resultEl.className = '';
+
+  const result = await testConnection();
+  btn.disabled = false;
+
+  if (result.ok) {
+    resultEl.textContent = 'Connected!';
+    resultEl.className = 'success';
+  } else {
+    resultEl.textContent = result.error;
+    resultEl.className = 'error';
+  }
 });
 
 // --- UI Updates ---
