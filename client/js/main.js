@@ -4,7 +4,8 @@
  */
 
 import { generateMap, TILE, TILE_INFO, hasAdjacentTile } from './map.js';
-import { createVillagers, updateVillagers, drawVillager } from './villager.js';
+import { createVillagers, updateVillagers, drawVillager, promoteToKnight } from './villager.js';
+import { preloadSprites } from './sprites.js';
 import { getDayNightState, applyDayNightOverlay, drawPointLight, PHASES } from './daynight.js';
 import { drawBuildings, getBuildingLights, BUILDING_DEFS, BUILDING_COSTS } from './buildings.js';
 import { drawMinimap } from './minimap.js';
@@ -454,6 +455,37 @@ function processTick() {
     }
   }
 
+  // Knight promotion: after watchtower is built, villagers may consider becoming knights
+  const hasWatchtower = buildings.some(b => b.type === 'watchtower');
+  if (hasWatchtower && Math.random() < 0.02 && phase === PHASES.DAY) {
+    const candidates = villagers.filter(v =>
+      v.vclass !== 'knight' && v.state === 'idle' && v.stats.strength >= 5
+    );
+    if (candidates.length > 0) {
+      const candidate = candidates[Math.floor(Math.random() * candidates.length)];
+      // The villager contemplates becoming a knight
+      const thoughts = [
+        "The watchtower stands tall... perhaps I should take up the sword.",
+        "I could serve the village better as a knight.",
+        "The darkness grows. Someone must defend us.",
+        "I feel called to protect this village.",
+      ];
+      candidate.speech = thoughts[Math.floor(Math.random() * thoughts.length)];
+      candidate.speechTimer = 4;
+
+      // After contemplation, they become a knight
+      setTimeout(() => {
+        if (candidate.vclass !== 'knight') {
+          const oldClass = candidate.classLabel;
+          promoteToKnight(candidate);
+          addEvent(`${candidate.name} the ${oldClass} has become a Knight!`, 'discovery');
+          candidate.speech = '* dons armor *';
+          candidate.speechTimer = 3;
+        }
+      }, 4000);
+    }
+  }
+
   // Random villager seeking guidance (for demo)
   if (Math.random() < 0.03 && phase !== PHASES.NIGHT) {
     const seeker = villagers[Math.floor(Math.random() * villagers.length)];
@@ -482,6 +514,11 @@ function showGuidanceRequest(villager) {
       "We're running low on timber. Should I venture further to find better trees?",
       "I could reinforce the walls or build another house. Which is more urgent?",
       "The foundation here is soft. Should I build anyway or find a better spot?",
+    ],
+    knight: [
+      "I've spotted movement in the shadows. Should I investigate alone or rally others?",
+      "My armor grows heavy but the watch must continue. Should I rest or stand guard?",
+      "A fellow villager questions my path. How do I convince them of its worth?",
     ],
   };
 
@@ -859,6 +896,9 @@ function gameLoop(now) {
 }
 
 // --- Start ---
+preloadSprites().then(() => {
+  console.log('Sprites loaded');
+});
 updateUI();
 requestAnimationFrame(gameLoop);
 

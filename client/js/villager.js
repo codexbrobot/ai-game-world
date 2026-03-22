@@ -3,6 +3,7 @@
  */
 
 import { TILE, TILE_INFO, hasAdjacentTile } from './map.js';
+import { drawSprite } from './sprites.js';
 
 const PERSONALITY_TYPES = [
   'Stalwart', 'Skeptic', 'Dreamer', 'Coward', 'Zealot', 'Pragmatist'
@@ -56,6 +57,14 @@ const CLASSES = {
 };
 const CLASS_KEYS = Object.keys(CLASSES);
 
+// Knight class — unlocked after watchtower is built, not in starting pool
+export const KNIGHT_CLASS = {
+  label: 'Knight',
+  statBonuses: { speed: 1, strength: 3, charisma: 0 },
+  role: 'knight',
+  colors: { tunic: '#8a5a3a', cloak: '#5a3a2a' },
+};
+
 // Fallback role colors for roles not tied to a class
 const ROLE_COLORS = {
   elder:      { tunic: '#6a3a8a', cloak: '#4a2a6a' },
@@ -64,6 +73,7 @@ const ROLE_COLORS = {
   blacksmith: { tunic: '#5a4a3a', cloak: '#3a3a2a' },
   healer:     { tunic: '#e8e8d8', cloak: '#b8b8a8' },
   builder:    { tunic: '#7a6a3a', cloak: '#5a4a2a' },
+  knight:     { tunic: '#8a5a3a', cloak: '#5a3a2a' },
   farmer:     { tunic: '#8a7a4a', cloak: '#6a5a3a' },
   villager:   { tunic: '#6a6a5a', cloak: '#4a4a3a' },
 };
@@ -149,6 +159,7 @@ export function createVillagers(count, mapCenter, seed = 123) {
       state: 'idle',
       stateTimer: Math.floor(rng() * 60),
       facing: rng() < 0.5 ? 1 : -1,
+      dirRow: 0, // sprite direction: 0=down, 1=left, 2=right, 3=up
 
       // Animation
       walkFrame: 0,
@@ -378,6 +389,13 @@ function moveToward(v, dt) {
   v.x += (dx / dist) * speed * dt;
   v.y += (dy / dist) * speed * dt;
   v.facing = dx > 0 ? 1 : -1;
+
+  // Update sprite direction row based on dominant movement axis
+  if (Math.abs(dx) > Math.abs(dy)) {
+    v.dirRow = dx > 0 ? 2 : 1; // right : left
+  } else {
+    v.dirRow = dy > 0 ? 0 : 3; // down : up
+  }
 }
 
 function tileAt(tiles, x, y, mapSize) {
@@ -392,6 +410,7 @@ function getIdleChat(v) {
     hunter: ["Tracks to the north...", "The forest feels wrong.", "I should venture further.", "Game is scarce lately."],
     miner: ["* hammering *", "Need more iron.", "This vein looks promising.", "The stone speaks to those who listen."],
     builder: ["Need more timber.", "* measuring *", "This wall needs shoring up.", "A good foundation is everything."],
+    knight: ["I stand ready.", "The watch never ends.", "For the village!", "* patrolling *"],
   };
   const chatsByRace = {
     human: ["Strange times...", "Did you hear that?", "The Voice watches over us."],
@@ -399,6 +418,15 @@ function getIdleChat(v) {
   };
   const options = chatsByClass[v.vclass] || chatsByRace[v.race] || chatsByRace.human;
   return options[Math.floor(Math.random() * options.length)];
+}
+
+/**
+ * Get the sprite name for a villager based on race and class.
+ * Humans use peasant, dwarves use ronin, knights use paladin.
+ */
+function getSpriteKey(v) {
+  if (v.vclass === 'knight') return 'paladin';
+  return v.race === 'dwarf' ? 'ronin' : 'peasant';
 }
 
 /**
@@ -411,69 +439,41 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
   // Skip if off-screen
   if (screenX < -tileSize * 2 || screenY < -tileSize * 2) return;
 
-  const isDwarf = v.race === 'dwarf';
-  const s = isDwarf ? tileSize * 0.8 : tileSize; // dwarves are shorter
-  const dwarfYOffset = isDwarf ? tileSize * 0.2 : 0; // shift down so feet align
-  const bobY = v.state === 'walking' ? Math.sin(v.bobOffset) * 2 : 0;
-  const workBob = (v.state === 'working' || v.state === 'building') ? Math.sin(v.bobOffset * 2) * 1.5 : 0;
+  const s = tileSize;
+  const bobY = v.state === 'walking' ? Math.sin(v.bobOffset) * 1.5 : 0;
 
   ctx.save();
-  ctx.translate(screenX, screenY + bobY + dwarfYOffset);
+
+  // Determine sprite animation state and frame
+  const spriteKey = getSpriteKey(v);
+  const isMoving = v.state === 'walking';
+  const animState = isMoving ? 'walk' : 'idle';
+  const frame = isMoving ? (Math.floor(v.walkTimer * 5) % 4) : (Math.floor(v.bobOffset * 0.5) % 4);
+  const dirRow = v.dirRow || 0;
+
+  // Sprite scale: render 16px sprite to fill ~tileSize with some padding
+  const spriteScale = tileSize / 16 * 1.2;
 
   if (v.state === 'sleeping') {
-    // Draw sleeping villager (lying down)
-    ctx.fillStyle = v.colors.tunic;
-    ctx.fillRect(-s * 0.4, s * 0.1, s * 0.8, s * 0.25);
-    ctx.fillStyle = v.skinTone;
-    ctx.beginPath();
-    ctx.arc(-s * 0.3, s * 0.2, s * 0.12, 0, Math.PI * 2);
-    ctx.fill();
+    // Draw sleeping: show idle frame 0 with reduced alpha + zzz
+    ctx.globalAlpha = 0.5;
+    drawSprite(ctx, spriteKey, 'idle', 0, 0,
+      screenX, screenY + s * 0.5, spriteScale);
+    ctx.globalAlpha = 1;
 
     // Zzz
     const zzAlpha = 0.5 + Math.sin(v.bobOffset) * 0.3;
     ctx.globalAlpha = zzAlpha;
     ctx.fillStyle = '#aaa';
     ctx.font = `${s * 0.3}px serif`;
-    ctx.fillText('z', s * 0.1, -s * 0.1);
+    ctx.fillText('z', screenX + s * 0.15, screenY - s * 0.2);
     ctx.font = `${s * 0.22}px serif`;
-    ctx.fillText('z', s * 0.25, -s * 0.25);
+    ctx.fillText('z', screenX + s * 0.3, screenY - s * 0.4);
     ctx.globalAlpha = 1;
   } else {
-    // Body (tunic)
-    ctx.fillStyle = v.colors.tunic;
-    const tunicW = s * 0.4;
-    const tunicH = s * 0.35;
-    ctx.fillRect(-tunicW / 2, -s * 0.05 + workBob, tunicW, tunicH);
-
-    // Cloak / shoulders
-    ctx.fillStyle = v.colors.cloak;
-    ctx.fillRect(-tunicW / 2 - 2, -s * 0.05 + workBob, tunicW + 4, s * 0.1);
-
-    // Head
-    ctx.fillStyle = v.skinTone;
-    ctx.beginPath();
-    ctx.arc(0, -s * 0.18 + workBob, s * 0.14, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eyes (tiny dots)
-    ctx.fillStyle = '#222';
-    const eyeX = v.facing * s * 0.04;
-    ctx.fillRect(eyeX - 1, -s * 0.2 + workBob, 2, 2);
-    ctx.fillRect(eyeX + s * 0.06, -s * 0.2 + workBob, 2, 2);
-
-    // Legs (walking animation)
-    ctx.fillStyle = '#3a3a2a';
-    if (v.state === 'walking') {
-      const legSwing = Math.sin(v.walkTimer * 8) * s * 0.1;
-      ctx.fillRect(-s * 0.08 + legSwing, s * 0.3, s * 0.06, s * 0.15);
-      ctx.fillRect(s * 0.02 - legSwing, s * 0.3, s * 0.06, s * 0.15);
-    } else {
-      ctx.fillRect(-s * 0.08, s * 0.3 + workBob, s * 0.06, s * 0.12);
-      ctx.fillRect(s * 0.02, s * 0.3 + workBob, s * 0.06, s * 0.12);
-    }
-
-    // Role-specific props
-    drawRoleProp(ctx, v, s, workBob);
+    // Draw the sprite
+    drawSprite(ctx, spriteKey, animState, dirRow, frame,
+      screenX, screenY + s * 0.5 + bobY, spriteScale);
   }
 
   // Name tag
@@ -482,9 +482,9 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
   const nameStr = v.name;
   const nameWidth = ctx.measureText(nameStr).width;
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(-nameWidth / 2 - 2, -s * 0.5, nameWidth + 4, s * 0.25);
+  ctx.fillRect(screenX - nameWidth / 2 - 2, screenY - s * 0.6, nameWidth + 4, s * 0.25);
   ctx.fillStyle = '#fff';
-  ctx.fillText(nameStr, 0, -s * 0.32);
+  ctx.fillText(nameStr, screenX, screenY - s * 0.42);
 
   // Speech bubble
   if (v.speech && v.speechTimer > 0) {
@@ -493,57 +493,26 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
     ctx.font = `${Math.max(8, s * 0.25)}px sans-serif`;
     const sw = ctx.measureText(v.speech).width;
     ctx.fillStyle = 'rgba(255,255,240,0.9)';
-    ctx.fillRect(-sw / 2 - 4, -s * 0.85, sw + 8, s * 0.3);
+    ctx.fillRect(screenX - sw / 2 - 4, screenY - s * 0.95, sw + 8, s * 0.3);
     ctx.fillStyle = '#222';
     ctx.textAlign = 'center';
-    ctx.fillText(v.speech, 0, -s * 0.65);
+    ctx.fillText(v.speech, screenX, screenY - s * 0.75);
     ctx.globalAlpha = 1;
   }
 
   ctx.restore();
 }
 
-function drawRoleProp(ctx, v, s, workBob) {
-  // Draw props based on class
-  switch (v.vclass) {
-    case 'hunter':
-      // Bow
-      ctx.strokeStyle = '#6a4a2a';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(v.facing * s * 0.3, s * 0.05 + workBob, s * 0.2, -0.8, 0.8);
-      ctx.stroke();
-      // String
-      ctx.strokeStyle = '#aaa';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(v.facing * s * 0.3 + Math.cos(-0.8) * s * 0.2, s * 0.05 + workBob + Math.sin(-0.8) * s * 0.2);
-      ctx.lineTo(v.facing * s * 0.3 + Math.cos(0.8) * s * 0.2, s * 0.05 + workBob + Math.sin(0.8) * s * 0.2);
-      ctx.stroke();
-      break;
-    case 'miner':
-      // Pickaxe
-      ctx.fillStyle = '#8a6a3a';
-      ctx.fillRect(v.facing * s * 0.2, -s * 0.1 + workBob, s * 0.05, s * 0.3);
-      ctx.fillStyle = '#666';
-      ctx.fillRect(v.facing * s * 0.13, -s * 0.15 + workBob, s * 0.18, s * 0.07);
-      break;
-    case 'builder':
-      // Hammer
-      ctx.fillStyle = '#6a5a3a';
-      ctx.fillRect(v.facing * s * 0.2, -s * 0.05 + workBob, s * 0.04, s * 0.28);
-      ctx.fillStyle = '#888';
-      ctx.fillRect(v.facing * s * 0.14, -s * 0.1 + workBob, s * 0.15, s * 0.08);
-      break;
-  }
-
-  // Dwarf beard
-  if (v.race === 'dwarf') {
-    ctx.fillStyle = '#8a6a3a';
-    ctx.beginPath();
-    ctx.moveTo(-s * 0.08, -s * 0.08 + workBob);
-    ctx.lineTo(s * 0.08, -s * 0.08 + workBob);
-    ctx.lineTo(0, s * 0.06 + workBob);
-    ctx.fill();
-  }
+/**
+ * Promote a villager to Knight class.
+ * Called from main.js when a villager decides to become a knight.
+ */
+export function promoteToKnight(v) {
+  v.vclass = 'knight';
+  v.classLabel = KNIGHT_CLASS.label;
+  v.role = KNIGHT_CLASS.role;
+  v.colors = KNIGHT_CLASS.colors;
+  // Apply stat bonus difference (remove old class bonus, add knight bonus)
+  // For simplicity, just add +2 strength since knight is a promotion
+  v.stats.strength = Math.min(10, v.stats.strength + 2);
 }
