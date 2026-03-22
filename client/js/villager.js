@@ -2,7 +2,7 @@
  * Villager simulation — sprites that wander, work, and idle in the village.
  */
 
-import { TILE, TILE_INFO } from './map.js';
+import { TILE, TILE_INFO, hasAdjacentTile } from './map.js';
 
 const PERSONALITY_TYPES = [
   'Stalwart', 'Skeptic', 'Dreamer', 'Coward', 'Zealot', 'Pragmatist'
@@ -12,7 +12,7 @@ const PERSONALITY_TYPES = [
 const RACES = {
   human: {
     label: 'Human',
-    baseStats: { speed: 5, strength: 5, charisma: 5 },
+    baseStats: { speed: 5, strength: 5, charisma: 5, hp: 10 },
     names: [
       'Aldric', 'Elena', 'Bram', 'Isolde', 'Theron', 'Mira',
       'Gareth', 'Rowena', 'Cedric', 'Lyra', 'Osmund', 'Freya',
@@ -22,7 +22,7 @@ const RACES = {
   },
   dwarf: {
     label: 'Dwarf',
-    baseStats: { speed: 3, strength: 7, charisma: 4 },
+    baseStats: { speed: 3, strength: 7, charisma: 4, hp: 12 },
     names: [
       'Durgan', 'Bruni', 'Thorek', 'Helga', 'Grimli', 'Agna',
       'Balin', 'Dotta', 'Nori', 'Hilda', 'Dwalin', 'Sigrun',
@@ -47,6 +47,12 @@ const CLASSES = {
     role: 'blacksmith',
     colors: { tunic: '#5a4a3a', cloak: '#3a3a2a' },
   },
+  builder: {
+    label: 'Builder',
+    statBonuses: { speed: 1, strength: 1, charisma: 1 },
+    role: 'builder',
+    colors: { tunic: '#7a6a3a', cloak: '#5a4a2a' },
+  },
 };
 const CLASS_KEYS = Object.keys(CLASSES);
 
@@ -57,6 +63,7 @@ const ROLE_COLORS = {
   scout:      { tunic: '#3a6a3a', cloak: '#2a4a2a' },
   blacksmith: { tunic: '#5a4a3a', cloak: '#3a3a2a' },
   healer:     { tunic: '#e8e8d8', cloak: '#b8b8a8' },
+  builder:    { tunic: '#7a6a3a', cloak: '#5a4a2a' },
   farmer:     { tunic: '#8a7a4a', cloak: '#6a5a3a' },
   villager:   { tunic: '#6a6a5a', cloak: '#4a4a3a' },
 };
@@ -111,6 +118,8 @@ export function createVillagers(count, mapCenter, seed = 123) {
     // The class determines the functional role for behavior
     const role = cls.role;
 
+    const maxHp = race.baseStats.hp;
+
     villagers.push({
       id: i,
       name,
@@ -125,6 +134,8 @@ export function createVillagers(count, mapCenter, seed = 123) {
 
       // Stats
       stats,
+      hp: maxHp,
+      maxHp,
 
       // Position (in tile coords, fractional for smooth movement)
       x: mapCenter + (rng() - 0.5) * 6,
@@ -150,6 +161,9 @@ export function createVillagers(count, mapCenter, seed = 123) {
       intelligence: 30 + Math.floor(rng() * 50),
       loyalty: 50 + Math.floor(rng() * 40),
 
+      // Builder target
+      buildTarget: null,
+
       // Speech bubble
       speech: null,
       speechTimer: 0,
@@ -161,9 +175,12 @@ export function createVillagers(count, mapCenter, seed = 123) {
 
 /**
  * Update all villagers for one frame.
+ * Returns array of completed build events: [{ villager, building }]
  */
 export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
   const isNight = timeOfDay === 'night';
+  const isDay = timeOfDay === 'day' || timeOfDay === 'dawn';
+  const completedBuilds = [];
 
   for (const v of villagers) {
     v.stateTimer -= dt;
@@ -191,8 +208,17 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
             v.stateTimer = 5 + Math.random() * 10;
             v.speech = '* sleeping *';
             v.speechTimer = 2;
+          } else if (isDay && !v.buildTarget) {
+            // During day, try to find a work-appropriate tile
+            pickWorkTarget(v, tiles, mapSize);
+            v.state = 'walking';
+          } else if (v.buildTarget) {
+            // Builder has an assigned build target
+            v.targetX = v.buildTarget.x + 0.5;
+            v.targetY = v.buildTarget.y + 0.5;
+            v.facing = v.buildTarget.x > v.x ? 1 : -1;
+            v.state = 'walking';
           } else {
-            // Pick a random nearby walkable tile
             pickWanderTarget(v, tiles, mapSize);
             v.state = 'walking';
           }
@@ -212,24 +238,32 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
           v.targetX = null;
           v.targetY = null;
 
+          const currentTile = tileAt(tiles, v.x, v.y, mapSize);
+
           // After arriving, do something based on role
-          if (v.vclass === 'hunter' && tileAt(tiles, v.x, v.y, mapSize) === TILE.FARM) {
+          if (v.vclass === 'hunter' && (currentTile === TILE.FOREST || currentTile === TILE.FARM)) {
             v.state = 'working';
             v.stateTimer = 4 + Math.random() * 6;
-            v.speech = '* hunting *';
+            v.speech = currentTile === TILE.FOREST ? '* hunting in forest *' : '* gathering crops *';
             v.speechTimer = 2;
-          } else if (v.vclass === 'miner' && (tileAt(tiles, v.x, v.y, mapSize) === TILE.IRON || tileAt(tiles, v.x, v.y, mapSize) === TILE.STONE)) {
+          } else if (v.vclass === 'miner' && hasAdjacentTile(tiles, Math.floor(v.x), Math.floor(v.y), mapSize, TILE.STONE, TILE.IRON)) {
             v.state = 'working';
             v.stateTimer = 4 + Math.random() * 6;
             v.speech = '* mining *';
             v.speechTimer = 2;
-          } else if (v.vclass === 'hunter') {
-            v.state = 'idle';
-            v.stateTimer = 1 + Math.random() * 2;
+          } else if (v.vclass === 'builder' && v.buildTarget) {
+            v.state = 'building';
+            v.stateTimer = 6 + Math.random() * 4;
+            v.speech = `* building ${v.buildTarget.type} *`;
+            v.speechTimer = 3;
+          } else if (v.vclass === 'builder' && currentTile === TILE.FOREST) {
+            v.state = 'working';
+            v.stateTimer = 3 + Math.random() * 4;
+            v.speech = '* chopping wood *';
+            v.speechTimer = 2;
           } else {
             v.state = 'idle';
-            v.stateTimer = 2 + Math.random() * 5;
-            // Occasionally say something
+            v.stateTimer = 1 + Math.random() * 3;
             if (Math.random() < 0.1) {
               v.speech = getIdleChat(v);
               v.speechTimer = 3;
@@ -245,6 +279,19 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
         }
         break;
 
+      case 'building':
+        if (v.stateTimer <= 0) {
+          if (v.buildTarget) {
+            completedBuilds.push({ villager: v, building: v.buildTarget });
+            v.buildTarget = null;
+          }
+          v.state = 'idle';
+          v.stateTimer = 2 + Math.random() * 3;
+          v.speech = '* done building *';
+          v.speechTimer = 2;
+        }
+        break;
+
       case 'sleeping':
         if (v.stateTimer <= 0 || !isNight) {
           v.state = 'idle';
@@ -255,11 +302,54 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
         break;
     }
   }
+
+  return completedBuilds;
+}
+
+/**
+ * Pick a work-appropriate target tile for the villager's class.
+ * Hunters seek FOREST/FARM, miners seek tiles adjacent to STONE/IRON,
+ * builders seek FOREST for wood gathering.
+ */
+function pickWorkTarget(v, tiles, mapSize) {
+  const range = v.vclass === 'hunter' ? 8 : v.vclass === 'builder' ? 6 : 5;
+  const targetTiles = [];
+
+  // Collect candidate tiles
+  const cx = Math.floor(v.x);
+  const cy = Math.floor(v.y);
+  for (let dy = -range; dy <= range; dy++) {
+    for (let dx = -range; dx <= range; dx++) {
+      const tx = cx + dx;
+      const ty = cy + dy;
+      if (tx < 0 || ty < 0 || tx >= mapSize || ty >= mapSize) continue;
+      const tile = tiles[ty][tx];
+      if (!TILE_INFO[tile]?.walkable) continue;
+
+      if (v.vclass === 'hunter' && (tile === TILE.FOREST || tile === TILE.FARM)) {
+        targetTiles.push({ x: tx, y: ty });
+      } else if (v.vclass === 'miner' && hasAdjacentTile(tiles, tx, ty, mapSize, TILE.STONE, TILE.IRON)) {
+        targetTiles.push({ x: tx, y: ty });
+      } else if (v.vclass === 'builder' && tile === TILE.FOREST) {
+        targetTiles.push({ x: tx, y: ty });
+      }
+    }
+  }
+
+  if (targetTiles.length > 0) {
+    const target = targetTiles[Math.floor(Math.random() * targetTiles.length)];
+    v.targetX = target.x + 0.5;
+    v.targetY = target.y + 0.5;
+    v.facing = target.x > v.x ? 1 : -1;
+    return;
+  }
+
+  // Fallback: random wander
+  pickWanderTarget(v, tiles, mapSize);
 }
 
 function pickWanderTarget(v, tiles, mapSize) {
-  // Pick a random walkable tile within range
-  const range = v.vclass === 'hunter' ? 8 : 4;
+  const range = v.vclass === 'hunter' ? 8 : v.vclass === 'builder' ? 6 : 4;
   for (let attempt = 0; attempt < 10; attempt++) {
     const tx = Math.floor(v.x + (Math.random() - 0.5) * range * 2);
     const ty = Math.floor(v.y + (Math.random() - 0.5) * range * 2);
@@ -273,7 +363,6 @@ function pickWanderTarget(v, tiles, mapSize) {
       }
     }
   }
-  // Couldn't find a target, stay idle
   v.targetX = null;
   v.state = 'idle';
   v.stateTimer = 2;
@@ -302,6 +391,7 @@ function getIdleChat(v) {
   const chatsByClass = {
     hunter: ["Tracks to the north...", "The forest feels wrong.", "I should venture further.", "Game is scarce lately."],
     miner: ["* hammering *", "Need more iron.", "This vein looks promising.", "The stone speaks to those who listen."],
+    builder: ["Need more timber.", "* measuring *", "This wall needs shoring up.", "A good foundation is everything."],
   };
   const chatsByRace = {
     human: ["Strange times...", "Did you hear that?", "The Voice watches over us."],
@@ -325,7 +415,7 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
   const s = isDwarf ? tileSize * 0.8 : tileSize; // dwarves are shorter
   const dwarfYOffset = isDwarf ? tileSize * 0.2 : 0; // shift down so feet align
   const bobY = v.state === 'walking' ? Math.sin(v.bobOffset) * 2 : 0;
-  const workBob = v.state === 'working' ? Math.sin(v.bobOffset * 2) * 1.5 : 0;
+  const workBob = (v.state === 'working' || v.state === 'building') ? Math.sin(v.bobOffset * 2) * 1.5 : 0;
 
   ctx.save();
   ctx.translate(screenX, screenY + bobY + dwarfYOffset);
@@ -437,6 +527,13 @@ function drawRoleProp(ctx, v, s, workBob) {
       ctx.fillRect(v.facing * s * 0.2, -s * 0.1 + workBob, s * 0.05, s * 0.3);
       ctx.fillStyle = '#666';
       ctx.fillRect(v.facing * s * 0.13, -s * 0.15 + workBob, s * 0.18, s * 0.07);
+      break;
+    case 'builder':
+      // Hammer
+      ctx.fillStyle = '#6a5a3a';
+      ctx.fillRect(v.facing * s * 0.2, -s * 0.05 + workBob, s * 0.04, s * 0.28);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(v.facing * s * 0.14, -s * 0.1 + workBob, s * 0.15, s * 0.08);
       break;
   }
 

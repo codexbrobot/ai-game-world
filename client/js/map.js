@@ -196,10 +196,6 @@ export function generateMap(size, seed = 42) {
     { x: center, y: center, type: 'chapel', w: 2, h: 2 },
     { x: center - 3, y: center - 1, type: 'house', w: 1, h: 1 },
     { x: center + 2, y: center - 1, type: 'house', w: 1, h: 1 },
-    { x: center - 2, y: center + 2, type: 'house', w: 1, h: 1 },
-    { x: center + 1, y: center + 2, type: 'workshop', w: 2, h: 1 },
-    { x: center - 1, y: center - 3, type: 'house', w: 1, h: 1 },
-    { x: center + 3, y: center + 1, type: 'healer', w: 1, h: 1 },
   ];
 
   for (const b of buildingSpots) {
@@ -207,4 +203,43 @@ export function generateMap(size, seed = 42) {
   }
 
   return { tiles, buildings, resourceNodes };
+}
+
+/**
+ * Check if a tile at (x,y) has an adjacent tile (4-directional) matching any of the given types.
+ */
+export function hasAdjacentTile(tiles, x, y, mapSize, ...tileTypes) {
+  const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  for (const [dx, dy] of dirs) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < mapSize && ny < mapSize) {
+      if (tileTypes.includes(tiles[ny][nx])) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Find the nearest walkable tile within range that is adjacent to a tile of the given type.
+ */
+export function findNearbyTileAdjacentTo(tiles, cx, cy, mapSize, tileType, range) {
+  let best = null;
+  let bestDist = Infinity;
+  for (let dy = -range; dy <= range; dy++) {
+    for (let dx = -range; dx <= range; dx++) {
+      const tx = cx + dx;
+      const ty = cy + dy;
+      if (tx < 0 || ty < 0 || tx >= mapSize || ty >= mapSize) continue;
+      if (!TILE_INFO[tiles[ty][tx]]?.walkable) continue;
+      if (hasAdjacentTile(tiles, tx, ty, mapSize, tileType)) {
+        const dist = dx * dx + dy * dy;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = { x: tx, y: ty };
+        }
+      }
+    }
+  }
+  return best;
 }

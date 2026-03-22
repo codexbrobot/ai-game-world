@@ -12,17 +12,21 @@
     <div id="ui-overlay">
       <canvas id="minimap-canvas" width="180" height="180"></canvas>
       <div id="resource-bar">
-        <span id="res-wood">Wood: 50</span>
-        <span id="res-stone">Stone: 30</span>
-        <span id="res-food">Food: 40</span>
-        <span id="res-iron">Iron: 5</span>
+        <span id="res-wood">Wood: 30</span>
+        <span id="res-stone">Stone: 15</span>
+        <span id="res-food">Food: 30</span>
+        <span id="res-iron">Iron: 0</span>
       </div>
       <div id="time-display">Day 1 — Dawn</div>
       <div id="faith-bar">
         <div id="faith-label">Faith</div>
         <div id="faith-track"><div id="faith-fill"></div></div>
       </div>
-      <div id="villager-count">Villagers: 8</div>
+      <div id="villager-count">Villagers: 12</div>
+      <div id="food-tracker">
+        <div id="food-tracker-label">Food: <span id="food-current">30</span> / <span id="food-needed">12</span> needed</div>
+        <div id="food-tracker-bar"><div id="food-tracker-fill"></div></div>
+      </div>
       <div id="tick-controls">
         <button id="btn-pause">⏸</button>
         <button id="btn-speed1" class="active">▶</button>

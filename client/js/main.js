@@ -3,10 +3,10 @@
  * Integrates map, villagers, buildings, day/night cycle, minimap, and UI.
  */
 
-import { generateMap, TILE, TILE_INFO } from './map.js';
+import { generateMap, TILE, TILE_INFO, hasAdjacentTile } from './map.js';
 import { createVillagers, updateVillagers, drawVillager } from './villager.js';
 import { getDayNightState, applyDayNightOverlay, drawPointLight, PHASES } from './daynight.js';
-import { drawBuildings, getBuildingLights } from './buildings.js';
+import { drawBuildings, getBuildingLights, BUILDING_DEFS, BUILDING_COSTS } from './buildings.js';
 import { drawMinimap } from './minimap.js';
 import { createInputHandler } from './input.js';
 import { getApiKey, setApiKey, getModel, setModel, isAiEnabled, testConnection, getGuidanceResponse } from './ai.js';
@@ -27,7 +27,7 @@ const gameState = {
   day: 1,
   tick: 23,       // Start at dawn
   tickAccumulator: 0,
-  resources: { wood: 50, stone: 30, food: 40, iron: 5, herbs: 10 },
+  resources: { wood: 30, stone: 15, food: 30, iron: 0, herbs: 5 },
   faith: 70,
   events: [],
 };
@@ -259,6 +259,107 @@ function updateCamera(dt) {
   camera.y = Math.max(0, Math.min(camera.y, maxY));
 }
 
+function tileAt(tiles, x, y, mapSize) {
+  const tx = Math.floor(x);
+  const ty = Math.floor(y);
+  if (tx < 0 || ty < 0 || tx >= mapSize || ty >= mapSize) return -1;
+  return tiles[ty][tx];
+}
+
+function canAfford(buildingType, resources) {
+  const costs = BUILDING_COSTS[buildingType]?.cost;
+  if (!costs) return false;
+  for (const [res, amt] of Object.entries(costs)) {
+    if ((resources[res] || 0) < amt) return false;
+  }
+  return true;
+}
+
+function tryAssignBuild(builder, buildings, gameState, tiles, mapSize) {
+  const center = Math.floor(mapSize / 2);
+  const houseCount = buildings.filter(b => b.type === 'house').length;
+  const farmCount = buildings.filter(b => b.type === 'farm').length;
+  const hasWorkshop = buildings.some(b => b.type === 'workshop');
+  const hasWatchtower = buildings.some(b => b.type === 'watchtower');
+  const hasStorehouse = buildings.some(b => b.type === 'storehouse');
+  const wallCount = buildings.filter(b => b.type === 'wall').length;
+  const hasMiners = villagers.some(v => v.vclass === 'miner');
+  const hasHunters = villagers.some(v => v.vclass === 'hunter');
+  const totalResources = Object.values(gameState.resources).reduce((a, b) => a + b, 0);
+
+  // Sorted by priority
+  const needs = [
+    { type: 'house', needed: villagers.length >= houseCount * 2 },
+    { type: 'farm', needed: farmCount < 4 },
+    { type: 'workshop', needed: !hasWorkshop && hasMiners },
+    { type: 'watchtower', needed: !hasWatchtower && hasHunters },
+    { type: 'wall', needed: wallCount < 6 },
+    { type: 'storehouse', needed: !hasStorehouse && totalResources > 80 },
+  ];
+
+  for (const need of needs) {
+    if (!need.needed) continue;
+    if (!canAfford(need.type, gameState.resources)) continue;
+
+    // Find a valid build site near center
+    const def = BUILDING_DEFS[need.type] || { w: 1, h: 1 };
+    const site = findBuildSite(tiles, buildings, center, mapSize, def.w, def.h);
+    if (!site) continue;
+
+    // Deduct resources
+    const costs = BUILDING_COSTS[need.type].cost;
+    for (const [res, amt] of Object.entries(costs)) {
+      gameState.resources[res] -= amt;
+    }
+
+    builder.buildTarget = { type: need.type, x: site.x, y: site.y };
+    builder.targetX = site.x + 0.5;
+    builder.targetY = site.y + 0.5;
+    builder.facing = site.x > builder.x ? 1 : -1;
+    builder.state = 'walking';
+    return true;
+  }
+  return false;
+}
+
+function findBuildSite(tiles, buildings, center, mapSize, bw, bh) {
+  // Search in expanding rings from center
+  for (let ring = 2; ring < 8; ring++) {
+    for (let dy = -ring; dy <= ring; dy++) {
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue; // only ring edges
+        const tx = center + dx;
+        const ty = center + dy;
+        if (tx < 0 || ty < 0 || tx + bw > mapSize || ty + bh > mapSize) continue;
+
+        // Check all tiles the building would occupy
+        let valid = true;
+        for (let by = 0; by < bh && valid; by++) {
+          for (let bx = 0; bx < bw && valid; bx++) {
+            const tile = tiles[ty + by][tx + bx];
+            if (tile !== TILE.VILLAGE_GROUND && tile !== TILE.GRASS) valid = false;
+          }
+        }
+        if (!valid) continue;
+
+        // Check no existing building overlaps
+        let overlap = false;
+        for (const b of buildings) {
+          const bDef = BUILDING_DEFS[b.type] || { w: 1, h: 1 };
+          if (tx < b.x + bDef.w && tx + bw > b.x && ty < b.y + bDef.h && ty + bh > b.y) {
+            overlap = true;
+            break;
+          }
+        }
+        if (overlap) continue;
+
+        return { x: tx, y: ty };
+      }
+    }
+  }
+  return null;
+}
+
 // --- Game Tick ---
 function processTick() {
   gameState.tick++;
@@ -283,13 +384,74 @@ function processTick() {
     addEvent('Dawn breaks. The village survived another night.', 'discovery');
   }
 
-  // Resource gathering (simplified)
+  // Per-villager resource gathering
   if (phase === PHASES.DAY) {
-    const hunters = villagers.filter(v => v.vclass === 'hunter').length;
-    const miners = villagers.filter(v => v.vclass === 'miner').length;
-    gameState.resources.food += hunters;
-    gameState.resources.iron += Math.floor(miners * 0.5);
-    gameState.resources.stone += miners;
+    const hasWorkshop = buildings.some(b => b.type === 'workshop');
+    for (const v of villagers) {
+      if (v.state !== 'working') continue;
+      const tile = tileAt(tiles, v.x, v.y, MAP_SIZE);
+      const strengthBonus = (v.stats.strength || 5) / 5;
+
+      if (v.vclass === 'hunter') {
+        if (tile === TILE.FOREST || tile === TILE.FARM) {
+          gameState.resources.food += Math.floor(1 * strengthBonus);
+          if (tile === TILE.FOREST) gameState.resources.wood += 1;
+        }
+      } else if (v.vclass === 'miner') {
+        const hasStoneAdj = hasAdjacentTile(tiles, Math.floor(v.x), Math.floor(v.y), MAP_SIZE, TILE.STONE);
+        const hasIronAdj = hasAdjacentTile(tiles, Math.floor(v.x), Math.floor(v.y), MAP_SIZE, TILE.IRON);
+        const mineBonus = hasWorkshop ? 1.5 : 1;
+        if (hasStoneAdj) gameState.resources.stone += Math.floor(1 * strengthBonus * mineBonus);
+        if (hasIronAdj && gameState.tick % 2 === 0) gameState.resources.iron += 1;
+      } else if (v.vclass === 'builder') {
+        if (tile === TILE.FOREST) {
+          gameState.resources.wood += Math.floor(1 * strengthBonus);
+        }
+      }
+    }
+
+    // Passive farm income
+    const farmBuildingCount = buildings.filter(b => b.type === 'farm').length;
+    gameState.resources.food += farmBuildingCount;
+  }
+
+  // Food consumption at end of day (tick 24)
+  if (gameState.tick === 24) {
+    const foodNeeded = villagers.length;
+    const foodAvailable = gameState.resources.food;
+    const consumed = Math.min(foodNeeded, foodAvailable);
+    gameState.resources.food -= consumed;
+
+    const deficit = foodNeeded - consumed;
+    if (deficit > 0) {
+      addEvent(`Not enough food! ${deficit} villager(s) go hungry and take damage.`, 'danger');
+      const shuffled = [...villagers].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < deficit && i < shuffled.length; i++) {
+        shuffled[i].hp -= 1;
+        shuffled[i].speech = '* starving *';
+        shuffled[i].speechTimer = 3;
+        if (shuffled[i].hp <= 0) {
+          addEvent(`${shuffled[i].name} has died of starvation!`, 'danger');
+        }
+      }
+      // Remove dead villagers (iterate backwards)
+      for (let i = villagers.length - 1; i >= 0; i--) {
+        if (villagers[i].hp <= 0) {
+          villagers.splice(i, 1);
+        }
+      }
+    } else {
+      addEvent(`All villagers fed. (${foodAvailable - consumed} food remaining)`, 'discovery');
+    }
+  }
+
+  // Builder AI: assign builds every 3 ticks
+  if (gameState.tick % 3 === 0) {
+    for (const v of villagers) {
+      if (v.vclass === 'builder' && v.state === 'idle' && !v.buildTarget) {
+        tryAssignBuild(v, buildings, gameState, tiles, MAP_SIZE);
+      }
+    }
   }
 
   // Random villager seeking guidance (for demo)
@@ -315,6 +477,11 @@ function showGuidanceRequest(villager) {
       "I've struck a new vein deep in the tunnels, but the air feels wrong. Should I keep digging?",
       "I have enough iron for either swords or shields, but not both. Which do we need more?",
       "The deeper mines echo with strange sounds. Should we seal them or investigate?",
+    ],
+    builder: [
+      "We're running low on timber. Should I venture further to find better trees?",
+      "I could reinforce the walls or build another house. Which is more urgent?",
+      "The foundation here is soft. Should I build anyway or find a better spot?",
     ],
   };
 
@@ -498,6 +665,11 @@ function renderRoster() {
           <span class="roster-stat-val">${v.stats.charisma}</span>
         </div>
       </div>
+      <div class="roster-hp">
+        <span class="roster-hp-label">HP</span>
+        <div class="roster-hp-bar"><div class="roster-hp-fill" style="width:${(v.hp / v.maxHp) * 100}%"></div></div>
+        <span class="roster-hp-val">${v.hp}/${v.maxHp}</span>
+      </div>
     `;
     list.appendChild(card);
   }
@@ -517,6 +689,20 @@ function updateUI() {
   document.getElementById('res-iron').textContent = `Iron: ${gameState.resources.iron}`;
   document.getElementById('villager-count').textContent = `Villagers: ${villagers.length}`;
   document.getElementById('faith-fill').style.width = `${gameState.faith}%`;
+
+  // Food tracker
+  const foodNeeded = villagers.length;
+  const foodCurrent = gameState.resources.food;
+  document.getElementById('food-current').textContent = foodCurrent;
+  document.getElementById('food-needed').textContent = foodNeeded;
+  const foodRatio = Math.min(foodCurrent / Math.max(foodNeeded, 1), 3);
+  document.getElementById('food-tracker-fill').style.width = `${Math.min(100, foodRatio * 33)}%`;
+  const tracker = document.getElementById('food-tracker');
+  if (foodCurrent < foodNeeded) {
+    tracker.classList.add('critical');
+  } else {
+    tracker.classList.remove('critical');
+  }
 }
 
 // --- Particles (ambient) ---
@@ -601,7 +787,16 @@ function gameLoop(now) {
   const timeOfDay = dayNightState.phase;
 
   // Update villagers
-  updateVillagers(villagers, tiles, MAP_SIZE, dt, timeOfDay);
+  const completedBuilds = updateVillagers(villagers, tiles, MAP_SIZE, dt, timeOfDay);
+  for (const event of completedBuilds) {
+    const b = event.building;
+    const def = BUILDING_DEFS[b.type] || { w: 1, h: 1 };
+    buildings.push({ x: b.x, y: b.y, type: b.type, w: def.w, h: def.h });
+    addEvent(`${event.villager.name} built a ${def.label || b.type}!`, 'build');
+    // Refresh building lights
+    buildingLights.length = 0;
+    buildingLights.push(...getBuildingLights(buildings));
+  }
 
   // --- Draw ---
   // Clear

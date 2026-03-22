@@ -3,7 +3,7 @@
  * Draws structures on the tile map with simple pixel-art style.
  */
 
-const BUILDING_DEFS = {
+export const BUILDING_DEFS = {
   house: {
     w: 1, h: 1,
     label: 'House',
@@ -147,7 +147,6 @@ const BUILDING_DEFS = {
     w: 1, h: 1,
     label: 'Farm',
     draw(ctx, x, y, s) {
-      // This is drawn as tile decoration, not a building sprite
       // Crop rows
       ctx.strokeStyle = '#5a7a2a';
       ctx.lineWidth = 2;
@@ -160,6 +159,36 @@ const BUILDING_DEFS = {
       }
     }
   },
+
+  storehouse: {
+    w: 2, h: 1,
+    label: 'Storehouse',
+    draw(ctx, x, y, s) {
+      const w = s * 2;
+      // Walls
+      ctx.fillStyle = '#7a6a4a';
+      ctx.fillRect(x + 2, y + s * 0.25, w - 4, s * 0.7);
+      // Flat roof overhang
+      ctx.fillStyle = '#5a4a3a';
+      ctx.fillRect(x - 2, y + s * 0.18, w + 4, s * 0.12);
+      // Open front
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(x + w * 0.15, y + s * 0.35, w * 0.3, s * 0.55);
+      // Crates inside
+      ctx.fillStyle = '#8a7a5a';
+      ctx.fillRect(x + w * 0.55, y + s * 0.5, s * 0.25, s * 0.2);
+      ctx.fillRect(x + w * 0.65, y + s * 0.4, s * 0.2, s * 0.3);
+    }
+  },
+};
+
+export const BUILDING_COSTS = {
+  house:      { cost: { wood: 20, stone: 10 }, priority: 1, effect: 'capacity', effectValue: 2 },
+  farm:       { cost: { wood: 10, stone: 5 },  priority: 2, effect: 'passiveFood', effectValue: 1 },
+  workshop:   { cost: { wood: 30, stone: 20, iron: 5 }, priority: 3, effect: 'minerBonus', effectValue: 0.5 },
+  watchtower: { cost: { wood: 0, stone: 25, iron: 10 }, priority: 4, effect: 'hunterRange', effectValue: 4 },
+  wall:       { cost: { wood: 0, stone: 10 },  priority: 5, effect: 'defense', effectValue: 1 },
+  storehouse: { cost: { wood: 25, stone: 15 }, priority: 6, effect: 'resourceCap', effectValue: 2 },
 };
 
 /**

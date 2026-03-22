@@ -123,6 +123,47 @@ body {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
+/* Food Tracker */
+#food-tracker {
+  position: absolute;
+  top: 110px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  width: 160px;
+}
+
+#food-tracker-label {
+  color: #80b860;
+  margin-bottom: 3px;
+}
+
+#food-tracker-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#food-tracker-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5a8a3a, #80b860);
+  border-radius: 3px;
+  transition: width 0.5s;
+}
+
+#food-tracker.critical #food-tracker-fill {
+  background: linear-gradient(90deg, #8a3a3a, #e86a5a);
+}
+
+#food-tracker.critical #food-tracker-label {
+  color: #e88888;
+}
+
 /* Tick Speed Controls */
 #tick-controls {
   position: absolute;
@@ -425,6 +466,42 @@ body {
 .roster-stat-val {
   font-size: 11px;
   color: #bbb;
+}
+
+.roster-hp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.roster-hp-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #666;
+  min-width: 18px;
+}
+
+.roster-hp-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.roster-hp-fill {
+  height: 100%;
+  background: #5ab85a;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.roster-hp-val {
+  font-size: 10px;
+  color: #bbb;
+  min-width: 35px;
+  text-align: right;
 }
 
 #btn-settings {
