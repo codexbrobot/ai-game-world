@@ -15,7 +15,7 @@ import { getApiKey, setApiKey, getModel, setModel, isAiEnabled, testConnection, 
 const TILE_SIZE = 32;
 const MAP_SIZE = 30;
 const MAP_SEED = Math.floor(Math.random() * 99999);
-const STARTING_VILLAGERS = 8;
+const STARTING_VILLAGERS = 12;
 
 // Tick timing
 const BASE_TICK_MS = 5000; // 5 seconds per tick at 1x speed
@@ -283,10 +283,13 @@ function processTick() {
     addEvent('Dawn breaks. The village survived another night.', 'discovery');
   }
 
-  // Resource gathering (simplified for Phase 1)
+  // Resource gathering (simplified)
   if (phase === PHASES.DAY) {
-    const farmers = villagers.filter(v => v.role === 'farmer').length;
-    gameState.resources.food += farmers;
+    const hunters = villagers.filter(v => v.vclass === 'hunter').length;
+    const miners = villagers.filter(v => v.vclass === 'miner').length;
+    gameState.resources.food += hunters;
+    gameState.resources.iron += Math.floor(miners * 0.5);
+    gameState.resources.stone += miners;
   }
 
   // Random villager seeking guidance (for demo)
@@ -302,38 +305,26 @@ function processTick() {
 
 // --- Guidance System ---
 function showGuidanceRequest(villager) {
-  const questions = {
-    elder: [
-      "I sense a growing unease among the people. Should we fortify our defenses or send scouts to learn more?",
-      "Strange omens in the sky last night. What do they portend?",
-    ],
-    captain: [
-      "My soldiers are restless. Should we patrol the perimeter or train for what's coming?",
-      "I heard movement beyond the wall last night. Should we investigate?",
-    ],
-    scout: [
+  const questionsByClass = {
+    hunter: [
       "I found tracks leading into the dark forest. Should I follow them alone or bring others?",
       "There's a ruined structure to the northeast. Worth exploring?",
+      "Game is growing scarce near the village. Should I range further out?",
     ],
-    blacksmith: [
+    miner: [
+      "I've struck a new vein deep in the tunnels, but the air feels wrong. Should I keep digging?",
       "I have enough iron for either swords or shields, but not both. Which do we need more?",
-      "Should I reinforce the gate or forge weapons?",
-    ],
-    healer: [
-      "Our herb supply is low. Should I venture out to gather more, or conserve what we have?",
-      "A villager has been having nightmares and speaking in their sleep. Should I be concerned?",
-    ],
-    farmer: [
-      "The crops near the forest edge seem to wither. Should I plant elsewhere?",
-      "I feel watched when I work the far fields. Is it safe out there?",
-    ],
-    villager: [
-      "I'm frightened. The darkness seems closer each night. What should we do?",
-      "My neighbor has been acting strangely — avoiding others, muttering. Should I worry?",
+      "The deeper mines echo with strange sounds. Should we seal them or investigate?",
     ],
   };
 
-  const options = questions[villager.role] || questions.villager;
+  const questionsFallback = [
+    "I'm frightened. The darkness seems closer each night. What should we do?",
+    "My neighbor has been acting strangely — avoiding others, muttering. Should I worry?",
+    "Strange omens in the sky last night. What do they portend?",
+  ];
+
+  const options = questionsByClass[villager.vclass] || questionsFallback;
   const question = options[Math.floor(Math.random() * options.length)];
 
   villager.state = 'idle';
@@ -345,7 +336,7 @@ function showGuidanceRequest(villager) {
   const qEl = document.getElementById('villager-question');
   const inputEl = document.getElementById('guidance-input');
 
-  qEl.textContent = `${villager.name} the ${villager.role} (${villager.personality}): "${question}"`;
+  qEl.textContent = `${villager.name} the ${villager.raceLabel} ${villager.classLabel} (${villager.personality}): "${question}"`;
   inputEl.value = '';
   panel.classList.remove('hidden');
   panel.dataset.villagerId = villager.id;
@@ -458,6 +449,59 @@ document.getElementById('test-connection').addEventListener('click', async () =>
     resultEl.className = 'error';
   }
 });
+
+// --- Roster Panel ---
+document.getElementById('btn-roster').addEventListener('click', () => {
+  const panel = document.getElementById('roster-panel');
+  if (panel.classList.contains('hidden')) {
+    renderRoster();
+    panel.classList.remove('hidden');
+  } else {
+    panel.classList.add('hidden');
+  }
+});
+
+document.getElementById('close-roster').addEventListener('click', () => {
+  document.getElementById('roster-panel').classList.add('hidden');
+});
+
+function renderRoster() {
+  const list = document.getElementById('roster-list');
+  list.innerHTML = '';
+
+  for (const v of villagers) {
+    const card = document.createElement('div');
+    card.className = 'roster-card';
+
+    const maxStat = 10; // visual max for stat bars
+
+    card.innerHTML = `
+      <div class="roster-card-header">
+        <span class="roster-name">${v.name}</span>
+        <span class="roster-identity">${v.raceLabel} ${v.classLabel}</span>
+      </div>
+      <div class="roster-personality">${v.personality}</div>
+      <div class="roster-stats">
+        <div class="roster-stat">
+          <span class="roster-stat-label">Speed</span>
+          <div class="roster-stat-bar"><div class="roster-stat-fill stat-speed" style="width:${(v.stats.speed / maxStat) * 100}%"></div></div>
+          <span class="roster-stat-val">${v.stats.speed}</span>
+        </div>
+        <div class="roster-stat">
+          <span class="roster-stat-label">Strength</span>
+          <div class="roster-stat-bar"><div class="roster-stat-fill stat-strength" style="width:${(v.stats.strength / maxStat) * 100}%"></div></div>
+          <span class="roster-stat-val">${v.stats.strength}</span>
+        </div>
+        <div class="roster-stat">
+          <span class="roster-stat-label">Charisma</span>
+          <div class="roster-stat-bar"><div class="roster-stat-fill stat-charisma" style="width:${(v.stats.charisma / maxStat) * 100}%"></div></div>
+          <span class="roster-stat-val">${v.stats.charisma}</span>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  }
+}
 
 // --- UI Updates ---
 function updateUI() {

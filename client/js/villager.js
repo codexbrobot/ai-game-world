@@ -8,21 +8,49 @@ const PERSONALITY_TYPES = [
   'Stalwart', 'Skeptic', 'Dreamer', 'Coward', 'Zealot', 'Pragmatist'
 ];
 
-const ROLES = [
-  'elder', 'captain', 'scout', 'blacksmith', 'healer', 'farmer', 'farmer', 'villager'
-];
+// --- Race Definitions ---
+const RACES = {
+  human: {
+    label: 'Human',
+    baseStats: { speed: 5, strength: 5, charisma: 5 },
+    names: [
+      'Aldric', 'Elena', 'Bram', 'Isolde', 'Theron', 'Mira',
+      'Gareth', 'Rowena', 'Cedric', 'Lyra', 'Osmund', 'Freya',
+      'Leofric', 'Sigrid', 'Edmund', 'Hild', 'Godwin', 'Aelswith',
+    ],
+    skinTones: ['#d4a574', '#c68c5e', '#e8c5a0', '#a0704e', '#f0d5b0'],
+  },
+  dwarf: {
+    label: 'Dwarf',
+    baseStats: { speed: 3, strength: 7, charisma: 4 },
+    names: [
+      'Durgan', 'Bruni', 'Thorek', 'Helga', 'Grimli', 'Agna',
+      'Balin', 'Dotta', 'Nori', 'Hilda', 'Dwalin', 'Sigrun',
+      'Ulfgar', 'Ingrid', 'Kragni', 'Birna', 'Thrain', 'Svala',
+    ],
+    skinTones: ['#d4a070', '#c0885a', '#dab890', '#b08060', '#e8c8a0'],
+  },
+};
+const RACE_KEYS = Object.keys(RACES);
 
-const NAMES = [
-  'Aldric', 'Elena', 'Bram', 'Isolde', 'Theron', 'Mira',
-  'Gareth', 'Rowena', 'Cedric', 'Lyra', 'Osmund', 'Freya',
-  'Wulfric', 'Astrid', 'Leofric', 'Sigrid', 'Edmund', 'Hild',
-  'Godwin', 'Aelswith', 'Dunstan', 'Eadgyth', 'Cuthbert', 'Mildred'
-];
+// --- Class Definitions ---
+const CLASSES = {
+  hunter: {
+    label: 'Hunter',
+    statBonuses: { speed: 2, strength: 1, charisma: 0 },
+    role: 'scout',
+    colors: { tunic: '#3a6a3a', cloak: '#2a4a2a' },
+  },
+  miner: {
+    label: 'Miner',
+    statBonuses: { speed: 0, strength: 2, charisma: 1 },
+    role: 'blacksmith',
+    colors: { tunic: '#5a4a3a', cloak: '#3a3a2a' },
+  },
+};
+const CLASS_KEYS = Object.keys(CLASSES);
 
-// Skin tone palette (warm medieval tones)
-const SKIN_TONES = ['#d4a574', '#c68c5e', '#e8c5a0', '#a0704e', '#f0d5b0'];
-
-// Role-specific outfit colors
+// Fallback role colors for roles not tied to a class
 const ROLE_COLORS = {
   elder:      { tunic: '#6a3a8a', cloak: '#4a2a6a' },
   captain:    { tunic: '#8a3a3a', cloak: '#5a2a2a' },
@@ -33,6 +61,8 @@ const ROLE_COLORS = {
   villager:   { tunic: '#6a6a5a', cloak: '#4a4a3a' },
 };
 
+const STAT_NAMES = ['speed', 'strength', 'charisma'];
+
 function seededRandom(seed) {
   let s = seed;
   return function() {
@@ -42,7 +72,7 @@ function seededRandom(seed) {
 }
 
 /**
- * Create a set of villagers.
+ * Create a set of villagers with random races and classes.
  */
 export function createVillagers(count, mapCenter, seed = 123) {
   const rng = seededRandom(seed);
@@ -50,21 +80,51 @@ export function createVillagers(count, mapCenter, seed = 123) {
   const usedNames = new Set();
 
   for (let i = 0; i < count; i++) {
+    // Random race and class
+    const raceKey = RACE_KEYS[Math.floor(rng() * RACE_KEYS.length)];
+    const classKey = CLASS_KEYS[Math.floor(rng() * CLASS_KEYS.length)];
+    const race = RACES[raceKey];
+    const cls = CLASSES[classKey];
+
+    // Pick a unique name from the race's pool
     let name;
     do {
-      name = NAMES[Math.floor(rng() * NAMES.length)];
-    } while (usedNames.has(name) && usedNames.size < NAMES.length);
+      name = race.names[Math.floor(rng() * race.names.length)];
+    } while (usedNames.has(name) && usedNames.size < race.names.length);
     usedNames.add(name);
 
-    const role = i < ROLES.length ? ROLES[i] : 'villager';
+    // Compute stats: base + class bonus + random +1/-1
+    const stats = {};
+    for (const stat of STAT_NAMES) {
+      stats[stat] = race.baseStats[stat] + cls.statBonuses[stat];
+    }
+
+    // Random +1 to one stat and -1 to a different stat
+    const plusStat = STAT_NAMES[Math.floor(rng() * STAT_NAMES.length)];
+    let minusStat;
+    do {
+      minusStat = STAT_NAMES[Math.floor(rng() * STAT_NAMES.length)];
+    } while (minusStat === plusStat);
+    stats[plusStat] += 1;
+    stats[minusStat] = Math.max(1, stats[minusStat] - 1);
+
+    // The class determines the functional role for behavior
+    const role = cls.role;
 
     villagers.push({
       id: i,
       name,
+      race: raceKey,
+      raceLabel: race.label,
+      vclass: classKey,
+      classLabel: cls.label,
       role,
       personality: PERSONALITY_TYPES[Math.floor(rng() * PERSONALITY_TYPES.length)],
-      skinTone: SKIN_TONES[Math.floor(rng() * SKIN_TONES.length)],
-      colors: ROLE_COLORS[role] || ROLE_COLORS.villager,
+      skinTone: race.skinTones[Math.floor(rng() * race.skinTones.length)],
+      colors: cls.colors,
+
+      // Stats
+      stats,
 
       // Position (in tile coords, fractional for smooth movement)
       x: mapCenter + (rng() - 0.5) * 6,
@@ -75,16 +135,16 @@ export function createVillagers(count, mapCenter, seed = 123) {
       targetY: null,
 
       // State
-      state: 'idle',  // idle, walking, working, sleeping, seeking_guidance
+      state: 'idle',
       stateTimer: Math.floor(rng() * 60),
-      facing: rng() < 0.5 ? 1 : -1, // 1 = right, -1 = left
+      facing: rng() < 0.5 ? 1 : -1,
 
       // Animation
       walkFrame: 0,
       walkTimer: 0,
       bobOffset: rng() * Math.PI * 2,
 
-      // Attributes
+      // Legacy attributes (personality-driven)
       courage: 30 + Math.floor(rng() * 50),
       faith: 40 + Math.floor(rng() * 40),
       intelligence: 30 + Math.floor(rng() * 50),
@@ -153,12 +213,17 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
           v.targetY = null;
 
           // After arriving, do something based on role
-          if (v.role === 'farmer' && tileAt(tiles, v.x, v.y, mapSize) === TILE.FARM) {
+          if (v.vclass === 'hunter' && tileAt(tiles, v.x, v.y, mapSize) === TILE.FARM) {
             v.state = 'working';
             v.stateTimer = 4 + Math.random() * 6;
-            v.speech = '* farming *';
+            v.speech = '* hunting *';
             v.speechTimer = 2;
-          } else if (v.role === 'scout') {
+          } else if (v.vclass === 'miner' && (tileAt(tiles, v.x, v.y, mapSize) === TILE.IRON || tileAt(tiles, v.x, v.y, mapSize) === TILE.STONE)) {
+            v.state = 'working';
+            v.stateTimer = 4 + Math.random() * 6;
+            v.speech = '* mining *';
+            v.speechTimer = 2;
+          } else if (v.vclass === 'hunter') {
             v.state = 'idle';
             v.stateTimer = 1 + Math.random() * 2;
           } else {
@@ -194,7 +259,7 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
 
 function pickWanderTarget(v, tiles, mapSize) {
   // Pick a random walkable tile within range
-  const range = v.role === 'scout' ? 8 : 4;
+  const range = v.vclass === 'hunter' ? 8 : 4;
   for (let attempt = 0; attempt < 10; attempt++) {
     const tx = Math.floor(v.x + (Math.random() - 0.5) * range * 2);
     const ty = Math.floor(v.y + (Math.random() - 0.5) * range * 2);
@@ -215,7 +280,8 @@ function pickWanderTarget(v, tiles, mapSize) {
 }
 
 function moveToward(v, dt) {
-  const speed = v.role === 'scout' ? 2.5 : 1.5;
+  // Speed stat (1-10) maps to movement speed 1.0-3.0
+  const speed = 1.0 + (v.stats?.speed || 5) * 0.2;
   const dx = v.targetX - v.x;
   const dy = v.targetY - v.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -233,16 +299,15 @@ function tileAt(tiles, x, y, mapSize) {
 }
 
 function getIdleChat(v) {
-  const chats = {
-    elder: ["The signs are troubling...", "We must stay vigilant.", "I sense a darkness growing."],
-    captain: ["Stay sharp!", "Check the walls.", "I don't like this quiet."],
-    scout: ["Tracks to the north...", "The forest feels wrong.", "I should venture further."],
-    blacksmith: ["* hammering *", "Need more iron.", "This blade is ready."],
-    healer: ["Rest well, friend.", "Herbs are running low.", "Let me see that wound."],
-    farmer: ["Good harvest today.", "Rain's coming.", "The soil is rich here."],
-    villager: ["Strange times...", "Did you hear that?", "The Voice watches over us."],
+  const chatsByClass = {
+    hunter: ["Tracks to the north...", "The forest feels wrong.", "I should venture further.", "Game is scarce lately."],
+    miner: ["* hammering *", "Need more iron.", "This vein looks promising.", "The stone speaks to those who listen."],
   };
-  const options = chats[v.role] || chats.villager;
+  const chatsByRace = {
+    human: ["Strange times...", "Did you hear that?", "The Voice watches over us."],
+    dwarf: ["By my beard!", "Nothing a stout ale can't fix.", "Solid ground beneath my feet."],
+  };
+  const options = chatsByClass[v.vclass] || chatsByRace[v.race] || chatsByRace.human;
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -256,12 +321,14 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
   // Skip if off-screen
   if (screenX < -tileSize * 2 || screenY < -tileSize * 2) return;
 
-  const s = tileSize; // base scale
+  const isDwarf = v.race === 'dwarf';
+  const s = isDwarf ? tileSize * 0.8 : tileSize; // dwarves are shorter
+  const dwarfYOffset = isDwarf ? tileSize * 0.2 : 0; // shift down so feet align
   const bobY = v.state === 'walking' ? Math.sin(v.bobOffset) * 2 : 0;
   const workBob = v.state === 'working' ? Math.sin(v.bobOffset * 2) * 1.5 : 0;
 
   ctx.save();
-  ctx.translate(screenX, screenY + bobY);
+  ctx.translate(screenX, screenY + bobY + dwarfYOffset);
 
   if (v.state === 'sleeping') {
     // Draw sleeping villager (lying down)
@@ -320,13 +387,14 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
   }
 
   // Name tag
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.font = `${Math.max(9, s * 0.3)}px sans-serif`;
-  const nameWidth = ctx.measureText(v.name).width;
+  ctx.textAlign = 'center';
+  const nameStr = v.name;
+  const nameWidth = ctx.measureText(nameStr).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(-nameWidth / 2 - 2, -s * 0.5, nameWidth + 4, s * 0.25);
   ctx.fillStyle = '#fff';
-  ctx.textAlign = 'center';
-  ctx.fillText(v.name, 0, -s * 0.32);
+  ctx.fillText(nameStr, 0, -s * 0.32);
 
   // Speech bubble
   if (v.speech && v.speechTimer > 0) {
@@ -346,37 +414,9 @@ export function drawVillager(ctx, v, tileSize, cameraX, cameraY, nightAlpha) {
 }
 
 function drawRoleProp(ctx, v, s, workBob) {
-  switch (v.role) {
-    case 'captain':
-      // Sword
-      ctx.strokeStyle = '#c0c0c0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(v.facing * s * 0.25, s * 0.05 + workBob);
-      ctx.lineTo(v.facing * s * 0.4, -s * 0.2 + workBob);
-      ctx.stroke();
-      break;
-    case 'blacksmith':
-      // Hammer
-      ctx.fillStyle = '#8a6a3a';
-      ctx.fillRect(v.facing * s * 0.2, -s * 0.1 + workBob, s * 0.05, s * 0.25);
-      ctx.fillStyle = '#555';
-      ctx.fillRect(v.facing * s * 0.15, -s * 0.15 + workBob, s * 0.15, s * 0.08);
-      break;
-    case 'healer':
-      // Staff with glow
-      ctx.strokeStyle = '#8a6a3a';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(v.facing * s * 0.2, s * 0.4 + workBob);
-      ctx.lineTo(v.facing * s * 0.2, -s * 0.3 + workBob);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(100, 255, 100, 0.4)';
-      ctx.beginPath();
-      ctx.arc(v.facing * s * 0.2, -s * 0.35 + workBob, s * 0.06, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case 'scout':
+  // Draw props based on class
+  switch (v.vclass) {
+    case 'hunter':
       // Bow
       ctx.strokeStyle = '#6a4a2a';
       ctx.lineWidth = 2;
@@ -391,14 +431,22 @@ function drawRoleProp(ctx, v, s, workBob) {
       ctx.lineTo(v.facing * s * 0.3 + Math.cos(0.8) * s * 0.2, s * 0.05 + workBob + Math.sin(0.8) * s * 0.2);
       ctx.stroke();
       break;
-    case 'elder':
-      // Walking stick + hood
-      ctx.strokeStyle = '#5a3a1a';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-v.facing * s * 0.25, s * 0.4 + workBob);
-      ctx.lineTo(-v.facing * s * 0.2, -s * 0.15 + workBob);
-      ctx.stroke();
+    case 'miner':
+      // Pickaxe
+      ctx.fillStyle = '#8a6a3a';
+      ctx.fillRect(v.facing * s * 0.2, -s * 0.1 + workBob, s * 0.05, s * 0.3);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(v.facing * s * 0.13, -s * 0.15 + workBob, s * 0.18, s * 0.07);
       break;
+  }
+
+  // Dwarf beard
+  if (v.race === 'dwarf') {
+    ctx.fillStyle = '#8a6a3a';
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.08, -s * 0.08 + workBob);
+    ctx.lineTo(s * 0.08, -s * 0.08 + workBob);
+    ctx.lineTo(0, s * 0.06 + workBob);
+    ctx.fill();
   }
 }
