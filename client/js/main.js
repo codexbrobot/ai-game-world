@@ -1,127 +1,542 @@
 /**
- * AI Village: Realm of Shadows — Client entry point.
- * Phase 1: Render the tile map and basic village.
+ * AI Village: Realm of Shadows — Main game loop.
+ * Integrates map, villagers, buildings, day/night cycle, minimap, and UI.
  */
 
+import { generateMap, TILE, TILE_INFO } from './map.js';
+import { createVillagers, updateVillagers, drawVillager } from './villager.js';
+import { getDayNightState, applyDayNightOverlay, drawPointLight, PHASES } from './daynight.js';
+import { drawBuildings, getBuildingLights } from './buildings.js';
+import { drawMinimap } from './minimap.js';
+import { createInputHandler } from './input.js';
+
+// --- Configuration ---
+const TILE_SIZE = 32;
+const MAP_SIZE = 30;
+const MAP_SEED = Math.floor(Math.random() * 99999);
+const STARTING_VILLAGERS = 8;
+
+// Tick timing
+const BASE_TICK_MS = 5000; // 5 seconds per tick at 1x speed
+let tickSpeedMultiplier = 1;
+let paused = false;
+
+// --- Game State ---
+const gameState = {
+  day: 1,
+  tick: 23,       // Start at dawn
+  tickAccumulator: 0,
+  resources: { wood: 50, stone: 30, food: 40, iron: 5, herbs: 10 },
+  faith: 70,
+  events: [],
+};
+
+// --- Init ---
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+const minimapCanvas = document.getElementById('minimap-canvas');
 
-// Tile constants
-const TILE_SIZE = 32;
-const TILE_TYPES = {
-  GRASS: 0,
-  FOREST: 1,
-  STONE: 2,
-  WATER: 3,
-  VILLAGE: 4,
-  DARK: 5,
-};
+const { tiles, buildings, resourceNodes } = generateMap(MAP_SIZE, MAP_SEED);
+const villagers = createVillagers(STARTING_VILLAGERS, Math.floor(MAP_SIZE / 2), MAP_SEED + 1);
+const buildingLights = getBuildingLights(buildings);
+const input = createInputHandler(canvas);
 
-const TILE_COLORS = {
-  [TILE_TYPES.GRASS]: '#4a7c3f',
-  [TILE_TYPES.FOREST]: '#2d5a27',
-  [TILE_TYPES.STONE]: '#7a7a7a',
-  [TILE_TYPES.WATER]: '#2a5a8a',
-  [TILE_TYPES.VILLAGE]: '#8a7a5a',
-  [TILE_TYPES.DARK]: '#0a0a0a',
-};
-
-// Camera state
 const camera = { x: 0, y: 0 };
-let mapData = [];
-let mapSize = 30;
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
-
-function generateMap(size) {
-  const map = [];
-  const center = Math.floor(size / 2);
-
-  for (let y = 0; y < size; y++) {
-    const row = [];
-    for (let x = 0; x < size; x++) {
-      const dist = Math.sqrt((x - center) ** 2 + (y - center) ** 2);
-
-      if (dist < 3) {
-        row.push(TILE_TYPES.VILLAGE);
-      } else if (dist < 5 && Math.random() < 0.3) {
-        row.push(TILE_TYPES.VILLAGE);
-      } else if (dist > size / 2 - 2) {
-        row.push(TILE_TYPES.DARK);
-      } else if (Math.random() < 0.02) {
-        row.push(TILE_TYPES.WATER);
-      } else if (Math.random() < 0.15) {
-        row.push(TILE_TYPES.STONE);
-      } else if (Math.random() < 0.3) {
-        row.push(TILE_TYPES.FOREST);
-      } else {
-        row.push(TILE_TYPES.GRASS);
-      }
-    }
-    map.push(row);
-  }
-  return map;
-}
-
-function render() {
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const startCol = Math.floor(camera.x / TILE_SIZE);
-  const startRow = Math.floor(camera.y / TILE_SIZE);
-  const endCol = startCol + Math.ceil(canvas.width / TILE_SIZE) + 1;
-  const endRow = startRow + Math.ceil(canvas.height / TILE_SIZE) + 1;
-
-  for (let y = startRow; y < endRow && y < mapSize; y++) {
-    for (let x = startCol; x < endCol && x < mapSize; x++) {
-      if (y < 0 || x < 0) continue;
-      const tile = mapData[y][x];
-      ctx.fillStyle = TILE_COLORS[tile] || '#000';
-      ctx.fillRect(
-        x * TILE_SIZE - camera.x,
-        y * TILE_SIZE - camera.y,
-        TILE_SIZE - 1,
-        TILE_SIZE - 1
-      );
-    }
-  }
-
-  requestAnimationFrame(render);
-}
-
-// Camera panning with arrow keys and WASD
-const keys = {};
-window.addEventListener('keydown', (e) => { keys[e.key] = true; });
-window.addEventListener('keyup', (e) => { keys[e.key] = false; });
-
-function updateCamera() {
-  const speed = 4;
-  if (keys['ArrowUp'] || keys['w']) camera.y -= speed;
-  if (keys['ArrowDown'] || keys['s']) camera.y += speed;
-  if (keys['ArrowLeft'] || keys['a']) camera.x -= speed;
-  if (keys['ArrowRight'] || keys['d']) camera.x += speed;
-
-  // Clamp
-  camera.x = Math.max(0, Math.min(camera.x, mapSize * TILE_SIZE - canvas.width));
-  camera.y = Math.max(0, Math.min(camera.y, mapSize * TILE_SIZE - canvas.height));
-
-  requestAnimationFrame(updateCamera);
-}
-
-// Initialize
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-mapData = generateMap(mapSize);
-
 // Center camera on village
-camera.x = (mapSize / 2) * TILE_SIZE - canvas.width / 2;
-camera.y = (mapSize / 2) * TILE_SIZE - canvas.height / 2;
+camera.x = (MAP_SIZE / 2) * TILE_SIZE - canvas.width / 2;
+camera.y = (MAP_SIZE / 2) * TILE_SIZE - canvas.height / 2;
 
-render();
-updateCamera();
+// --- Event Log ---
+function addEvent(text, type = '') {
+  const phase = getDayNightState(gameState.tick, 0).phase;
+  const timeStr = `D${gameState.day} ${phase}`;
+  gameState.events.push({ text, type, time: timeStr });
+  if (gameState.events.length > 50) gameState.events.shift();
 
-console.log('AI Village: Realm of Shadows — initialized');
+  const logEl = document.getElementById('log-entries');
+  const entry = document.createElement('div');
+  entry.className = `log-entry event-${type}`;
+  entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${text}`;
+  logEl.appendChild(entry);
+  logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
+}
+
+// Initial events
+addEvent('The village stirs at dawn. A new day begins.', 'discovery');
+addEvent('You are The Voice. Wait for a villager to seek your counsel.', 'guidance');
+
+// --- Speed Controls ---
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  updateSpeedButtons();
+});
+document.getElementById('btn-speed1').addEventListener('click', () => {
+  paused = false; tickSpeedMultiplier = 1; updateSpeedButtons();
+});
+document.getElementById('btn-speed2').addEventListener('click', () => {
+  paused = false; tickSpeedMultiplier = 3; updateSpeedButtons();
+});
+document.getElementById('btn-speed3').addEventListener('click', () => {
+  paused = false; tickSpeedMultiplier = 8; updateSpeedButtons();
+});
+
+function updateSpeedButtons() {
+  document.querySelectorAll('#tick-controls button').forEach(b => b.classList.remove('active'));
+  if (paused) {
+    document.getElementById('btn-pause').classList.add('active');
+  } else if (tickSpeedMultiplier === 1) {
+    document.getElementById('btn-speed1').classList.add('active');
+  } else if (tickSpeedMultiplier === 3) {
+    document.getElementById('btn-speed2').classList.add('active');
+  } else {
+    document.getElementById('btn-speed3').classList.add('active');
+  }
+}
+
+// --- Tile Rendering ---
+function drawTiles() {
+  const startCol = Math.max(0, Math.floor(camera.x / TILE_SIZE));
+  const startRow = Math.max(0, Math.floor(camera.y / TILE_SIZE));
+  const endCol = Math.min(MAP_SIZE, startCol + Math.ceil(canvas.width / TILE_SIZE) + 2);
+  const endRow = Math.min(MAP_SIZE, startRow + Math.ceil(canvas.height / TILE_SIZE) + 2);
+
+  for (let y = startRow; y < endRow; y++) {
+    for (let x = startCol; x < endCol; x++) {
+      const tile = tiles[y][x];
+      const info = TILE_INFO[tile];
+      const sx = x * TILE_SIZE - camera.x;
+      const sy = y * TILE_SIZE - camera.y;
+
+      ctx.fillStyle = info?.color || '#000';
+      ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+
+      // Tile detail decorations
+      drawTileDetail(ctx, tile, sx, sy, TILE_SIZE, x, y);
+    }
+  }
+}
+
+function drawTileDetail(ctx, tile, sx, sy, s, tx, ty) {
+  // Use tile coords as a pseudo-random seed for consistent decorations
+  const hash = ((tx * 7919 + ty * 6271) & 0xffff) / 0xffff;
+
+  switch (tile) {
+    case TILE.FOREST:
+      // Tree trunks and canopy
+      ctx.fillStyle = '#4a3a1a';
+      ctx.fillRect(sx + s * 0.4, sy + s * 0.5, s * 0.15, s * 0.35);
+      ctx.fillStyle = '#1a4a1a';
+      ctx.beginPath();
+      ctx.arc(sx + s * 0.47, sy + s * 0.35, s * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      if (hash > 0.5) {
+        // Second smaller tree
+        ctx.fillStyle = '#4a3a1a';
+        ctx.fillRect(sx + s * 0.7, sy + s * 0.55, s * 0.1, s * 0.3);
+        ctx.fillStyle = '#1a4a1a';
+        ctx.beginPath();
+        ctx.arc(sx + s * 0.75, sy + s * 0.45, s * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+
+    case TILE.WATER:
+      // Wave highlights
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+      const waveOffset = (Date.now() / 1000 + hash * 10) % 1;
+      ctx.fillRect(sx + waveOffset * s * 0.3, sy + s * 0.3, s * 0.4, 1);
+      ctx.fillRect(sx + s * 0.2 + waveOffset * s * 0.2, sy + s * 0.6, s * 0.3, 1);
+      break;
+
+    case TILE.STONE:
+      // Rock texture
+      ctx.fillStyle = 'rgba(100,100,100,0.5)';
+      ctx.fillRect(sx + s * 0.2, sy + s * 0.3, s * 0.3, s * 0.25);
+      ctx.fillStyle = 'rgba(80,80,80,0.5)';
+      ctx.fillRect(sx + s * 0.5, sy + s * 0.5, s * 0.3, s * 0.3);
+      break;
+
+    case TILE.FARM:
+      // Crop rows
+      ctx.strokeStyle = 'rgba(90,120,40,0.6)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + 4, sy + 6 + i * (s * 0.22));
+        ctx.lineTo(sx + s - 4, sy + 6 + i * (s * 0.22));
+        ctx.stroke();
+      }
+      // Wheat dots
+      ctx.fillStyle = '#aaaa40';
+      for (let i = 0; i < 6; i++) {
+        const dx = (((hash * (i + 1) * 1000) | 0) % (s - 8)) + 4;
+        const dy = (((hash * (i + 1) * 777) | 0) % (s - 8)) + 4;
+        ctx.fillRect(sx + dx, sy + dy, 2, 3);
+      }
+      break;
+
+    case TILE.HERBS:
+      // Small green plants
+      ctx.fillStyle = '#2a8a3a';
+      for (let i = 0; i < 4; i++) {
+        const dx = 4 + (((hash * (i + 1) * 999) | 0) % (s - 10));
+        const dy = 4 + (((hash * (i + 1) * 555) | 0) % (s - 10));
+        ctx.beginPath();
+        ctx.arc(sx + dx, sy + dy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+
+    case TILE.IRON:
+      // Dark metallic deposits
+      ctx.fillStyle = '#3a3a4a';
+      ctx.fillRect(sx + s * 0.2, sy + s * 0.3, s * 0.6, s * 0.4);
+      ctx.fillStyle = '#5a5a6a';
+      ctx.fillRect(sx + s * 0.3, sy + s * 0.35, s * 0.2, s * 0.15);
+      break;
+
+    case TILE.RUINS:
+      // Crumbled stone pillars
+      ctx.fillStyle = '#5a5a5a';
+      ctx.fillRect(sx + s * 0.1, sy + s * 0.4, s * 0.15, s * 0.5);
+      ctx.fillRect(sx + s * 0.6, sy + s * 0.3, s * 0.2, s * 0.6);
+      ctx.fillStyle = '#4a4a4a';
+      ctx.fillRect(sx + s * 0.3, sy + s * 0.6, s * 0.35, s * 0.15);
+      break;
+
+    case TILE.PATH:
+      // Dirt path with pebbles
+      ctx.fillStyle = 'rgba(120,100,70,0.3)';
+      ctx.fillRect(sx + 2, sy + 2, s - 4, s - 4);
+      break;
+
+    case TILE.DARK:
+      // Fog of war effect
+      ctx.fillStyle = 'rgba(5,5,15,0.95)';
+      ctx.fillRect(sx, sy, s, s);
+      // Occasional eerie glow
+      if (hash > 0.95) {
+        ctx.fillStyle = 'rgba(80, 0, 0, 0.15)';
+        ctx.beginPath();
+        ctx.arc(sx + s / 2, sy + s / 2, s * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+  }
+}
+
+// --- Camera Update ---
+function updateCamera(dt) {
+  const speed = 200 * dt;
+  const { dx, dy } = input.getCameraMovement(speed);
+  camera.x += dx;
+  camera.y += dy;
+
+  // Handle drag
+  const drag = input.getDrag();
+  if (drag && !input.getCameraStart()) {
+    input.setCameraStart(camera);
+  }
+  const dragOffset = input.getDragOffset();
+  if (dragOffset) {
+    camera.x = dragOffset.x;
+    camera.y = dragOffset.y;
+  }
+
+  // Clamp
+  const maxX = MAP_SIZE * TILE_SIZE - canvas.width;
+  const maxY = MAP_SIZE * TILE_SIZE - canvas.height;
+  camera.x = Math.max(0, Math.min(camera.x, maxX));
+  camera.y = Math.max(0, Math.min(camera.y, maxY));
+}
+
+// --- Game Tick ---
+function processTick() {
+  gameState.tick++;
+  if (gameState.tick > 24) {
+    gameState.tick = 1;
+    gameState.day++;
+  }
+
+  const phase = getDayNightState(gameState.tick, 0).phase;
+
+  // Periodic events based on time of day
+  if (gameState.tick === 1) {
+    addEvent(`Day ${gameState.day} begins. The sun rises over the village.`, 'discovery');
+  }
+  if (gameState.tick === 13) {
+    addEvent('Dusk approaches. The villagers prepare for nightfall.', 'danger');
+  }
+  if (gameState.tick === 15) {
+    addEvent('Night falls. Strange sounds echo from the darkness...', 'danger');
+  }
+  if (gameState.tick === 23) {
+    addEvent('Dawn breaks. The village survived another night.', 'discovery');
+  }
+
+  // Resource gathering (simplified for Phase 1)
+  if (phase === PHASES.DAY) {
+    const farmers = villagers.filter(v => v.role === 'farmer').length;
+    gameState.resources.food += farmers;
+  }
+
+  // Random villager seeking guidance (for demo)
+  if (Math.random() < 0.03 && phase !== PHASES.NIGHT) {
+    const seeker = villagers[Math.floor(Math.random() * villagers.length)];
+    if (seeker.state !== 'sleeping') {
+      showGuidanceRequest(seeker);
+    }
+  }
+
+  updateUI();
+}
+
+// --- Guidance System ---
+function showGuidanceRequest(villager) {
+  const questions = {
+    elder: [
+      "I sense a growing unease among the people. Should we fortify our defenses or send scouts to learn more?",
+      "Strange omens in the sky last night. What do they portend?",
+    ],
+    captain: [
+      "My soldiers are restless. Should we patrol the perimeter or train for what's coming?",
+      "I heard movement beyond the wall last night. Should we investigate?",
+    ],
+    scout: [
+      "I found tracks leading into the dark forest. Should I follow them alone or bring others?",
+      "There's a ruined structure to the northeast. Worth exploring?",
+    ],
+    blacksmith: [
+      "I have enough iron for either swords or shields, but not both. Which do we need more?",
+      "Should I reinforce the gate or forge weapons?",
+    ],
+    healer: [
+      "Our herb supply is low. Should I venture out to gather more, or conserve what we have?",
+      "A villager has been having nightmares and speaking in their sleep. Should I be concerned?",
+    ],
+    farmer: [
+      "The crops near the forest edge seem to wither. Should I plant elsewhere?",
+      "I feel watched when I work the far fields. Is it safe out there?",
+    ],
+    villager: [
+      "I'm frightened. The darkness seems closer each night. What should we do?",
+      "My neighbor has been acting strangely — avoiding others, muttering. Should I worry?",
+    ],
+  };
+
+  const options = questions[villager.role] || questions.villager;
+  const question = options[Math.floor(Math.random() * options.length)];
+
+  villager.state = 'idle';
+  villager.stateTimer = 15;
+  villager.speech = '* seeking The Voice *';
+  villager.speechTimer = 4;
+
+  const panel = document.getElementById('guidance-panel');
+  const qEl = document.getElementById('villager-question');
+  const inputEl = document.getElementById('guidance-input');
+
+  qEl.textContent = `${villager.name} the ${villager.role} (${villager.personality}): "${question}"`;
+  inputEl.value = '';
+  panel.classList.remove('hidden');
+  panel.dataset.villagerId = villager.id;
+
+  addEvent(`${villager.name} seeks your counsel...`, 'guidance');
+}
+
+document.getElementById('send-guidance').addEventListener('click', () => {
+  const panel = document.getElementById('guidance-panel');
+  const inputEl = document.getElementById('guidance-input');
+  const guidance = inputEl.value.trim();
+
+  if (!guidance) return;
+
+  const villagerId = parseInt(panel.dataset.villagerId);
+  const villager = villagers.find(v => v.id === villagerId);
+
+  if (villager) {
+    // In Phase 1, just show the response. In Phase 2, this goes to the AI.
+    villager.speech = `The Voice says: "${guidance.substring(0, 40)}${guidance.length > 40 ? '...' : ''}"`;
+    villager.speechTimer = 5;
+    villager.state = 'idle';
+    villager.stateTimer = 3;
+    addEvent(`You counseled ${villager.name}: "${guidance.substring(0, 60)}${guidance.length > 60 ? '...' : ''}"`, 'guidance');
+    gameState.faith = Math.min(100, gameState.faith + 3);
+  }
+
+  panel.classList.add('hidden');
+});
+
+// --- UI Updates ---
+function updateUI() {
+  const state = getDayNightState(gameState.tick, 0);
+  const phaseNames = { dawn: 'Dawn', day: 'Day', dusk: 'Dusk', night: 'Night' };
+
+  document.getElementById('time-display').textContent =
+    `Day ${gameState.day} — ${phaseNames[state.phase]} (${gameState.tick}/24)`;
+
+  document.getElementById('res-wood').textContent = `Wood: ${gameState.resources.wood}`;
+  document.getElementById('res-stone').textContent = `Stone: ${gameState.resources.stone}`;
+  document.getElementById('res-food').textContent = `Food: ${gameState.resources.food}`;
+  document.getElementById('res-iron').textContent = `Iron: ${gameState.resources.iron}`;
+  document.getElementById('villager-count').textContent = `Villagers: ${villagers.length}`;
+  document.getElementById('faith-fill').style.width = `${gameState.faith}%`;
+}
+
+// --- Particles (ambient) ---
+const particles = [];
+
+function spawnParticles(state) {
+  if (state.phase === PHASES.NIGHT && Math.random() < 0.1) {
+    // Fireflies near village
+    const center = MAP_SIZE / 2;
+    particles.push({
+      x: (center + (Math.random() - 0.5) * 8) * TILE_SIZE,
+      y: (center + (Math.random() - 0.5) * 8) * TILE_SIZE,
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 0.5) * 10,
+      life: 3 + Math.random() * 3,
+      maxLife: 6,
+      color: '180, 255, 100',
+      size: 2,
+    });
+  }
+
+  if (state.phase === PHASES.DAWN && Math.random() < 0.05) {
+    // Morning mist
+    particles.push({
+      x: camera.x + Math.random() * canvas.width,
+      y: camera.y + Math.random() * canvas.height,
+      vx: Math.random() * 5,
+      vy: -Math.random() * 3,
+      life: 4 + Math.random() * 4,
+      maxLife: 8,
+      color: '200, 200, 220',
+      size: 8 + Math.random() * 12,
+    });
+  }
+}
+
+function updateAndDrawParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      continue;
+    }
+
+    const alpha = Math.min(1, p.life / (p.maxLife * 0.3)) * 0.5;
+    const sx = p.x - camera.x;
+    const sy = p.y - camera.y;
+
+    ctx.fillStyle = `rgba(${p.color}, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// --- Main Render Loop ---
+let lastTime = performance.now();
+
+function gameLoop(now) {
+  const rawDt = (now - lastTime) / 1000;
+  const dt = Math.min(rawDt, 0.1); // Cap delta time
+  lastTime = now;
+
+  // Update camera
+  updateCamera(dt);
+
+  // Update tick timer
+  if (!paused) {
+    gameState.tickAccumulator += rawDt * 1000 * tickSpeedMultiplier;
+    if (gameState.tickAccumulator >= BASE_TICK_MS) {
+      gameState.tickAccumulator -= BASE_TICK_MS;
+      processTick();
+    }
+  }
+
+  const tickProgress = gameState.tickAccumulator / BASE_TICK_MS;
+  const dayNightState = getDayNightState(gameState.tick, tickProgress);
+  const timeOfDay = dayNightState.phase;
+
+  // Update villagers
+  updateVillagers(villagers, tiles, MAP_SIZE, dt, timeOfDay);
+
+  // --- Draw ---
+  // Clear
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw tile map
+  drawTiles();
+
+  // Draw buildings
+  drawBuildings(ctx, buildings, TILE_SIZE, camera.x, camera.y);
+
+  // Draw villagers (sorted by Y for depth)
+  const sortedVillagers = [...villagers].sort((a, b) => a.y - b.y);
+  for (const v of sortedVillagers) {
+    drawVillager(ctx, v, TILE_SIZE, camera.x, camera.y, dayNightState.overlay.a);
+  }
+
+  // Day/night overlay
+  applyDayNightOverlay(ctx, canvas.width, canvas.height, dayNightState);
+
+  // Point lights during night/dusk
+  if (dayNightState.overlay.a > 0.1) {
+    ctx.globalCompositeOperation = 'lighter';
+
+    // Building torches
+    for (const light of buildingLights) {
+      const sx = light.x * TILE_SIZE - camera.x;
+      const sy = light.y * TILE_SIZE - camera.y;
+      if (sx > -100 && sx < canvas.width + 100 && sy > -100 && sy < canvas.height + 100) {
+        const flicker = 0.8 + Math.sin(now / 200 + light.x) * 0.2;
+        drawPointLight(ctx, sx, sy, TILE_SIZE * 3, dayNightState.overlay.a * flicker);
+      }
+    }
+
+    // Villager-carried torches at night
+    if (timeOfDay === PHASES.NIGHT) {
+      for (const v of villagers) {
+        if (v.state !== 'sleeping') {
+          const sx = v.x * TILE_SIZE - camera.x;
+          const sy = v.y * TILE_SIZE - camera.y;
+          drawPointLight(ctx, sx, sy, TILE_SIZE * 1.5, 0.4);
+        }
+      }
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // Particles
+  spawnParticles(dayNightState);
+  updateAndDrawParticles(dt);
+
+  // Minimap (update every few frames for performance)
+  if (Math.floor(now / 500) !== Math.floor((now - rawDt * 1000) / 500)) {
+    drawMinimap(minimapCanvas, tiles, buildings, villagers, camera, TILE_SIZE, canvas.width, canvas.height);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// --- Start ---
+updateUI();
+requestAnimationFrame(gameLoop);
+
+console.log(`AI Village: Realm of Shadows — initialized (seed: ${MAP_SEED})`);

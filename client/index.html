@@ -2,29 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>AI Village: Realm of Shadows</title>
-  <link rel="stylesheet" href="/static/css/game.css">
+  <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
     <div id="ui-overlay">
-      <div id="minimap"></div>
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
       <div id="resource-bar">
-        <span id="wood">Wood: 0</span>
-        <span id="stone">Stone: 0</span>
-        <span id="food">Food: 0</span>
-        <span id="iron">Iron: 0</span>
+        <span id="res-wood">Wood: 50</span>
+        <span id="res-stone">Stone: 30</span>
+        <span id="res-food">Food: 40</span>
+        <span id="res-iron">Iron: 5</span>
       </div>
       <div id="time-display">Day 1 — Dawn</div>
+      <div id="faith-bar">
+        <div id="faith-label">Faith</div>
+        <div id="faith-track"><div id="faith-fill"></div></div>
+      </div>
+      <div id="villager-count">Villagers: 8</div>
+      <div id="tick-controls">
+        <button id="btn-pause">⏸</button>
+        <button id="btn-speed1" class="active">▶</button>
+        <button id="btn-speed2">▶▶</button>
+        <button id="btn-speed3">▶▶▶</button>
+      </div>
       <div id="guidance-panel" class="hidden">
+        <div id="guidance-header">A villager seeks your counsel...</div>
         <div id="villager-question"></div>
-        <textarea id="guidance-input" placeholder="Speak, Voice..."></textarea>
+        <textarea id="guidance-input" placeholder="Speak, Voice..." rows="3"></textarea>
         <button id="send-guidance">Counsel</button>
+      </div>
+      <div id="event-log">
+        <div id="log-entries"></div>
       </div>
     </div>
   </div>
-  <script src="/static/js/main.js" type="module"></script>
+  <script src="js/main.js" type="module"></script>
 </body>
 </html>
