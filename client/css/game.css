@@ -446,6 +446,32 @@ body {
   background: linear-gradient(135deg, #6a5a9a, #8a6aba);
 }
 
+/* Chain choice buttons */
+#chain-choice-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chain-choice-btn {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #4a3a6a, #6a4a8a);
+  color: #e8d8ff;
+  border: 1px solid #8a6aba;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.chain-choice-btn:hover {
+  background: linear-gradient(135deg, #6a5a9a, #8a6aba);
+  border-color: #aa8ada;
+}
+
 /* Roster & Settings Buttons */
 #btn-roster {
   margin-left: 6px;

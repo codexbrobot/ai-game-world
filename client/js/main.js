@@ -22,6 +22,8 @@ import { initMorale, updateMorale, getMoraleEffects, rollDesertion, checkProximi
 import { createScoutState, isScoutCapable, assignScoutMission, updateScoutMissions, getScoutSightRadius, checkFogAmbush, drawScoutMarkers, drawScoutMarkerOnMinimap } from './scout.js';
 import { createQuestState, initQuests, checkQuestTriggers, updateQuestProgress, getQuestRewards, trackMonsterKill, trackPOIDiscovery, getActiveQuests, getActProgress } from './quests.js';
 import { createChainState, checkChainTriggers, updateChains, resolveChoice, getActiveChainSummaries } from './event-chains.js';
+import { UPGRADE_DEFS, canUpgrade, performUpgrade, getUpgradeableBuildings } from './upgrades.js';
+import { initProgression, grantWorkXP, grantBuildXP, grantCombatXP, grantKillXP, grantScoutXP, grantSurvivalXP, grantDiscoveryXP, getXPProgress, getVillagerTitle, drawXPBar, drawLevelUpEffect } from './progression.js';
 
 // --- Configuration ---
 const TILE_SIZE = 32;
@@ -73,10 +75,15 @@ const chainState = createChainState();
 // Disease tracking: { active, ticksRemaining }
 const diseaseState = { active: false, ticksRemaining: 0 };
 
-// Initialize morale on all starting villagers
+// Initialize morale and progression on all starting villagers
 for (const v of villagers) {
   initMorale(v);
+  initProgression(v);
 }
+
+// --- Visual Effect State ---
+const lootFloats = []; // { text, x, y, timer, color }
+let questFanfare = 0; // countdown frames for screen flash
 
 // Reveal village center area at start
 revealArea(visibilityMap, Math.floor(MAP_SIZE / 2), Math.floor(MAP_SIZE / 2), 6, MAP_SIZE);
@@ -440,6 +447,28 @@ const THOUGHT_TEMPLATES_GENERAL = [
   "Today feels different. Something is changing.",
 ];
 
+const MORALE_THOUGHTS = {
+  high: [
+    "Life in this village fills me with hope. We're building something that matters.",
+    "I feel strong today. The work is hard but our progress is real.",
+    "The bonds between us grow stronger each day. We will endure.",
+  ],
+  low: [
+    "Despair gnaws at me. Is this village worth saving, or are we prolonging the inevitable?",
+    "I can barely bring myself to work. The weight of this place crushes my spirit.",
+    "Others seem to falter too. How long before someone breaks?",
+  ],
+  quest: [
+    "Our quest weighs on me — {quest_name}. Can we really accomplish this?",
+    "I keep thinking about our mission. {quest_name}... the stakes grow higher.",
+    "Every step toward completing {quest_name} feels like it matters more than the last.",
+  ],
+  relationship: [
+    "I've grown close to {friend_name}. Their presence gives me courage.",
+    "Working alongside {friend_name} makes the hardest tasks bearable.",
+  ],
+};
+
 const PERSONALITY_DOUBTS = {
   Stalwart: "I must stay strong regardless",
   Skeptic: "can I really trust any of them?",
@@ -452,12 +481,48 @@ const PERSONALITY_DOUBTS = {
 function generateThought(v) {
   const classThoughts = THOUGHT_TEMPLATES[v.vclass] || THOUGHT_TEMPLATES_GENERAL;
   const allOptions = [...classThoughts, ...THOUGHT_TEMPLATES_GENERAL];
+
+  // Add morale-driven thoughts
+  const morale = v.morale !== undefined ? v.morale : 60;
+  if (morale >= 75 && Math.random() < 0.3) {
+    allOptions.push(...MORALE_THOUGHTS.high);
+  } else if (morale <= 30 && Math.random() < 0.4) {
+    allOptions.push(...MORALE_THOUGHTS.low);
+  }
+
+  // Add quest-driven thoughts
+  const activeQuests = getActiveQuests(questState);
+  if (activeQuests.length > 0 && Math.random() < 0.25) {
+    allOptions.push(...MORALE_THOUGHTS.quest);
+  }
+
+  // Add relationship thoughts
+  if (v.relationships && Object.keys(v.relationships).length > 0 && Math.random() < 0.2) {
+    allOptions.push(...MORALE_THOUGHTS.relationship);
+  }
+
   let thought = allOptions[Math.floor(Math.random() * allOptions.length)];
 
   // Fill in template variables
   const strengthDesc = v.stats.strength >= 7 ? 'formidable' : v.stats.strength >= 5 ? 'average' : 'lacking';
   thought = thought.replace('{strength_status}', strengthDesc);
   thought = thought.replace('{personality_doubt}', PERSONALITY_DOUBTS[v.personality] || 'I wonder');
+
+  // Fill quest name
+  if (activeQuests.length > 0) {
+    thought = thought.replace('{quest_name}', activeQuests[0].title);
+  } else {
+    thought = thought.replace('{quest_name}', 'our survival');
+  }
+
+  // Fill friend name
+  if (v.relationships && Object.keys(v.relationships).length > 0) {
+    const friendId = Object.keys(v.relationships).sort((a, b) => v.relationships[b] - v.relationships[a])[0];
+    const friend = villagers.find(vv => String(vv.id) === friendId);
+    thought = thought.replace('{friend_name}', friend ? friend.name : 'a companion');
+  } else {
+    thought = thought.replace('{friend_name}', 'my fellow villagers');
+  }
 
   return thought;
 }
@@ -484,11 +549,16 @@ function triggerVillagerThought(phase) {
   v.speech = `"${thought.substring(0, 35)}..."`;
   v.speechTimer = 3;
 
+  const activeQ = getActiveQuests(questState);
   const gameContext = {
     day: gameState.day,
     tick: gameState.tick,
     phase,
     resources: { ...gameState.resources },
+    morale: v.morale,
+    moodLabel: getMoraleEffects(v).moodLabel,
+    activeQuests: activeQ.map(q => q.title).slice(0, 2),
+    title: getVillagerTitle(v),
   };
 
   getThoughtResponse(v, thought, gameContext).then(response => {
@@ -546,6 +616,8 @@ function processTick() {
   }
   if (gameState.tick === 23) {
     addEvent('Dawn breaks. The village survived another night.', 'discovery');
+    // Survival XP for surviving the night
+    for (const v of villagers) grantSurvivalXP(v);
   }
 
   // Per-villager resource gathering
@@ -560,6 +632,7 @@ function processTick() {
         if (tile === TILE.FOREST || tile === TILE.FARM) {
           gameState.resources.food += Math.floor(1 * strengthBonus);
           if (tile === TILE.FOREST) gameState.resources.wood += 1;
+          grantWorkXP(v);
         }
       } else if (v.vclass === 'miner') {
         const hasStoneAdj = hasAdjacentTile(tiles, Math.floor(v.x), Math.floor(v.y), MAP_SIZE, TILE.STONE);
@@ -567,9 +640,11 @@ function processTick() {
         const mineBonus = hasWorkshop ? 1.5 : 1;
         if (hasStoneAdj) gameState.resources.stone += Math.floor(1 * strengthBonus * mineBonus);
         if (hasIronAdj && gameState.tick % 2 === 0) gameState.resources.iron += 1;
+        if (hasStoneAdj || hasIronAdj) grantWorkXP(v);
       } else if (v.vclass === 'builder') {
         if (tile === TILE.FOREST) {
           gameState.resources.wood += Math.floor(1 * strengthBonus);
+          grantWorkXP(v);
         }
       }
     }
@@ -621,9 +696,15 @@ function processTick() {
   // --- Combat Processing ---
   const combatEvents = processCombatTick(combatState, villagers, monsters, TILE_SIZE);
   for (const evt of combatEvents) {
+    if (evt.type === 'damage' && evt.targetType === 'monster') {
+      const attacker = villagers.find(v => v.name === evt.sourceName);
+      if (attacker) grantCombatXP(attacker);
+    }
     if (evt.type === 'death' && evt.targetType === 'monster') {
       addEvent(`${evt.sourceName} slew a monster!`, 'combat');
       trackMonsterKill(questState);
+      const killer = villagers.find(v => v.name === evt.sourceName);
+      if (killer) grantKillXP(killer);
     } else if (evt.type === 'death' && evt.targetType === 'villager') {
       addEvent(`${evt.sourceName} has fallen in combat!`, 'danger');
     } else if (evt.type === 'flee') {
@@ -648,6 +729,15 @@ function processTick() {
       if (Object.keys(drop.resources).length > 0) {
         const resList = Object.entries(drop.resources).map(([r, a]) => `${a} ${r}`).join(', ');
         addEvent(`Loot: ${resList}`, 'discovery');
+        // Spawn floating loot text
+        lootFloats.push({ text: resList, x: drop.x * TILE_SIZE, y: drop.y * TILE_SIZE, timer: 90, color: '#ffd700' });
+      }
+      // Item loot floats
+      for (const item of drop.items) {
+        const def = ITEM_DEFS[item.type];
+        if (def) {
+          lootFloats.push({ text: `+${def.name}`, x: drop.x * TILE_SIZE, y: drop.y * TILE_SIZE - 12, timer: 90, color: '#ff9944' });
+        }
       }
     }
   }
@@ -731,8 +821,11 @@ function processTick() {
     if (effects.loreScroll) {
       addEvent(`Lore: "${effects.loreScroll.substring(0, 80)}..."`, 'discovery');
     }
-    // Morale boost for all villagers
-    for (const v of villagers) updateMorale(v, ['poi_found']);
+    // Morale boost and discovery XP for all villagers
+    for (const v of villagers) {
+      updateMorale(v, ['poi_found']);
+      grantDiscoveryXP(v);
+    }
   }
 
   // --- Disease Tick ---
@@ -752,6 +845,7 @@ function processTick() {
     addEvent(`${completed.villager.name} completed scouting mission!`, 'discovery');
     revealArea(visibilityMap, completed.targetX, completed.targetY, 8, MAP_SIZE);
     updateMorale(completed.villager, ['discovery']);
+    grantScoutXP(completed.villager);
   }
   // Set scout villager movement targets
   for (const mission of scoutState.activeMissions) {
@@ -810,6 +904,7 @@ function processTick() {
         for (const v of villagers) updateMorale(v, ['quest_complete']);
       }
       addEvent(`Quest Complete! Rewards claimed.`, 'discovery');
+      questFanfare = 45; // trigger screen flash
     }
   }
 
@@ -861,12 +956,9 @@ function processTick() {
       }
     }
   }
-  // Handle chain choices via guidance panel (simplified — auto-resolve for now)
+  // Handle chain choices via guidance panel UI
   for (const choice of chainUpdates.choices) {
-    // Auto-pick first option (accept sacrifice, etc.)
-    // In a future update, this should show a UI prompt
-    const effects = resolveChoice(chainState, choice.chainId, 0);
-    addEvent(`${choice.prompt} — Decision made.`, 'omen');
+    showChainChoice(choice);
   }
 
   // --- Auto-Craft (when workshop exists, every 6 ticks) ---
@@ -886,6 +978,24 @@ function processTick() {
         addEvent(`${v.name} received a ${sword.name}!`, 'build');
       }
     }
+  }
+
+  // --- Building Upgrades (auto-upgrade every 5 ticks) ---
+  if (gameState.tick % 5 === 0) {
+    const upgradeable = getUpgradeableBuildings(buildings, gameState.resources, gameState.day, tiles, MAP_SIZE);
+    if (upgradeable.length > 0) {
+      const { building, upgradeDef } = upgradeable[0];
+      performUpgrade(building, buildings, gameState.resources, tiles);
+      addEvent(`${upgradeDef.label} upgrade complete!`, 'build');
+      // Refresh building lights
+      buildingLights.length = 0;
+      buildingLights.push(...getBuildingLights(buildings));
+    }
+  }
+
+  // Init progression on new villagers that may lack it
+  for (const v of villagers) {
+    if (!v.xp) initProgression(v);
   }
 
   // Knight promotion: after watchtower is built, villagers may consider becoming knights
@@ -1033,6 +1143,81 @@ document.getElementById('send-guidance').addEventListener('click', async () => {
   panel.classList.add('hidden');
 });
 
+// --- Chain Choice UI ---
+let pendingChainChoice = null;
+
+function showChainChoice(choice) {
+  paused = true;
+  updateSpeedButtons();
+  pendingChainChoice = choice;
+
+  const panel = document.getElementById('guidance-panel');
+  const header = document.getElementById('guidance-header');
+  const qEl = document.getElementById('villager-question');
+  const inputEl = document.getElementById('guidance-input');
+  const sendBtn = document.getElementById('send-guidance');
+
+  header.textContent = 'A critical decision awaits...';
+  qEl.innerHTML = `<strong>${choice.prompt}</strong>`;
+  inputEl.style.display = 'none';
+  sendBtn.style.display = 'none';
+
+  // Build option buttons
+  let optionsHtml = '';
+  choice.options.forEach((opt, i) => {
+    optionsHtml += `<button class="chain-choice-btn" data-choice-idx="${i}">${opt.label}</button>`;
+  });
+  const optContainer = document.createElement('div');
+  optContainer.id = 'chain-choice-options';
+  optContainer.innerHTML = optionsHtml;
+  qEl.appendChild(optContainer);
+
+  optContainer.querySelectorAll('.chain-choice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.choiceIdx);
+      const effects = resolveChoice(chainState, choice.chainId, idx);
+      if (effects) {
+        applyChainEffects(effects);
+        addEvent(`Decision: ${choice.options[idx].label}`, 'omen');
+      }
+      // Restore panel
+      header.textContent = 'A villager seeks your counsel...';
+      inputEl.style.display = '';
+      sendBtn.style.display = '';
+      panel.classList.add('hidden');
+      pendingChainChoice = null;
+      paused = false;
+      updateSpeedButtons();
+    });
+  });
+
+  panel.classList.remove('hidden');
+}
+
+function applyChainEffects(fx) {
+  if (!fx) return;
+  if (fx.faith !== undefined) gameState.faith = Math.max(0, Math.min(100, gameState.faith + fx.faith));
+  if (fx.setFaith !== undefined) gameState.faith = fx.setFaith;
+  if (fx.resources) {
+    for (const [res, amt] of Object.entries(fx.resources)) {
+      gameState.resources[res] = Math.max(0, (gameState.resources[res] || 0) + amt);
+    }
+  }
+  if (fx.morale) {
+    for (const v of villagers) v.morale = Math.max(0, Math.min(100, (v.morale || 60) + fx.morale));
+  }
+  if (fx.healAll) {
+    for (const v of villagers) v.hp = Math.min(v.maxHp, v.hp + fx.healAll);
+  }
+  if (fx.desertVillager) {
+    const idx = villagers.findIndex(v => v.personality === fx.desertVillager);
+    if (idx !== -1) {
+      addEvent(`${villagers[idx].name} has left the village!`, 'danger');
+      villagers.splice(idx, 1);
+    }
+  }
+}
+
 // --- Settings Panel ---
 document.getElementById('btn-settings').addEventListener('click', () => {
   const overlay = document.getElementById('settings-overlay');
@@ -1123,10 +1308,11 @@ function renderRoster() {
 
     const maxStat = 10; // visual max for stat bars
 
+    const title = getVillagerTitle(v);
     card.innerHTML = `
       <div class="roster-card-header">
         <span class="roster-name">${v.name}</span>
-        <span class="roster-identity">${v.raceLabel} ${v.classLabel}</span>
+        <span class="roster-identity">${v.raceLabel} ${v.classLabel} <span style="color:#d4af37;font-size:0.85em">(${title})</span></span>
       </div>
       <div class="roster-personality">${v.personality} ${v.morale !== undefined ? `<span style="color:${getMoraleEffects(v).moodColor}"> — ${getMoraleEffects(v).moodLabel} (${v.morale})</span>` : ''}</div>
       <div class="roster-stats">
@@ -1351,6 +1537,7 @@ function gameLoop(now) {
     const def = BUILDING_DEFS[b.type] || { w: 1, h: 1 };
     buildings.push({ x: b.x, y: b.y, type: b.type, w: def.w, h: def.h });
     addEvent(`${event.villager.name} built a ${def.label || b.type}!`, 'build');
+    grantBuildXP(event.villager);
     // Refresh building lights
     buildingLights.length = 0;
     buildingLights.push(...getBuildingLights(buildings));
@@ -1400,6 +1587,14 @@ function gameLoop(now) {
     } else {
       drawMonster(ctx, e.entity, TILE_SIZE, camera.x, camera.y);
     }
+  }
+
+  // XP bars and level-up effects on villagers
+  for (const v of villagers) {
+    const sx = v.x * TILE_SIZE - camera.x;
+    const sy = v.y * TILE_SIZE - camera.y;
+    drawXPBar(ctx, v, sx, sy, TILE_SIZE);
+    drawLevelUpEffect(ctx, v, sx, sy, TILE_SIZE, frameCount);
   }
 
   // Combat effects
@@ -1455,6 +1650,53 @@ function gameLoop(now) {
 
   // Weather effects
   drawWeatherEffects(ctx, eventSystem, canvas.width, canvas.height);
+
+  // Loot float texts
+  for (let i = lootFloats.length - 1; i >= 0; i--) {
+    const lf = lootFloats[i];
+    lf.timer--;
+    const alpha = Math.min(1, lf.timer / 30);
+    const floatY = (90 - lf.timer) * 0.6;
+    const sx = lf.x - camera.x;
+    const sy = lf.y - camera.y - floatY;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.strokeText(lf.text, sx, sy);
+    ctx.fillStyle = lf.color;
+    ctx.fillText(lf.text, sx, sy);
+    ctx.restore();
+
+    if (lf.timer <= 0) lootFloats.splice(i, 1);
+  }
+
+  // Quest completion fanfare (screen flash)
+  if (questFanfare > 0) {
+    const alpha = (questFanfare / 45) * 0.3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    // Center text
+    if (questFanfare > 20) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (questFanfare - 20) / 15);
+      ctx.font = 'bold 24px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.strokeText('QUEST COMPLETE!', canvas.width / 2, canvas.height / 3);
+      ctx.fillText('QUEST COMPLETE!', canvas.width / 2, canvas.height / 3);
+      ctx.restore();
+    }
+    questFanfare--;
+  }
 
   // Particles
   spawnParticles(dayNightState);
