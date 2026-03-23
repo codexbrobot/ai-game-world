@@ -138,10 +138,8 @@ export function grantXP(villager, stat, amount) {
 
   // Trigger visual feedback
   villager.levelUpGlow = GLOW_DURATION;
-  if (typeof villager.speech === 'undefined') {
-    villager.speech = null;
-  }
-  villager.speech = { text: `${stat} leveled up!`, timer: 120 };
+  villager.speech = `${stat} leveled up!`;
+  villager.speechTimer = 4;
 
   return { leveledUp: true, stat, newLevel, newStatValue };
 }

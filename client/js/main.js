@@ -111,6 +111,10 @@ function addEvent(text, type = '') {
   entry.className = `log-entry event-${type}`;
   entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${text}`;
   logEl.appendChild(entry);
+  // Cap DOM nodes to prevent unbounded growth
+  while (logEl.childNodes.length > 60) {
+    logEl.removeChild(logEl.firstChild);
+  }
   logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
 }
 
@@ -718,10 +722,11 @@ function processTick() {
       for (const [res, amt] of Object.entries(drop.resources)) {
         gameState.resources[res] = (gameState.resources[res] || 0) + amt;
       }
-      // Equip items on the killer
+      // Equip items on the killer (if still alive)
+      const killerAlive = drop.killerVillager && drop.killerVillager.hp > 0;
       for (const item of drop.items) {
         const def = ITEM_DEFS[item.type];
-        if (def) {
+        if (def && killerAlive) {
           equipItem(drop.killerVillager, { ...def });
           addEvent(`${drop.killerVillager.name} found ${def.name}!`, 'discovery');
         }
@@ -809,7 +814,7 @@ function processTick() {
     // New villagers
     for (let i = 0; i < effects.newVillagers; i++) {
       const recruit = createVillagers(1, poi.x, MAP_SEED + gameState.day * 100 + i)[0];
-      if (recruit) { initMorale(recruit); villagers.push(recruit); addEvent(`${recruit.name} joins the village!`, 'npc'); }
+      if (recruit) { initMorale(recruit); initProgression(recruit); villagers.push(recruit); addEvent(`${recruit.name} joins the village!`, 'npc'); }
     }
     // Disease
     if (effects.diseaseStrength > 0) {
@@ -910,7 +915,7 @@ function processTick() {
 
   // --- Event Chains ---
   const newChains = checkChainTriggers(chainState, gameState, villagers, pois,
-    gameState.events.map(e => e.text));
+    gameState.events);
   for (const chain of newChains) {
     addEvent(`${chain.description}`, 'omen');
   }
@@ -920,6 +925,14 @@ function processTick() {
     // Apply chain effects
     const fx = stage.effects;
     if (fx) {
+      if (fx.damageRandom && villagers.length > 0) {
+        const count = Math.min(fx.damageRandom.count || 3, villagers.length);
+        const targets = [...villagers].sort(() => Math.random() - 0.5).slice(0, count);
+        for (const v of targets) v.hp = Math.max(1, v.hp - (fx.damageRandom.amount || 2));
+      }
+      if (fx.damageAll) {
+        for (const v of villagers) v.hp = Math.max(1, v.hp - fx.damageAll);
+      }
       if (fx.damage) {
         const targets = [...villagers].sort(() => Math.random() - 0.5).slice(0, 3);
         for (const v of targets) v.hp = Math.max(1, v.hp - fx.damage);
@@ -938,7 +951,7 @@ function processTick() {
       if (fx.newVillagers) {
         for (let i = 0; i < fx.newVillagers; i++) {
           const r = createVillagers(1, Math.floor(MAP_SIZE / 2), MAP_SEED + gameState.day * 200 + i)[0];
-          if (r) { initMorale(r); villagers.push(r); }
+          if (r) { initMorale(r); initProgression(r); villagers.push(r); }
         }
       }
       if (fx.spawnMonsters) {
@@ -1035,9 +1048,9 @@ function processTick() {
   }
 
   // Random villager seeking guidance (for demo)
-  if (Math.random() < 0.03 && phase !== PHASES.NIGHT) {
+  if (Math.random() < 0.03 && phase !== PHASES.NIGHT && villagers.length > 0) {
     const seeker = villagers[Math.floor(Math.random() * villagers.length)];
-    if (seeker.state !== 'sleeping') {
+    if (seeker && seeker.state !== 'sleeping') {
       showGuidanceRequest(seeker);
     }
   }
@@ -1552,8 +1565,10 @@ function gameLoop(now) {
   // Update combat effects
   updateCombatEffects(combatState, dt);
 
-  // Update visibility
-  updateVisibility(visibilityMap, villagers, buildings, MAP_SIZE);
+  // Update visibility (throttled — every 5 frames to reduce CPU)
+  if (frameCount % 5 === 0) {
+    updateVisibility(visibilityMap, villagers, buildings, MAP_SIZE);
+  }
 
   // Update weather
   updateWeather(eventSystem, dt);

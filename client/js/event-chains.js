@@ -284,7 +284,10 @@ export function checkChainTriggers(chainState, gameState, villagers, pois, event
   // --- War: triggered by blood_moon event ---
   if (canStart('war')) {
     const bloodMoonFired = eventHistory && eventHistory.some(
-      (e) => e.id === 'blood_moon'
+      (e) => {
+        const txt = typeof e === 'string' ? e : (e.text || e.id || '');
+        return txt.toLowerCase().includes('blood moon');
+      }
     );
     if (bloodMoonFired) {
       startChain(chainState, 'war');
