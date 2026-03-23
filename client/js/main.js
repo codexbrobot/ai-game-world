@@ -878,6 +878,12 @@ document.getElementById('close-roster').addEventListener('click', () => {
   document.getElementById('roster-panel').classList.add('hidden');
 });
 
+// Minimap toggle (mobile)
+document.getElementById('minimap-toggle').addEventListener('click', () => {
+  const mc = document.getElementById('minimap-canvas');
+  mc.classList.toggle('minimap-hidden');
+});
+
 function renderRoster() {
   const list = document.getElementById('roster-list');
   list.innerHTML = '';
@@ -980,7 +986,7 @@ function updateUI() {
   document.getElementById('res-stone').textContent = `Stone: ${gameState.resources.stone}`;
   document.getElementById('res-food').textContent = `Food: ${gameState.resources.food}`;
   document.getElementById('res-iron').textContent = `Iron: ${gameState.resources.iron}`;
-  document.getElementById('villager-count').textContent = `Villagers: ${villagers.length}`;
+  document.getElementById('villager-count').textContent = `${villagers.length}`;
   document.getElementById('faith-fill').style.width = `${gameState.faith}%`;
 
   // Food tracker

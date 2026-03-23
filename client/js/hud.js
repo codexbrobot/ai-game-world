@@ -13,10 +13,24 @@ let fontsLoaded = false;
 
 // ─── Panel constants ─────────────────────────────────────────────────────────
 
-const PANEL_W = 220;
-const PANEL_H = 200;
+const PANEL_W_DESKTOP = 220;
+const PANEL_H_DESKTOP = 200;
 const PANEL_PAD = 10;
 const CLOSE_BTN_SIZE = 16;
+/** Mobile breakpoint — below this width, inspect panel becomes a full-width bottom sheet */
+const MOBILE_W = 600;
+
+/**
+ * Compute panel dimensions based on canvas width.
+ * @param {number} canvasW
+ * @returns {{ w: number, h: number }}
+ */
+function panelSize(canvasW) {
+  if (canvasW <= MOBILE_W) {
+    return { w: canvasW - PANEL_PAD * 2, h: 160 };
+  }
+  return { w: PANEL_W_DESKTOP, h: PANEL_H_DESKTOP };
+}
 
 // ─── Asset loading ───────────────────────────────────────────────────────────
 
@@ -119,11 +133,12 @@ export function handleClick(hudState, mouseX, mouseY, camera, villagers, tileSiz
  */
 export function isClickInPanel(hudState, mouseX, mouseY, canvasW, canvasH) {
   if (!hudState.showInspectPanel) return false;
-  const px = canvasW - PANEL_W - PANEL_PAD;
-  const py = canvasH - PANEL_H - PANEL_PAD;
+  const { w, h } = panelSize(canvasW);
+  const px = canvasW <= MOBILE_W ? PANEL_PAD : canvasW - w - PANEL_PAD;
+  const py = canvasH - h - PANEL_PAD;
   return (
-    mouseX >= px && mouseX <= px + PANEL_W &&
-    mouseY >= py && mouseY <= py + PANEL_H
+    mouseX >= px && mouseX <= px + w &&
+    mouseY >= py && mouseY <= py + h
   );
 }
 
@@ -218,13 +233,16 @@ export function drawInspectPanel(ctx, hudState, canvasW, canvasH) {
   if (!hudState.showInspectPanel || !hudState.selectedVillager) return;
 
   const v = hudState.selectedVillager;
-  const px = canvasW - PANEL_W - PANEL_PAD;
+  const { w: PANEL_W, h: PANEL_H } = panelSize(canvasW);
+  const isMobile = canvasW <= MOBILE_W;
+  // Mobile: full-width bottom sheet. Desktop: bottom-right corner.
+  const px = isMobile ? PANEL_PAD : canvasW - PANEL_W - PANEL_PAD;
   const py = canvasH - PANEL_H - PANEL_PAD;
 
   ctx.save();
 
   // Panel background
-  ctx.fillStyle = 'rgba(15, 10, 25, 0.85)';
+  ctx.fillStyle = 'rgba(15, 10, 25, 0.90)';
   ctx.fillRect(px, py, PANEL_W, PANEL_H);
 
   // Border
@@ -290,22 +308,32 @@ export function drawInspectPanel(ctx, hudState, canvasW, canvasH) {
   ctx.fillStyle = '#90d090';
   ctx.font = `11px ${fontFamily('text')}`;
   ctx.fillText(`State: ${v.state || 'idle'}`, cx, cy);
-  cy += 16;
 
-  // Equipment
-  ctx.fillStyle = '#b0a890';
-  ctx.fillText('Equipment:', cx, cy);
-  cy += 13;
-
+  // Equipment — on mobile, show inline on same row; on desktop, show below
   const eq = v.equipment || {};
   const slots = ['weapon', 'shield', 'helmet'];
-  ctx.fillStyle = '#909090';
-  ctx.font = `10px ${fontFamily('text')}`;
-  for (const slot of slots) {
-    const item = eq[slot];
-    const label = item ? (typeof item === 'string' ? item : item.name || item.type || 'Equipped') : 'Empty';
-    ctx.fillText(`  ${slot}: ${label}`, cx, cy);
-    cy += 12;
+  if (isMobile) {
+    // Inline after state
+    const eqParts = slots.map(s => {
+      const item = eq[s];
+      return item ? (typeof item === 'string' ? item : item.name || item.type || '?') : '-';
+    });
+    ctx.fillStyle = '#909090';
+    ctx.font = `10px ${fontFamily('text')}`;
+    ctx.fillText(`  Eq: ${eqParts.join(' / ')}`, cx + 100, cy);
+  } else {
+    cy += 16;
+    ctx.fillStyle = '#b0a890';
+    ctx.fillText('Equipment:', cx, cy);
+    cy += 13;
+    ctx.fillStyle = '#909090';
+    ctx.font = `10px ${fontFamily('text')}`;
+    for (const slot of slots) {
+      const item = eq[slot];
+      const label = item ? (typeof item === 'string' ? item : item.name || item.type || 'Equipped') : 'Empty';
+      ctx.fillText(`  ${slot}: ${label}`, cx, cy);
+      cy += 12;
+    }
   }
 
   ctx.restore();
@@ -414,7 +442,7 @@ export function drawThreatIndicators(ctx, monsters, camera, canvasW, canvasH, ti
  * @param {number} canvasW - Canvas width
  */
 export function drawDayProgressBar(ctx, tick, phase, canvasW) {
-  const barH = 4;
+  const barH = canvasW <= MOBILE_W ? 6 : 4;
 
   ctx.save();
 
@@ -489,7 +517,8 @@ export function drawDayProgressBar(ctx, tick, phase, canvasW) {
  */
 export function drawExplorationCounter(ctx, percentage, canvasW, canvasH) {
   const x = 12;
-  const y = canvasH - 16;
+  // On mobile, position above the event log; on desktop, near bottom edge
+  const y = canvasW <= MOBILE_W ? canvasH - 96 : canvasH - 16;
 
   ctx.save();
 
