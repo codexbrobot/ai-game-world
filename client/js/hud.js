@@ -76,6 +76,7 @@ export function createHUDState() {
   return {
     selectedVillager: null,
     showInspectPanel: false,
+    inspectTab: 'stats', // 'stats' | 'story' | 'thoughts'
     threatArrows: [],
   };
 }
@@ -504,6 +505,134 @@ export function drawDayProgressBar(ctx, tick, phase, canvasW) {
   ctx.stroke();
 
   ctx.restore();
+}
+
+// ─── HTML-based Villager Detail Panel ────────────────────────────────────────
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Render the villager detail panel content for the given tab.
+ * Called whenever the selection changes or tab switches.
+ * @param {object} hudState
+ * @param {object} [moraleHelper] - Optional { getMoraleEffects, getVillagerTitle } functions
+ */
+export function renderVillagerDetail(hudState, moraleHelper) {
+  const panel = document.getElementById('villager-detail');
+  const content = document.getElementById('vd-content');
+  if (!panel || !content) return;
+
+  const v = hudState.selectedVillager;
+  if (!v || !hudState.showInspectPanel) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+
+  // Update active tab styling
+  panel.querySelectorAll('.vd-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === hudState.inspectTab);
+  });
+
+  const tab = hudState.inspectTab || 'stats';
+
+  if (tab === 'stats') {
+    const stats = v.stats || {};
+    const hp = v.hp ?? 0;
+    const maxHp = v.maxHp ?? 1;
+    const hpRatio = Math.max(0, Math.min(1, hp / maxHp));
+    const hpColor = hpRatio > 0.5 ? '#2a8a2a' : hpRatio > 0.25 ? '#c8a020' : '#b02020';
+    const eq = v.equipment || {};
+    const title = moraleHelper?.getVillagerTitle?.(v) || '';
+    const moraleInfo = moraleHelper?.getMoraleEffects?.(v);
+    const moraleText = v.morale !== undefined && moraleInfo
+      ? `<span style="color:${moraleInfo.moodColor}">${moraleInfo.moodLabel} (${v.morale})</span>`
+      : '';
+
+    // Relationships
+    let relHtml = '';
+    if (v.relationships && Object.keys(v.relationships).length > 0) {
+      const sorted = Object.entries(v.relationships).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      relHtml = sorted.map(([id, bond]) => {
+        const label = bond >= 20 ? 'Close' : bond >= 10 ? 'Friendly' : 'Acquaintance';
+        return `<div style="font-size:11px;color:#c8b8e8">Villager #${id}: ${label} (${bond})</div>`;
+      }).join('');
+    }
+
+    content.innerHTML = `
+      <div class="vd-name">${escapeHtml(v.name)} ${title ? `<span style="color:#d4af37;font-size:12px">(${escapeHtml(title)})</span>` : ''}</div>
+      <div class="vd-subtitle">${escapeHtml(v.raceLabel || '')} ${escapeHtml(v.classLabel || '')} — ${escapeHtml(v.personality || '')}</div>
+      <div class="vd-stats-row">
+        <div class="vd-stat"><div class="vd-stat-label">Speed</div><div class="vd-stat-val vd-stat-spd">${stats.speed ?? '-'}</div></div>
+        <div class="vd-stat"><div class="vd-stat-label">Strength</div><div class="vd-stat-val vd-stat-str">${stats.strength ?? '-'}</div></div>
+        <div class="vd-stat"><div class="vd-stat-label">Charisma</div><div class="vd-stat-val vd-stat-cha">${stats.charisma ?? '-'}</div></div>
+      </div>
+      <div class="vd-hp-bar"><div class="vd-hp-fill" style="width:${hpRatio * 100}%;background:${hpColor}"></div></div>
+      <div class="vd-hp-text">HP: ${hp} / ${maxHp}</div>
+      ${moraleText ? `<div class="vd-section-label">Morale</div><div class="vd-morale">${moraleText}</div>` : ''}
+      <div class="vd-section-label">Equipment</div>
+      ${['weapon', 'shield', 'helmet'].map(s => {
+        const item = eq[s];
+        const name = item ? (typeof item === 'string' ? item : item.name || 'Equipped') : null;
+        return name
+          ? `<div class="vd-equip">${s}: ${escapeHtml(name)}</div>`
+          : `<div class="vd-equip vd-equip-empty">${s}: Empty</div>`;
+      }).join('')}
+      <div class="vd-state">State: ${escapeHtml(v.state || 'idle')}</div>
+      ${relHtml ? `<div class="vd-section-label">Bonds</div>${relHtml}` : ''}
+    `;
+  } else if (tab === 'story') {
+    const history = v.history || [];
+    if (history.length === 0) {
+      content.innerHTML = '<div class="vd-empty">No events recorded yet...</div>';
+    } else {
+      content.innerHTML = history.slice().reverse().map(h =>
+        `<div class="vd-story-entry type-${escapeHtml(h.type || '')}">
+          <div class="vd-story-time">Day ${h.day}, Tick ${h.tick}</div>
+          <div class="vd-story-text">${escapeHtml(h.text)}</div>
+        </div>`
+      ).join('');
+    }
+  } else if (tab === 'thoughts') {
+    const thoughts = v.thoughts || [];
+    if (thoughts.length === 0) {
+      content.innerHTML = '<div class="vd-empty">No thoughts yet...</div>';
+    } else {
+      content.innerHTML = thoughts.slice().reverse().map(t =>
+        `<div class="vd-thought">
+          <div class="vd-thought-time">Day ${t.day}, Tick ${t.tick}</div>
+          <div class="vd-thought-text">"${escapeHtml(t.thought)}"</div>
+          <div class="vd-thought-response">${escapeHtml(t.response)}</div>
+        </div>`
+      ).join('');
+    }
+  }
+}
+
+/**
+ * Initialize villager detail panel event listeners.
+ * @param {object} hudState
+ * @param {function} rerenderFn - Function to call after tab change
+ */
+export function initDetailPanel(hudState, rerenderFn) {
+  const panel = document.getElementById('villager-detail');
+  if (!panel) return;
+
+  panel.querySelectorAll('.vd-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      hudState.inspectTab = tab.dataset.tab;
+      rerenderFn();
+    });
+  });
+
+  document.getElementById('vd-close').addEventListener('click', () => {
+    hudState.selectedVillager = null;
+    hudState.showInspectPanel = false;
+    panel.classList.add('hidden');
+  });
 }
 
 // ─── Exploration counter ─────────────────────────────────────────────────────

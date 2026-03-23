@@ -89,9 +89,29 @@
         </div>
       </div>
 
+      <!-- Villager Detail Panel -->
+      <div id="villager-detail" class="hidden">
+        <div id="vd-header">
+          <div id="vd-tabs">
+            <button class="vd-tab active" data-tab="stats">Stats</button>
+            <button class="vd-tab" data-tab="story">Story</button>
+            <button class="vd-tab" data-tab="thoughts">Thoughts</button>
+          </div>
+          <button id="vd-close">X</button>
+        </div>
+        <div id="vd-content"></div>
+      </div>
+
       <div id="quest-tracker"></div>
       <div id="chain-alert" class="hidden"></div>
       <div id="event-log">
+        <div id="log-filters">
+          <button class="log-filter active" data-filter="all">All</button>
+          <button class="log-filter" data-filter="combat">Combat</button>
+          <button class="log-filter" data-filter="discovery">Discovery</button>
+          <button class="log-filter" data-filter="village">Village</button>
+          <button class="log-filter" data-filter="guidance">Guidance</button>
+        </div>
         <div id="log-entries"></div>
       </div>
     </div>

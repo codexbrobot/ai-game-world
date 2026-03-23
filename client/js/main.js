@@ -4,7 +4,7 @@
  */
 
 import { generateMap, TILE, TILE_INFO, hasAdjacentTile } from './map.js';
-import { createVillagers, updateVillagers, drawVillager, promoteToKnight } from './villager.js';
+import { createVillagers, updateVillagers, drawVillager, promoteToKnight, addHistory } from './villager.js';
 import { preloadSprites } from './sprites.js';
 import { getDayNightState, applyDayNightOverlay, drawPointLight, PHASES } from './daynight.js';
 import { drawBuildings, getBuildingLights, BUILDING_DEFS, BUILDING_COSTS } from './buildings.js';
@@ -15,8 +15,8 @@ import { preloadMonsterSprites, createMonster, updateMonsters, drawMonster, spaw
 import { createCombatState, processCombatTick, getEngagedVillagerIds, getEngagedMonsterIds, updateCombatEffects, drawCombatEffects, drawHPBar } from './combat.js';
 import { preloadIcons, getEquipmentBonuses, canCraft, craftItem, getAvailableCrafts, equipItem, ITEM_DEFS, RESOURCE_ICONS } from './inventory.js';
 import { createEventSystem, rollForEvent, applyEventEffects, updateWeather, updateParticles, drawWeatherEffects, getActiveWeatherEffects, tickCooldowns } from './events-system.js';
-import { createVisibilityMap, updateVisibility, drawFogOfWar, revealArea, getExplorationPercentage } from './exploration.js';
-import { preloadHUDAssets, createHUDState, handleClick, drawSelectionRing, drawInspectPanel, drawThreatIndicators, drawDayProgressBar, drawExplorationCounter, isClickInPanel } from './hud.js';
+import { createVisibilityMap, updateVisibility, drawFogOfWar, revealArea, getExplorationPercentage, isExplored } from './exploration.js';
+import { preloadHUDAssets, createHUDState, handleClick, drawSelectionRing, drawInspectPanel, drawThreatIndicators, drawDayProgressBar, drawExplorationCounter, isClickInPanel, renderVillagerDetail, initDetailPanel } from './hud.js';
 import { generatePOIs, checkPOIDiscovery, getPOIDiscoveryEffects, drawPOIMarkers, drawPOIOnMinimap } from './poi.js';
 import { initMorale, updateMorale, getMoraleEffects, rollDesertion, checkProximityBonds, getFriendshipBonus, processAllyDeath, getMoraleContext } from './morale.js';
 import { createScoutState, isScoutCapable, assignScoutMission, updateScoutMissions, getScoutSightRadius, checkFogAmbush, drawScoutMarkers, drawScoutMarkerOnMinimap } from './scout.js';
@@ -64,6 +64,7 @@ const combatState = createCombatState();
 const eventSystem = createEventSystem();
 const visibilityMap = createVisibilityMap(MAP_SIZE);
 const hudState = createHUDState();
+const moraleHelper = { getMoraleEffects, getVillagerTitle };
 let frameCount = 0;
 
 // --- Phase Systems ---
@@ -75,11 +76,46 @@ const chainState = createChainState();
 // Disease tracking: { active, ticksRemaining }
 const diseaseState = { active: false, ticksRemaining: 0 };
 
-// Initialize morale and progression on all starting villagers
+// Initialize morale, progression, and history on all starting villagers
 for (const v of villagers) {
   initMorale(v);
   initProgression(v);
+  addHistory(v, 'created', `${v.name} the ${v.raceLabel} ${v.classLabel} joined the village at dawn.`, 1, 23);
 }
+
+// Exploration milestone tracking
+const explorationMilestones = { 25: false, 50: false, 75: false, 100: false };
+const EXPLORATION_REWARDS = {
+  25: {
+    message: 'Milestone: 25% of the realm explored! The villagers gain confidence.',
+    resources: { food: 15, wood: 10 },
+    faith: 5,
+    morale: 5,
+  },
+  50: {
+    message: 'Milestone: Half the realm explored! A traveler is drawn to your village.',
+    resources: { food: 20, stone: 10, iron: 5 },
+    faith: 10,
+    morale: 8,
+    newVillager: true,
+  },
+  75: {
+    message: 'Milestone: 75% explored! The village\'s reputation spreads far and wide.',
+    resources: { food: 30, iron: 10, herbs: 10 },
+    faith: 15,
+    morale: 10,
+    newVillager: true,
+  },
+  100: {
+    message: 'The entire realm has been mapped! Your village stands as a beacon of light in the shadows.',
+    resources: { food: 50, wood: 30, stone: 20, iron: 15 },
+    faith: 25,
+    morale: 15,
+  },
+};
+
+// Event log filter state
+let activeLogFilter = 'all';
 
 // --- Visual Effect State ---
 const lootFloats = []; // { text, x, y, timer, color }
@@ -110,6 +146,11 @@ function addEvent(text, type = '') {
   const entry = document.createElement('div');
   entry.className = `log-entry event-${type}`;
   entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${text}`;
+  // Apply active filter to new entry
+  const allowed = LOG_FILTER_MAP[activeLogFilter];
+  if (allowed && !allowed.some(t => type === t)) {
+    entry.style.display = 'none';
+  }
   logEl.appendChild(entry);
   // Cap DOM nodes to prevent unbounded growth
   while (logEl.childNodes.length > 60) {
@@ -117,6 +158,34 @@ function addEvent(text, type = '') {
   }
   logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
 }
+
+// Event log filter setup
+const LOG_FILTER_MAP = {
+  all: null,
+  combat: ['combat', 'danger'],
+  discovery: ['discovery', 'omen'],
+  village: ['village', 'build', 'npc'],
+  guidance: ['guidance'],
+};
+
+document.querySelectorAll('.log-filter').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeLogFilter = btn.dataset.filter;
+    document.querySelectorAll('.log-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Show/hide existing entries
+    const logEl = document.getElementById('log-entries');
+    const allowed = LOG_FILTER_MAP[activeLogFilter];
+    for (const child of logEl.children) {
+      if (!allowed) {
+        child.style.display = '';
+      } else {
+        const matches = allowed.some(t => child.classList.contains(`event-${t}`));
+        child.style.display = matches ? '' : 'none';
+      }
+    }
+  });
+});
 
 // Initial events
 addEvent('The village stirs at dawn. A new day begins.', 'discovery');
@@ -408,6 +477,39 @@ function findBuildSite(tiles, buildings, center, mapSize, bw, bh) {
   return null;
 }
 
+// --- Auto-Explore Helper ---
+function findNearestUnexplored(fromX, fromY) {
+  // Search in expanding rings for unexplored walkable tiles
+  const center = Math.floor(MAP_SIZE / 2);
+  let best = null;
+  let bestDist = Infinity;
+
+  // Pick a random direction bias so explorers don't all go the same way
+  const dirBias = Math.random() * Math.PI * 2;
+  const biasX = Math.cos(dirBias) * 3;
+  const biasY = Math.sin(dirBias) * 3;
+
+  for (let ring = 3; ring < MAP_SIZE / 2; ring += 2) {
+    for (let tries = 0; tries < 8; tries++) {
+      const angle = (tries / 8) * Math.PI * 2;
+      const tx = Math.floor(fromX + Math.cos(angle) * ring + biasX);
+      const ty = Math.floor(fromY + Math.sin(angle) * ring + biasY);
+      if (tx < 1 || ty < 1 || tx >= MAP_SIZE - 1 || ty >= MAP_SIZE - 1) continue;
+      if (isExplored(visibilityMap, tx, ty)) continue;
+      // Check the tile is walkable
+      const tile = tiles[ty][tx];
+      if (tile === TILE.WATER || tile === TILE.DARK) continue;
+      const dist = Math.sqrt((tx - fromX) ** 2 + (ty - fromY) ** 2);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = { x: tx, y: ty };
+      }
+    }
+    if (best) break; // Found something in this ring
+  }
+  return best;
+}
+
 // --- Villager Thought Templates ---
 const THOUGHT_TEMPLATES = {
   hunter: [
@@ -673,6 +775,7 @@ function processTick() {
         shuffled[i].hp -= 1;
         shuffled[i].speech = '* starving *';
         shuffled[i].speechTimer = 3;
+        addHistory(shuffled[i], 'injured', 'Went hungry and weakened from starvation.', gameState.day, gameState.tick);
         if (shuffled[i].hp <= 0) {
           addEvent(`${shuffled[i].name} has died of starvation!`, 'danger');
         }
@@ -708,7 +811,10 @@ function processTick() {
       addEvent(`${evt.sourceName} slew a monster!`, 'combat');
       trackMonsterKill(questState);
       const killer = villagers.find(v => v.name === evt.sourceName);
-      if (killer) grantKillXP(killer);
+      if (killer) {
+        grantKillXP(killer);
+        addHistory(killer, 'kill', `Slew a monster in combat.`, gameState.day, gameState.tick);
+      }
     } else if (evt.type === 'death' && evt.targetType === 'villager') {
       addEvent(`${evt.sourceName} has fallen in combat!`, 'danger');
     } else if (evt.type === 'flee') {
@@ -758,6 +864,7 @@ function processTick() {
       const mourners = processAllyDeath(dead, villagers);
       for (const m of mourners) {
         addEvent(`${m.name} mourns the loss of ${dead.name}...`, 'village');
+        addHistory(m, 'mourned', `Mourned the death of ${dead.name}.`, gameState.day, gameState.tick);
       }
       villagers.splice(i, 1);
     }
@@ -814,7 +921,12 @@ function processTick() {
     // New villagers
     for (let i = 0; i < effects.newVillagers; i++) {
       const recruit = createVillagers(1, poi.x, MAP_SEED + gameState.day * 100 + i)[0];
-      if (recruit) { initMorale(recruit); initProgression(recruit); villagers.push(recruit); addEvent(`${recruit.name} joins the village!`, 'npc'); }
+      if (recruit) {
+        initMorale(recruit); initProgression(recruit);
+        addHistory(recruit, 'created', `${recruit.name} the ${recruit.raceLabel} ${recruit.classLabel} was found and joined the village.`, gameState.day, gameState.tick);
+        villagers.push(recruit);
+        addEvent(`${recruit.name} joins the village!`, 'npc');
+      }
     }
     // Disease
     if (effects.diseaseStrength > 0) {
@@ -830,6 +942,7 @@ function processTick() {
     for (const v of villagers) {
       updateMorale(v, ['poi_found']);
       grantDiscoveryXP(v);
+      addHistory(v, 'discovery', `The village discovered: ${poi.type.name}.`, gameState.day, gameState.tick);
     }
   }
 
@@ -851,6 +964,7 @@ function processTick() {
     revealArea(visibilityMap, completed.targetX, completed.targetY, 8, MAP_SIZE);
     updateMorale(completed.villager, ['discovery']);
     grantScoutXP(completed.villager);
+    addHistory(completed.villager, 'scouted', `Completed a scouting mission to (${completed.targetX}, ${completed.targetY}).`, gameState.day, gameState.tick);
   }
   // Set scout villager movement targets
   for (const mission of scoutState.activeMissions) {
@@ -989,6 +1103,7 @@ function processTick() {
       if (sword) {
         equipItem(v, sword);
         addEvent(`${v.name} received a ${sword.name}!`, 'build');
+        addHistory(v, 'equipped', `Received a ${sword.name}.`, gameState.day, gameState.tick);
       }
     }
   }
@@ -1035,6 +1150,7 @@ function processTick() {
           const oldClass = candidate.classLabel;
           promoteToKnight(candidate);
           addEvent(`${candidate.name} the ${oldClass} has become a Knight!`, 'discovery');
+          addHistory(candidate, 'promoted', `Promoted from ${oldClass} to Knight.`, gameState.day, gameState.tick);
           candidate.speech = '* dons armor *';
           candidate.speechTimer = 3;
         }
@@ -1052,6 +1168,75 @@ function processTick() {
     const seeker = villagers[Math.floor(Math.random() * villagers.length)];
     if (seeker && seeker.state !== 'sleeping') {
       showGuidanceRequest(seeker);
+    }
+  }
+
+  // --- Auto-Explore: idle hunters/knights venture into unexplored territory ---
+  if (phase === PHASES.DAY && gameState.tick % 4 === 0) {
+    const explorers = villagers.filter(v =>
+      (v.vclass === 'hunter' || v.vclass === 'knight') &&
+      v.state === 'idle' && !v.buildTarget &&
+      !scoutState.activeMissions.some(m => m.villager === v)
+    );
+    if (explorers.length > 0 && Math.random() < 0.3) {
+      const explorer = explorers[Math.floor(Math.random() * explorers.length)];
+      // Find a nearby unexplored tile
+      const exploreTarget = findNearestUnexplored(explorer.x, explorer.y);
+      if (exploreTarget) {
+        explorer.targetX = exploreTarget.x + 0.5;
+        explorer.targetY = exploreTarget.y + 0.5;
+        explorer.state = 'walking';
+        explorer.speech = '* exploring... *';
+        explorer.speechTimer = 2;
+        addHistory(explorer, 'explored', `Set out to explore unknown territory.`, gameState.day, gameState.tick);
+      }
+    }
+  }
+
+  // Return explorers home at dusk
+  if (gameState.tick === 13) {
+    const center = Math.floor(MAP_SIZE / 2);
+    for (const v of villagers) {
+      if (v.state === 'walking' && v.targetX !== null) {
+        const distFromCenter = Math.sqrt((v.x - center) ** 2 + (v.y - center) ** 2);
+        if (distFromCenter > 6) {
+          v.targetX = center + (Math.random() - 0.5) * 4;
+          v.targetY = center + (Math.random() - 0.5) * 4;
+          v.speech = '* heading home... *';
+          v.speechTimer = 2;
+        }
+      }
+    }
+  }
+
+  // --- Exploration Milestones ---
+  const explorationPct = getExplorationPercentage(visibilityMap, MAP_SIZE, tiles);
+  for (const threshold of [25, 50, 75, 100]) {
+    if (explorationPct >= threshold && !explorationMilestones[threshold]) {
+      explorationMilestones[threshold] = true;
+      const rewards = EXPLORATION_REWARDS[threshold];
+      if (rewards.resources) {
+        for (const [res, amt] of Object.entries(rewards.resources)) {
+          gameState.resources[res] = (gameState.resources[res] || 0) + amt;
+        }
+      }
+      if (rewards.faith) gameState.faith = Math.min(100, gameState.faith + rewards.faith);
+      if (rewards.morale) {
+        for (const v of villagers) v.morale = Math.max(0, Math.min(100, (v.morale || 60) + rewards.morale));
+      }
+      if (rewards.newVillager) {
+        const recruit = createVillagers(1, Math.floor(MAP_SIZE / 2), MAP_SEED + gameState.day * 300)[0];
+        if (recruit) {
+          initMorale(recruit); initProgression(recruit);
+          addHistory(recruit, 'created', `Drawn to the village by its growing reputation (${threshold}% explored).`, gameState.day, gameState.tick);
+          villagers.push(recruit);
+          addEvent(`${recruit.name} is drawn to the village by its growing reputation!`, 'npc');
+        }
+      }
+      addEvent(rewards.message, 'discovery');
+      for (const v of villagers) {
+        addHistory(v, 'discovery', rewards.message, gameState.day, gameState.tick);
+      }
     }
   }
 
@@ -1124,6 +1309,7 @@ document.getElementById('send-guidance').addEventListener('click', async () => {
 
   addEvent(`You counseled ${villager.name}: "${guidance.substring(0, 60)}${guidance.length > 60 ? '...' : ''}"`, 'guidance');
   gameState.faith = Math.min(100, gameState.faith + 3);
+  addHistory(villager, 'guidance', `Received counsel from The Voice: "${guidance.substring(0, 80)}"`, gameState.day, gameState.tick);
 
   if (isAiEnabled()) {
     // Show thinking state
@@ -1551,6 +1737,7 @@ function gameLoop(now) {
     buildings.push({ x: b.x, y: b.y, type: b.type, w: def.w, h: def.h });
     addEvent(`${event.villager.name} built a ${def.label || b.type}!`, 'build');
     grantBuildXP(event.villager);
+    addHistory(event.villager, 'built', `Built a ${def.label || b.type}.`, gameState.day, gameState.tick);
     // Refresh building lights
     buildingLights.length = 0;
     buildingLights.push(...getBuildingLights(buildings));
@@ -1722,7 +1909,17 @@ function gameLoop(now) {
   drawDayProgressBar(ctx, gameState.tick, phase, canvas.width);
   drawThreatIndicators(ctx, monsters, camera, canvas.width, canvas.height, TILE_SIZE);
   drawExplorationCounter(ctx, getExplorationPercentage(visibilityMap, MAP_SIZE, tiles), canvas.width, canvas.height);
-  drawInspectPanel(ctx, hudState, canvas.width, canvas.height);
+  // Update villager detail panel periodically (every 30 frames)
+  if (hudState.showInspectPanel && frameCount % 30 === 0) {
+    // Check the selected villager still exists
+    if (hudState.selectedVillager && !villagers.includes(hudState.selectedVillager)) {
+      hudState.selectedVillager = null;
+      hudState.showInspectPanel = false;
+      document.getElementById('villager-detail')?.classList.add('hidden');
+    } else {
+      renderVillagerDetail(hudState, moraleHelper);
+    }
+  }
 
   // Minimap (update every few frames for performance)
   if (Math.floor(now / 500) !== Math.floor((now - rawDt * 1000) / 500)) {
@@ -1737,11 +1934,20 @@ function gameLoop(now) {
 }
 
 // --- Villager Click-to-Inspect ---
+
 canvas.addEventListener('click', (e) => {
   // Skip if click is on a UI panel
   if (isClickInPanel(hudState, e.clientX, e.clientY, canvas.width, canvas.height)) return;
-  handleClick(hudState, e.clientX, e.clientY, camera, villagers, TILE_SIZE);
+  const selected = handleClick(hudState, e.clientX, e.clientY, camera, villagers, TILE_SIZE);
+  if (selected) {
+    renderVillagerDetail(hudState, moraleHelper);
+  } else {
+    document.getElementById('villager-detail')?.classList.add('hidden');
+  }
 });
+
+// Initialize the detail panel tab/close listeners
+initDetailPanel(hudState, () => renderVillagerDetail(hudState, moraleHelper));
 
 // --- Minimap Click-to-Scout ---
 minimapCanvas.addEventListener('click', (e) => {

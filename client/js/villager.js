@@ -91,6 +91,20 @@ function seededRandom(seed) {
 /**
  * Create a set of villagers with random races and classes.
  */
+/**
+ * Record a life event in a villager's history timeline.
+ * @param {object} v - Villager object
+ * @param {string} type - Event type: 'created','promoted','kill','injured','built','guidance','discovery','mourned','leveled','equipped','scouted','explored'
+ * @param {string} text - Human-readable description
+ * @param {number} day - Current game day
+ * @param {number} tick - Current game tick
+ */
+export function addHistory(v, type, text, day, tick) {
+  if (!v.history) v.history = [];
+  v.history.push({ type, text, day, tick });
+  if (v.history.length > 50) v.history.shift();
+}
+
 export function createVillagers(count, mapCenter, seed = 123) {
   const rng = seededRandom(seed);
   const villagers = [];
@@ -183,6 +197,9 @@ export function createVillagers(count, mapCenter, seed = 123) {
       thoughts: [],       // Array of { thought, response, day, tick }
       thoughtsToday: 0,   // How many thoughts this villager has had today
       thinkingInProgress: false, // Whether an AI call is pending
+
+      // Life story timeline — array of { type, text, day, tick }
+      history: [],
 
       // Speech bubble
       speech: null,
