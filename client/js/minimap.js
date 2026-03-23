@@ -14,8 +14,9 @@ import { TILE, TILE_INFO } from './map.js';
  * @param {number} tileSize - Tile pixel size (for viewport calc)
  * @param {number} viewWidth - Main canvas width
  * @param {number} viewHeight - Main canvas height
+ * @param {object[]} [monsters] - Monster positions (optional)
  */
-export function drawMinimap(canvas, tiles, buildings, villagers, camera, tileSize, viewWidth, viewHeight) {
+export function drawMinimap(canvas, tiles, buildings, villagers, camera, tileSize, viewWidth, viewHeight, monsters) {
   const ctx = canvas.getContext('2d');
   const mapSize = tiles.length;
   const scale = canvas.width / mapSize;
@@ -41,6 +42,14 @@ export function drawMinimap(canvas, tiles, buildings, villagers, camera, tileSiz
   ctx.fillStyle = '#fff';
   for (const v of villagers) {
     ctx.fillRect(v.x * scale - 1, v.y * scale - 1, 2, 2);
+  }
+
+  // Draw monsters as red dots
+  if (monsters) {
+    ctx.fillStyle = '#f44';
+    for (const m of monsters) {
+      ctx.fillRect(m.x * scale - 1, m.y * scale - 1, 2, 2);
+    }
   }
 
   // Draw viewport rectangle

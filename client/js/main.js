@@ -11,6 +11,12 @@ import { drawBuildings, getBuildingLights, BUILDING_DEFS, BUILDING_COSTS } from 
 import { drawMinimap } from './minimap.js';
 import { createInputHandler } from './input.js';
 import { getApiKey, setApiKey, getModel, setModel, isAiEnabled, testConnection, getGuidanceResponse, getThoughtResponse } from './ai.js';
+import { preloadMonsterSprites, createMonster, updateMonsters, drawMonster, spawnWave, getMonsterAt } from './monsters.js';
+import { createCombatState, processCombatTick, getEngagedVillagerIds, getEngagedMonsterIds, updateCombatEffects, drawCombatEffects, drawHPBar } from './combat.js';
+import { preloadIcons, getEquipmentBonuses, canCraft, craftItem, getAvailableCrafts, equipItem, ITEM_DEFS, RESOURCE_ICONS } from './inventory.js';
+import { createEventSystem, rollForEvent, applyEventEffects, updateWeather, updateParticles, drawWeatherEffects, getActiveWeatherEffects, tickCooldowns } from './events-system.js';
+import { createVisibilityMap, updateVisibility, drawFogOfWar, revealArea, getExplorationPercentage } from './exploration.js';
+import { preloadHUDAssets, createHUDState, handleClick, drawSelectionRing, drawInspectPanel, drawThreatIndicators, drawDayProgressBar, drawExplorationCounter, isClickInPanel } from './hud.js';
 
 // --- Configuration ---
 const TILE_SIZE = 32;
@@ -44,6 +50,17 @@ const buildingLights = getBuildingLights(buildings);
 const input = createInputHandler(canvas);
 
 const camera = { x: 0, y: 0 };
+
+// --- New Systems ---
+const monsters = [];
+const combatState = createCombatState();
+const eventSystem = createEventSystem();
+const visibilityMap = createVisibilityMap(MAP_SIZE);
+const hudState = createHUDState();
+let frameCount = 0;
+
+// Reveal village center area at start
+revealArea(visibilityMap, Math.floor(MAP_SIZE / 2), Math.floor(MAP_SIZE / 2), 6, MAP_SIZE);
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -501,6 +518,12 @@ function processTick() {
   }
   if (gameState.tick === 15) {
     addEvent('Night falls. Strange sounds echo from the darkness...', 'danger');
+    // Spawn monsters at nightfall
+    const newMonsters = spawnWave(gameState.day, gameState.tick, tiles, MAP_SIZE);
+    if (newMonsters.length > 0) {
+      monsters.push(...newMonsters);
+      addEvent(`${newMonsters.length} creature(s) emerge from the darkness!`, 'danger');
+    }
   }
   if (gameState.tick === 23) {
     addEvent('Dawn breaks. The village survived another night.', 'discovery');
@@ -572,6 +595,66 @@ function processTick() {
     for (const v of villagers) {
       if (v.vclass === 'builder' && v.state === 'idle' && !v.buildTarget) {
         tryAssignBuild(v, buildings, gameState, tiles, MAP_SIZE);
+      }
+    }
+  }
+
+  // --- Combat Processing ---
+  const combatEvents = processCombatTick(combatState, villagers, monsters, TILE_SIZE);
+  for (const evt of combatEvents) {
+    if (evt.type === 'death' && evt.targetType === 'monster') {
+      addEvent(`A ${evt.sourceName} slew a monster!`, 'combat');
+    } else if (evt.type === 'death' && evt.targetType === 'villager') {
+      addEvent(`${evt.sourceName} has fallen in combat!`, 'danger');
+    } else if (evt.type === 'flee') {
+      addEvent(`A villager flees from combat!`, 'danger');
+    }
+  }
+  // Remove dead monsters
+  for (let i = monsters.length - 1; i >= 0; i--) {
+    if (monsters[i].hp <= 0) monsters.splice(i, 1);
+  }
+  // Remove dead villagers from combat
+  for (let i = villagers.length - 1; i >= 0; i--) {
+    if (villagers[i].hp <= 0) {
+      addEvent(`${villagers[i].name} has died in battle!`, 'danger');
+      villagers.splice(i, 1);
+    }
+  }
+  // Set fighting state for engaged villagers
+  const engagedVillagerIds = getEngagedVillagerIds(combatState);
+  for (const v of villagers) {
+    if (engagedVillagerIds.has(v.id) && v.state !== 'fighting') {
+      v.state = 'fighting';
+      v.stateTimer = 10;
+      v.targetX = null;
+      v.targetY = null;
+    }
+  }
+
+  // --- Random Events ---
+  const eventResult = rollForEvent(eventSystem, gameState, villagers, buildings);
+  if (eventResult) {
+    const msg = applyEventEffects(eventResult.result, gameState);
+    if (msg) addEvent(msg, eventResult.event.category || 'discovery');
+  }
+  tickCooldowns(eventSystem);
+
+  // --- Auto-Craft (when workshop exists, every 6 ticks) ---
+  if (gameState.tick % 6 === 0 && buildings.some(b => b.type === 'workshop')) {
+    // Try to equip unarmed knights/hunters first
+    const needsWeapon = villagers.filter(v =>
+      (v.vclass === 'knight' || v.vclass === 'hunter') && !v.equipment.weapon
+    );
+    for (const v of needsWeapon) {
+      const sword = canCraft('iron_sword', gameState.resources, buildings).canCraft
+        ? craftItem('iron_sword', gameState.resources)
+        : canCraft('wooden_sword', gameState.resources, buildings).canCraft
+          ? craftItem('wooden_sword', gameState.resources)
+          : null;
+      if (sword) {
+        equipItem(v, sword);
+        addEvent(`${v.name} received a ${sword.name}!`, 'build');
       }
     }
   }
@@ -833,6 +916,13 @@ function renderRoster() {
         <div class="roster-hp-bar"><div class="roster-hp-fill" style="width:${(v.hp / v.maxHp) * 100}%"></div></div>
         <span class="roster-hp-val">${v.hp}/${v.maxHp}</span>
       </div>
+      ${v.equipment.weapon || v.equipment.shield || v.equipment.helmet ? `
+      <div class="roster-equipment">
+        ${v.equipment.weapon ? `<span class="equip-slot">⚔ ${v.equipment.weapon.name}</span>` : ''}
+        ${v.equipment.shield ? `<span class="equip-slot">🛡 ${v.equipment.shield.name}</span>` : ''}
+        ${v.equipment.helmet ? `<span class="equip-slot">⛑ ${v.equipment.helmet.name}</span>` : ''}
+      </div>
+      ` : ''}
       ${v.thoughts.length > 0 ? `
       <div class="roster-thoughts">
         <div class="roster-thoughts-toggle" data-villager-id="${v.id}">
@@ -1001,6 +1091,24 @@ function gameLoop(now) {
     buildingLights.push(...getBuildingLights(buildings));
   }
 
+  // Update monsters
+  const monstersToRemove = updateMonsters(monsters, villagers, tiles, MAP_SIZE, TILE_SIZE);
+  for (let i = monsters.length - 1; i >= 0; i--) {
+    if (monstersToRemove.includes(monsters[i])) monsters.splice(i, 1);
+  }
+
+  // Update combat effects
+  updateCombatEffects(combatState, dt);
+
+  // Update visibility
+  updateVisibility(visibilityMap, villagers, buildings, MAP_SIZE);
+
+  // Update weather
+  updateWeather(eventSystem, dt);
+  updateParticles(eventSystem, canvas.width, canvas.height, dt);
+
+  frameCount++;
+
   // --- Draw ---
   // Clear
   ctx.fillStyle = '#0a0a12';
@@ -1009,13 +1117,38 @@ function gameLoop(now) {
   // Draw tile map
   drawTiles();
 
+  // Fog of war
+  drawFogOfWar(ctx, visibilityMap, TILE_SIZE, camera.x, camera.y, canvas.width, canvas.height);
+
   // Draw buildings
   drawBuildings(ctx, buildings, TILE_SIZE, camera.x, camera.y);
 
-  // Draw villagers (sorted by Y for depth)
-  const sortedVillagers = [...villagers].sort((a, b) => a.y - b.y);
-  for (const v of sortedVillagers) {
-    drawVillager(ctx, v, TILE_SIZE, camera.x, camera.y, dayNightState.overlay.a);
+  // Draw entities sorted by Y for depth (villagers + monsters interleaved)
+  const allEntities = [
+    ...villagers.map(v => ({ type: 'villager', entity: v, y: v.y })),
+    ...monsters.map(m => ({ type: 'monster', entity: m, y: m.y })),
+  ].sort((a, b) => a.y - b.y);
+
+  for (const e of allEntities) {
+    if (e.type === 'villager') {
+      drawVillager(ctx, e.entity, TILE_SIZE, camera.x, camera.y, dayNightState.overlay.a);
+    } else {
+      drawMonster(ctx, e.entity, TILE_SIZE, camera.x, camera.y);
+    }
+  }
+
+  // Combat effects
+  drawCombatEffects(ctx, combatState, TILE_SIZE, camera.x, camera.y);
+
+  // Selection ring for HUD
+  if (hudState.selectedVillager) {
+    const sv = villagers.find(v => v.id === hudState.selectedVillager.id);
+    if (sv) {
+      drawSelectionRing(ctx, sv, TILE_SIZE, camera.x, camera.y, frameCount);
+    } else {
+      hudState.selectedVillager = null;
+      hudState.showInspectPanel = false;
+    }
   }
 
   // Day/night overlay
@@ -1049,21 +1182,43 @@ function gameLoop(now) {
     ctx.globalCompositeOperation = 'source-over';
   }
 
+  // Weather effects
+  drawWeatherEffects(ctx, eventSystem, canvas.width, canvas.height);
+
   // Particles
   spawnParticles(dayNightState);
   updateAndDrawParticles(dt);
 
+  // HUD elements
+  const phase = getDayNightState(gameState.tick, 0).phase;
+  drawDayProgressBar(ctx, gameState.tick, phase, canvas.width);
+  drawThreatIndicators(ctx, monsters, camera, canvas.width, canvas.height, TILE_SIZE);
+  drawExplorationCounter(ctx, getExplorationPercentage(visibilityMap, MAP_SIZE, tiles), canvas.width, canvas.height);
+  drawInspectPanel(ctx, hudState, canvas.width, canvas.height);
+
   // Minimap (update every few frames for performance)
   if (Math.floor(now / 500) !== Math.floor((now - rawDt * 1000) / 500)) {
-    drawMinimap(minimapCanvas, tiles, buildings, villagers, camera, TILE_SIZE, canvas.width, canvas.height);
+    drawMinimap(minimapCanvas, tiles, buildings, villagers, camera, TILE_SIZE, canvas.width, canvas.height, monsters);
   }
 
   requestAnimationFrame(gameLoop);
 }
 
+// --- Villager Click-to-Inspect ---
+canvas.addEventListener('click', (e) => {
+  // Skip if click is on a UI panel
+  if (isClickInPanel(hudState, e.clientX, e.clientY, canvas.width, canvas.height)) return;
+  handleClick(hudState, e.clientX, e.clientY, camera, villagers, TILE_SIZE);
+});
+
 // --- Start ---
-preloadSprites().then(() => {
-  console.log('Sprites loaded');
+Promise.all([
+  preloadSprites(),
+  preloadMonsterSprites(),
+  preloadIcons(),
+  preloadHUDAssets(),
+]).then(() => {
+  console.log('All assets loaded');
 });
 updateUI();
 requestAnimationFrame(gameLoop);

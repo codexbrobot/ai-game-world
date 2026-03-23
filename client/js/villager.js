@@ -175,6 +175,10 @@ export function createVillagers(count, mapCenter, seed = 123) {
       // Builder target
       buildTarget: null,
 
+      // Equipment & inventory
+      equipment: { weapon: null, shield: null, helmet: null },
+      inventory: [],
+
       // Thought/conscience system
       thoughts: [],       // Array of { thought, response, day, tick }
       thoughtsToday: 0,   // How many thoughts this villager has had today
@@ -305,6 +309,15 @@ export function updateVillagers(villagers, tiles, mapSize, dt, timeOfDay) {
           v.stateTimer = 2 + Math.random() * 3;
           v.speech = '* done building *';
           v.speechTimer = 2;
+        }
+        break;
+
+      case 'fighting':
+        // Combat state — managed externally by combat.js
+        // Stay in fighting state until combat system clears it
+        if (v.stateTimer <= 0) {
+          v.state = 'idle';
+          v.stateTimer = 1 + Math.random() * 2;
         }
         break;
 

@@ -249,6 +249,11 @@ body {
 .log-entry.event-danger { color: #e88888; }
 .log-entry.event-discovery { color: #88c8e8; }
 .log-entry.event-build { color: #b8a060; }
+.log-entry.event-combat { color: #e8a888; }
+.log-entry.event-weather { color: #88b8e8; }
+.log-entry.event-npc { color: #b8e888; }
+.log-entry.event-omen { color: #d888e8; }
+.log-entry.event-village { color: #e8d888; }
 
 /* Guidance Panel */
 #guidance-panel {
@@ -502,6 +507,22 @@ body {
   color: #bbb;
   min-width: 35px;
   text-align: right;
+}
+
+/* Equipment Display */
+.roster-equipment {
+  margin-top: 4px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.equip-slot {
+  font-size: 10px;
+  color: #c8b888;
+  background: rgba(100, 80, 40, 0.3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(160, 140, 80, 0.4);
 }
 
 /* Thought Accordion */
