@@ -94,6 +94,76 @@ export const ITEM_DEFS = {
     buffDuration: 24,
     cost: { herbs: 4, iron: 1 },
   },
+
+  // --- Monster loot drops (no crafting cost — obtained from kills) ---
+  bone_shield: {
+    name: 'Bone Shield',
+    slot: 'shield',
+    damageMod: 0,
+    defenseMod: 2,
+    description: 'A shield carved from monster bone.',
+  },
+  blood_amulet: {
+    name: 'Blood Amulet',
+    slot: 'amulet',
+    damageMod: 0,
+    defenseMod: 0,
+    faithBonus: 5,
+    description: 'Pulses with vampiric energy.',
+  },
+  dark_plate: {
+    name: 'Dark Plate',
+    slot: 'helmet',
+    damageMod: 0,
+    defenseMod: 0,
+    hpBonus: 3,
+    description: 'Armor forged in shadow.',
+  },
+  spell_tome: {
+    name: 'Spell Tome',
+    slot: 'weapon',
+    damageMod: 0,
+    defenseMod: 0,
+    revealRadius: 10,
+    description: 'Contains ancient scrying magic.',
+  },
+  crude_sword: {
+    name: 'Crude Sword',
+    slot: 'weapon',
+    damageMod: 2,
+    defenseMod: 0,
+    description: 'Rough but effective.',
+  },
+  war_axe: {
+    name: 'War Axe',
+    slot: 'weapon',
+    damageMod: 4,
+    defenseMod: 0,
+    description: 'A heavy orcish axe.',
+  },
+  wolf_pelt: {
+    name: 'Wolf Pelt',
+    slot: 'shield',
+    damageMod: 0,
+    defenseMod: 0,
+    speedBonus: 1,
+    description: 'Grants swiftness of the wolf.',
+  },
+  fire_fang: {
+    name: 'Fire Fang',
+    slot: 'weapon',
+    damageMod: 3,
+    defenseMod: 0,
+    fireDamage: 1,
+    description: 'Burns with hellfire.',
+  },
+  infernal_blade: {
+    name: 'Infernal Blade',
+    slot: 'weapon',
+    damageMod: 6,
+    defenseMod: 0,
+    description: 'A blade from the depths.',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -175,7 +245,7 @@ export function getEquipmentBonuses(equipment) {
   let totalDamage = 0;
   let totalDefense = 0;
 
-  for (const slot of ['weapon', 'shield', 'helmet']) {
+  for (const slot of ['weapon', 'shield', 'helmet', 'amulet']) {
     const item = equipment[slot];
     if (item) {
       totalDamage += item.damageMod || 0;
@@ -285,7 +355,7 @@ export function getAvailableCrafts(resources, buildings) {
 export function equipItem(villager, item) {
   // Ensure structures exist
   if (!villager.equipment) {
-    villager.equipment = { weapon: null, shield: null, helmet: null };
+    villager.equipment = { weapon: null, shield: null, helmet: null, amulet: null };
   }
   if (!villager.inventory) {
     villager.inventory = [];

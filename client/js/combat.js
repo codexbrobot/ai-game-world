@@ -1,5 +1,7 @@
 // combat.js — Combat resolution system for AI Village
-// Self-contained ES module. Operates on villager/monster objects passed as parameters.
+// ES module. Operates on villager/monster objects passed as parameters.
+
+import { rollLoot } from './monsters.js';
 
 /**
  * Returns a fresh combat state object.
@@ -102,10 +104,21 @@ function pushDamageEffect(combatState, x, y, amount, targetType) {
 
 /**
  * Main combat update — called each game tick.
- * Returns an array of combat event objects.
+ * Returns an array of combat event objects. The returned array also carries a
+ * `lootDrops` property — an array of loot dropped by monsters killed this tick.
+ *
+ * Each lootDrop entry:
+ * `{ items: Array, resources: Object, killerVillager: object, monster: object, x: number, y: number }`
+ *
+ * @param {object} combatState
+ * @param {object[]} villagers
+ * @param {object[]} monsters
+ * @param {number} tileSize
+ * @returns {object[] & { lootDrops: object[] }}
  */
 export function processCombatTick(combatState, villagers, monsters, tileSize) {
   const events = [];
+  const lootDrops = [];
   const engagedVillagerIds = getEngagedVillagerIds(combatState);
   const engagedMonsterIds = getEngagedMonsterIds(combatState);
 
@@ -193,6 +206,29 @@ export function processCombatTick(combatState, villagers, monsters, tileSize) {
         amount: 0,
         sourceName: villager.name,
       });
+
+      // Roll loot for the slain monster
+      const drops = rollLoot(monster.type);
+      if (drops.length > 0) {
+        const items = [];
+        const resources = {};
+        for (const drop of drops) {
+          if (drop.type) {
+            items.push({ type: drop.type });
+          } else if (drop.resource) {
+            resources[drop.resource] = (resources[drop.resource] || 0) + drop.amount;
+          }
+        }
+        lootDrops.push({
+          items,
+          resources,
+          killerVillager: villager,
+          monster,
+          x: monster.x,
+          y: monster.y,
+        });
+      }
+
       toRemove.push(i);
       continue;
     }
@@ -229,6 +265,10 @@ export function processCombatTick(combatState, villagers, monsters, tileSize) {
     combatState.activeCombats.splice(toRemove[i], 1);
   }
 
+  // Attach lootDrops as a property on the events array so callers that iterate
+  // the return value directly (for combat events) continue to work unchanged,
+  // while new code can read `result.lootDrops`.
+  events.lootDrops = lootDrops;
   return events;
 }
 

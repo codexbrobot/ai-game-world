@@ -93,6 +93,54 @@ export const MONSTER_DEFS = {
   },
 };
 
+// --- Loot Tables ---
+
+/**
+ * Per-monster-type loot tables.
+ * Each entry can drop an item (`type`) or a resource (`resource` + `amount`).
+ * `chance` is the probability (0–1) of that entry dropping on kill.
+ */
+export const LOOT_TABLES = {
+  skeleton:     [{ type: 'bone_shield', chance: 0.10 }, { resource: 'iron', amount: 2, chance: 0.30 }],
+  bat:          [{ resource: 'herbs', amount: 1, chance: 0.25 }],
+  vampire:      [{ type: 'blood_amulet', chance: 0.08 }, { resource: 'herbs', amount: 3, chance: 0.30 }],
+  death_knight: [{ type: 'dark_plate', chance: 0.05 }, { resource: 'iron', amount: 5, chance: 0.35 }],
+  lich:         [{ type: 'spell_tome', chance: 0.10 }, { resource: 'iron', amount: 4, chance: 0.25 }],
+  goblin:       [{ type: 'crude_sword', chance: 0.15 }, { resource: 'food', amount: 3, chance: 0.40 }],
+  orc:          [{ type: 'war_axe', chance: 0.10 }, { resource: 'iron', amount: 5, chance: 0.25 }],
+  wolf_rider:   [{ type: 'wolf_pelt', chance: 0.15 }, { resource: 'food', amount: 2, chance: 0.50 }],
+  imp:          [{ resource: 'herbs', amount: 2, chance: 0.30 }],
+  hellhound:    [{ type: 'fire_fang', chance: 0.12 }, { resource: 'iron', amount: 3, chance: 0.30 }],
+  demon:        [{ type: 'infernal_blade', chance: 0.20 }, { resource: 'iron', amount: 10, chance: 0.40 }],
+};
+
+/**
+ * Roll loot drops for a killed monster.
+ * Iterates through the monster's loot table and rolls against each entry's chance.
+ * Multiple items can drop from a single kill.
+ *
+ * @param {string} monsterType - Key into LOOT_TABLES (e.g. 'skeleton', 'demon')
+ * @returns {Array<{ type?: string, resource?: string, amount?: number }>} Dropped loot
+ */
+export function rollLoot(monsterType) {
+  const table = LOOT_TABLES[monsterType];
+  if (!table) return [];
+
+  const drops = [];
+
+  for (const entry of table) {
+    if (Math.random() < entry.chance) {
+      if (entry.type) {
+        drops.push({ type: entry.type });
+      } else if (entry.resource) {
+        drops.push({ resource: entry.resource, amount: entry.amount });
+      }
+    }
+  }
+
+  return drops;
+}
+
 // --- Sprite Cache ---
 
 /** @type {Object<string, HTMLImageElement>} */

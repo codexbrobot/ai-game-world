@@ -17,6 +17,11 @@ import { preloadIcons, getEquipmentBonuses, canCraft, craftItem, getAvailableCra
 import { createEventSystem, rollForEvent, applyEventEffects, updateWeather, updateParticles, drawWeatherEffects, getActiveWeatherEffects, tickCooldowns } from './events-system.js';
 import { createVisibilityMap, updateVisibility, drawFogOfWar, revealArea, getExplorationPercentage } from './exploration.js';
 import { preloadHUDAssets, createHUDState, handleClick, drawSelectionRing, drawInspectPanel, drawThreatIndicators, drawDayProgressBar, drawExplorationCounter, isClickInPanel } from './hud.js';
+import { generatePOIs, checkPOIDiscovery, getPOIDiscoveryEffects, drawPOIMarkers, drawPOIOnMinimap } from './poi.js';
+import { initMorale, updateMorale, getMoraleEffects, rollDesertion, checkProximityBonds, getFriendshipBonus, processAllyDeath, getMoraleContext } from './morale.js';
+import { createScoutState, isScoutCapable, assignScoutMission, updateScoutMissions, getScoutSightRadius, checkFogAmbush, drawScoutMarkers, drawScoutMarkerOnMinimap } from './scout.js';
+import { createQuestState, initQuests, checkQuestTriggers, updateQuestProgress, getQuestRewards, trackMonsterKill, trackPOIDiscovery, getActiveQuests, getActProgress } from './quests.js';
+import { createChainState, checkChainTriggers, updateChains, resolveChoice, getActiveChainSummaries } from './event-chains.js';
 
 // --- Configuration ---
 const TILE_SIZE = 32;
@@ -58,6 +63,20 @@ const eventSystem = createEventSystem();
 const visibilityMap = createVisibilityMap(MAP_SIZE);
 const hudState = createHUDState();
 let frameCount = 0;
+
+// --- Phase Systems ---
+const pois = generatePOIs(tiles, MAP_SIZE, MAP_SEED);
+const scoutState = createScoutState();
+const questState = createQuestState();
+initQuests(questState);
+const chainState = createChainState();
+// Disease tracking: { active, ticksRemaining }
+const diseaseState = { active: false, ticksRemaining: 0 };
+
+// Initialize morale on all starting villagers
+for (const v of villagers) {
+  initMorale(v);
+}
 
 // Reveal village center area at start
 revealArea(visibilityMap, Math.floor(MAP_SIZE / 2), Math.floor(MAP_SIZE / 2), 6, MAP_SIZE);
@@ -603,21 +622,48 @@ function processTick() {
   const combatEvents = processCombatTick(combatState, villagers, monsters, TILE_SIZE);
   for (const evt of combatEvents) {
     if (evt.type === 'death' && evt.targetType === 'monster') {
-      addEvent(`A ${evt.sourceName} slew a monster!`, 'combat');
+      addEvent(`${evt.sourceName} slew a monster!`, 'combat');
+      trackMonsterKill(questState);
     } else if (evt.type === 'death' && evt.targetType === 'villager') {
       addEvent(`${evt.sourceName} has fallen in combat!`, 'danger');
     } else if (evt.type === 'flee') {
       addEvent(`A villager flees from combat!`, 'danger');
     }
   }
+  // Process loot drops from killed monsters
+  if (combatEvents.lootDrops) {
+    for (const drop of combatEvents.lootDrops) {
+      // Add resources
+      for (const [res, amt] of Object.entries(drop.resources)) {
+        gameState.resources[res] = (gameState.resources[res] || 0) + amt;
+      }
+      // Equip items on the killer
+      for (const item of drop.items) {
+        const def = ITEM_DEFS[item.type];
+        if (def) {
+          equipItem(drop.killerVillager, { ...def });
+          addEvent(`${drop.killerVillager.name} found ${def.name}!`, 'discovery');
+        }
+      }
+      if (Object.keys(drop.resources).length > 0) {
+        const resList = Object.entries(drop.resources).map(([r, a]) => `${a} ${r}`).join(', ');
+        addEvent(`Loot: ${resList}`, 'discovery');
+      }
+    }
+  }
   // Remove dead monsters
   for (let i = monsters.length - 1; i >= 0; i--) {
     if (monsters[i].hp <= 0) monsters.splice(i, 1);
   }
-  // Remove dead villagers from combat
+  // Remove dead villagers from combat (with morale effects)
   for (let i = villagers.length - 1; i >= 0; i--) {
     if (villagers[i].hp <= 0) {
-      addEvent(`${villagers[i].name} has died in battle!`, 'danger');
+      const dead = villagers[i];
+      addEvent(`${dead.name} has died in battle!`, 'danger');
+      const mourners = processAllyDeath(dead, villagers);
+      for (const m of mourners) {
+        addEvent(`${m.name} mourns the loss of ${dead.name}...`, 'village');
+      }
       villagers.splice(i, 1);
     }
   }
@@ -639,6 +685,189 @@ function processTick() {
     if (msg) addEvent(msg, eventResult.event.category || 'discovery');
   }
   tickCooldowns(eventSystem);
+
+  // --- POI Discovery ---
+  const newPOIs = checkPOIDiscovery(pois, visibilityMap, MAP_SIZE);
+  for (const poi of newPOIs) {
+    addEvent(`Discovered: ${poi.type.name} — ${poi.type.description}`, 'discovery');
+    trackPOIDiscovery(questState, poi);
+    const effects = getPOIDiscoveryEffects(poi);
+    // Apply resource gains
+    for (const [res, amt] of Object.entries(effects.resources)) {
+      gameState.resources[res] = (gameState.resources[res] || 0) + amt;
+      if (amt > 0) addEvent(`Found ${amt} ${res}!`, 'discovery');
+    }
+    // Faith
+    if (effects.faith) {
+      gameState.faith = Math.min(100, gameState.faith + effects.faith);
+      addEvent(`Faith +${effects.faith}`, 'omen');
+    }
+    // Heal all villagers
+    if (effects.healAll) {
+      for (const v of villagers) v.hp = Math.min(v.maxHp, v.hp + effects.healAll);
+      addEvent(`All villagers healed +${effects.healAll} HP!`, 'village');
+    }
+    // Spawn monsters at POI location
+    for (const mType of effects.spawnMonsters) {
+      const m = createMonster(mType, poi.x + (Math.random() - 0.5) * 2, poi.y + (Math.random() - 0.5) * 2);
+      if (m) { monsters.push(m); addEvent(`A ${mType} emerges!`, 'danger'); }
+    }
+    // Reveal fog
+    if (effects.revealRadius) {
+      revealArea(visibilityMap, poi.x, poi.y, effects.revealRadius, MAP_SIZE);
+    }
+    // New villagers
+    for (let i = 0; i < effects.newVillagers; i++) {
+      const recruit = createVillagers(1, poi.x, MAP_SEED + gameState.day * 100 + i)[0];
+      if (recruit) { initMorale(recruit); villagers.push(recruit); addEvent(`${recruit.name} joins the village!`, 'npc'); }
+    }
+    // Disease
+    if (effects.diseaseStrength > 0) {
+      diseaseState.active = true;
+      diseaseState.ticksRemaining = effects.diseaseStrength;
+      addEvent('A foul plague spreads from the pit!', 'danger');
+    }
+    // Lore scroll
+    if (effects.loreScroll) {
+      addEvent(`Lore: "${effects.loreScroll.substring(0, 80)}..."`, 'discovery');
+    }
+    // Morale boost for all villagers
+    for (const v of villagers) updateMorale(v, ['poi_found']);
+  }
+
+  // --- Disease Tick ---
+  if (diseaseState.active && diseaseState.ticksRemaining > 0) {
+    diseaseState.ticksRemaining--;
+    for (const v of villagers) { v.hp = Math.max(1, v.hp - 1); }
+    addEvent(`The plague weakens your villagers... (${diseaseState.ticksRemaining} ticks remain)`, 'danger');
+    if (diseaseState.ticksRemaining <= 0) {
+      diseaseState.active = false;
+      addEvent('The plague has run its course.', 'village');
+    }
+  }
+
+  // --- Scout Missions ---
+  const scoutResults = updateScoutMissions(scoutState, villagers);
+  for (const completed of scoutResults.completed) {
+    addEvent(`${completed.villager.name} completed scouting mission!`, 'discovery');
+    revealArea(visibilityMap, completed.targetX, completed.targetY, 8, MAP_SIZE);
+    updateMorale(completed.villager, ['discovery']);
+  }
+  // Set scout villager movement targets
+  for (const mission of scoutState.activeMissions) {
+    const v = mission.villager;
+    if (mission.phase === 'traveling' && v.state === 'idle') {
+      v.targetX = mission.targetX;
+      v.targetY = mission.targetY;
+      v.state = 'walking';
+    }
+  }
+
+  // --- Morale & Relationships ---
+  // Check starvation morale
+  const moraleEvents = [];
+  if (gameState.resources.food < villagers.length) moraleEvents.push('starving');
+  if (eventResult?.event?.id === 'bad_omen') moraleEvents.push('bad_omen');
+
+  if (moraleEvents.length > 0) {
+    for (const v of villagers) updateMorale(v, moraleEvents);
+  }
+  // Proximity bonds (every 3 ticks to save CPU)
+  if (gameState.tick % 3 === 0) {
+    checkProximityBonds(villagers, TILE_SIZE);
+  }
+  // Desertion at night
+  if (phase === PHASES.NIGHT) {
+    for (let i = villagers.length - 1; i >= 0; i--) {
+      if (rollDesertion(villagers[i])) {
+        addEvent(`${villagers[i].name} has deserted the village in despair!`, 'danger');
+        villagers.splice(i, 1);
+      }
+    }
+  }
+
+  // --- Quest System ---
+  const newQuests = checkQuestTriggers(questState, gameState, villagers, buildings, pois);
+  for (const qid of newQuests) {
+    const quests = getActiveQuests(questState);
+    const q = quests.find(quest => quest.id === qid);
+    if (q) addEvent(`New Quest: ${q.title} — ${q.description.substring(0, 60)}...`, 'discovery');
+  }
+  const questProgress = updateQuestProgress(questState, gameState, villagers, buildings, pois, monsters);
+  for (const qid of questProgress.completed) {
+    const rewards = getQuestRewards(qid);
+    if (rewards) {
+      if (rewards.faith) gameState.faith = Math.min(100, gameState.faith + rewards.faith);
+      if (rewards.resources) {
+        for (const [res, amt] of Object.entries(rewards.resources)) {
+          gameState.resources[res] = (gameState.resources[res] || 0) + amt;
+        }
+      }
+      if (rewards.healAll) {
+        for (const v of villagers) v.hp = Math.min(v.maxHp, v.hp + rewards.healAll);
+      }
+      if (rewards.moraleAll) {
+        for (const v of villagers) updateMorale(v, ['quest_complete']);
+      }
+      addEvent(`Quest Complete! Rewards claimed.`, 'discovery');
+    }
+  }
+
+  // --- Event Chains ---
+  const newChains = checkChainTriggers(chainState, gameState, villagers, pois,
+    gameState.events.map(e => e.text));
+  for (const chain of newChains) {
+    addEvent(`${chain.description}`, 'omen');
+  }
+  const chainUpdates = updateChains(chainState, gameState, villagers, pois);
+  for (const stage of chainUpdates.stageEvents) {
+    addEvent(`${stage.title}: ${stage.description.substring(0, 80)}`, 'omen');
+    // Apply chain effects
+    const fx = stage.effects;
+    if (fx) {
+      if (fx.damage) {
+        const targets = [...villagers].sort(() => Math.random() - 0.5).slice(0, 3);
+        for (const v of targets) v.hp = Math.max(1, v.hp - fx.damage);
+      }
+      if (fx.kill) {
+        const sorted = [...villagers].sort((a, b) => a.hp - b.hp);
+        for (let i = 0; i < fx.kill && sorted.length > 0; i++) {
+          const v = sorted.shift();
+          v.hp = 0;
+          addEvent(`${v.name} has succumbed to the plague!`, 'danger');
+        }
+      }
+      if (fx.faith) gameState.faith = Math.max(0, Math.min(100, gameState.faith + fx.faith));
+      if (fx.morale) { for (const v of villagers) v.morale = Math.max(0, Math.min(100, (v.morale || 60) + fx.morale)); }
+      if (fx.healAll) { for (const v of villagers) v.hp = Math.min(v.maxHp, v.hp + fx.healAll); }
+      if (fx.newVillagers) {
+        for (let i = 0; i < fx.newVillagers; i++) {
+          const r = createVillagers(1, Math.floor(MAP_SIZE / 2), MAP_SEED + gameState.day * 200 + i)[0];
+          if (r) { initMorale(r); villagers.push(r); }
+        }
+      }
+      if (fx.spawnMonsters) {
+        for (const mType of fx.spawnMonsters) {
+          const m = createMonster(mType, MAP_SIZE / 2 + (Math.random() - 0.5) * 8, MAP_SIZE / 2 + (Math.random() - 0.5) * 8);
+          if (m) monsters.push(m);
+        }
+      }
+      if (fx.revealSpots) {
+        for (let i = 0; i < fx.revealSpots; i++) {
+          const rx = Math.floor(Math.random() * MAP_SIZE);
+          const ry = Math.floor(Math.random() * MAP_SIZE);
+          revealArea(visibilityMap, rx, ry, 3, MAP_SIZE);
+        }
+      }
+    }
+  }
+  // Handle chain choices via guidance panel (simplified — auto-resolve for now)
+  for (const choice of chainUpdates.choices) {
+    // Auto-pick first option (accept sacrifice, etc.)
+    // In a future update, this should show a UI prompt
+    const effects = resolveChoice(chainState, choice.chainId, 0);
+    addEvent(`${choice.prompt} — Decision made.`, 'omen');
+  }
 
   // --- Auto-Craft (when workshop exists, every 6 ticks) ---
   if (gameState.tick % 6 === 0 && buildings.some(b => b.type === 'workshop')) {
@@ -899,7 +1128,7 @@ function renderRoster() {
         <span class="roster-name">${v.name}</span>
         <span class="roster-identity">${v.raceLabel} ${v.classLabel}</span>
       </div>
-      <div class="roster-personality">${v.personality}</div>
+      <div class="roster-personality">${v.personality} ${v.morale !== undefined ? `<span style="color:${getMoraleEffects(v).moodColor}"> — ${getMoraleEffects(v).moodLabel} (${v.morale})</span>` : ''}</div>
       <div class="roster-stats">
         <div class="roster-stat">
           <span class="roster-stat-label">Speed</span>
@@ -1001,6 +1230,36 @@ function updateUI() {
     tracker.classList.add('critical');
   } else {
     tracker.classList.remove('critical');
+  }
+
+  // Quest tracker
+  const qtEl = document.getElementById('quest-tracker');
+  const activeQuests = getActiveQuests(questState);
+  const actInfo = getActProgress(questState);
+  if (activeQuests.length > 0) {
+    let html = `<div class="qt-title">Act ${actInfo.currentAct}: ${actInfo.actTitle}</div>`;
+    for (const q of activeQuests.slice(0, 3)) {
+      html += `<div class="qt-quest"><div class="qt-name">${q.title}</div>`;
+      for (const obj of q.objectives) {
+        const done = obj.current >= obj.target;
+        html += `<div class="qt-obj${done ? ' done' : ''}">${done ? '✓' : '○'} ${obj.text} (${obj.current}/${obj.target})</div>`;
+      }
+      html += '</div>';
+    }
+    qtEl.innerHTML = html;
+  } else {
+    qtEl.innerHTML = '';
+  }
+
+  // Chain alerts
+  const chainSummaries = getActiveChainSummaries(chainState);
+  const alertEl = document.getElementById('chain-alert');
+  const urgent = chainSummaries.find(c => c.urgent);
+  if (urgent) {
+    alertEl.textContent = `⚠ ${urgent.title}: ${urgent.description}`;
+    alertEl.classList.remove('hidden');
+  } else {
+    alertEl.classList.add('hidden');
   }
 }
 
@@ -1146,6 +1405,12 @@ function gameLoop(now) {
   // Combat effects
   drawCombatEffects(ctx, combatState, TILE_SIZE, camera.x, camera.y);
 
+  // POI markers
+  drawPOIMarkers(ctx, pois, camera, TILE_SIZE, frameCount);
+
+  // Scout markers
+  drawScoutMarkers(ctx, scoutState, camera, TILE_SIZE, frameCount);
+
   // Selection ring for HUD
   if (hudState.selectedVillager) {
     const sv = villagers.find(v => v.id === hudState.selectedVillager.id);
@@ -1205,6 +1470,10 @@ function gameLoop(now) {
   // Minimap (update every few frames for performance)
   if (Math.floor(now / 500) !== Math.floor((now - rawDt * 1000) / 500)) {
     drawMinimap(minimapCanvas, tiles, buildings, villagers, camera, TILE_SIZE, canvas.width, canvas.height, monsters);
+    // Draw POI and scout markers on minimap
+    const mmCtx = minimapCanvas.getContext('2d');
+    drawPOIOnMinimap(mmCtx, pois, MAP_SIZE, minimapCanvas.width);
+    drawScoutMarkerOnMinimap(mmCtx, scoutState, MAP_SIZE, minimapCanvas.width);
   }
 
   requestAnimationFrame(gameLoop);
@@ -1215,6 +1484,32 @@ canvas.addEventListener('click', (e) => {
   // Skip if click is on a UI panel
   if (isClickInPanel(hudState, e.clientX, e.clientY, canvas.width, canvas.height)) return;
   handleClick(hudState, e.clientX, e.clientY, camera, villagers, TILE_SIZE);
+});
+
+// --- Minimap Click-to-Scout ---
+minimapCanvas.addEventListener('click', (e) => {
+  const rect = minimapCanvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width * MAP_SIZE;
+  const my = (e.clientY - rect.top) / rect.height * MAP_SIZE;
+  const tileX = Math.floor(mx);
+  const tileY = Math.floor(my);
+
+  // Only scout unexplored areas
+  if (visibilityMap[tileY]?.[tileX] === 2) return; // already visible
+
+  // Find nearest scout-capable villager
+  let best = null;
+  let bestDist = Infinity;
+  for (const v of villagers) {
+    if (!isScoutCapable(v)) continue;
+    const d = Math.sqrt((v.x - tileX) ** 2 + (v.y - tileY) ** 2);
+    if (d < bestDist) { bestDist = d; best = v; }
+  }
+  if (best) {
+    if (assignScoutMission(scoutState, best, tileX, tileY, MAP_SIZE)) {
+      addEvent(`${best.name} sent to scout (${tileX}, ${tileY})`, 'discovery');
+    }
+  }
 });
 
 // --- Start ---
