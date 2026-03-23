@@ -175,6 +175,11 @@ export function createVillagers(count, mapCenter, seed = 123) {
       // Builder target
       buildTarget: null,
 
+      // Thought/conscience system
+      thoughts: [],       // Array of { thought, response, day, tick }
+      thoughtsToday: 0,   // How many thoughts this villager has had today
+      thinkingInProgress: false, // Whether an AI call is pending
+
       // Speech bubble
       speech: null,
       speechTimer: 0,

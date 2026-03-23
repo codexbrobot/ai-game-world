@@ -116,3 +116,70 @@ The Voice responded. You must now interpret their guidance through your personal
     return null;
   }
 }
+
+/**
+ * Get an AI "conscience" response to a villager's inner thought.
+ * Sends villager context (stats, class, personality, previous thoughts) for rich responses.
+ *
+ * @param {object} villager - Full villager object
+ * @param {string} thought - The villager's current thought/question
+ * @param {object} gameContext - { day, tick, phase, resources }
+ * @returns {Promise<string|null>} The conscience's response
+ */
+export async function getThoughtResponse(villager, thought, gameContext) {
+  const key = getApiKey();
+  if (!key) return null;
+
+  // Build previous thoughts summary (last 5)
+  const prevThoughts = (villager.thoughts || []).slice(-5);
+  const historyBlock = prevThoughts.length > 0
+    ? `\nYour recent thoughts and reflections:\n${prevThoughts.map(t => `- Thought: "${t.thought}" → Reflection: "${t.response}"`).join('\n')}`
+    : '\nYou have had no previous reflections yet.';
+
+  const systemPrompt = `You are the inner conscience of ${villager.name}, a ${villager.raceLabel} ${villager.classLabel} in a medieval village called "AI Village: Realm of Shadows."
+
+Your personality type: ${villager.personality}
+Race: ${villager.raceLabel} | Class: ${villager.classLabel} | Role: ${villager.role}
+Stats — Speed: ${villager.stats.speed}, Strength: ${villager.stats.strength}, Charisma: ${villager.stats.charisma}
+HP: ${villager.hp}/${villager.maxHp}
+Current state: ${villager.state}
+Day: ${gameContext.day}, Time: ${gameContext.phase} (tick ${gameContext.tick}/24)
+Village resources — Wood: ${gameContext.resources.wood}, Stone: ${gameContext.resources.stone}, Food: ${gameContext.resources.food}, Iron: ${gameContext.resources.iron}
+${historyBlock}
+
+Personality guide:
+- Stalwart: Brave, determined, stoic inner voice
+- Skeptic: Questioning, analytical, doubts easily
+- Dreamer: Imaginative, hopeful, sees possibilities
+- Coward: Anxious, cautious, survival-focused
+- Zealot: Fervent, purpose-driven, sees signs everywhere
+- Pragmatist: Practical, weighs options, no-nonsense
+
+You are this villager's inner voice — their conscience answering their thought. Respond in 1-2 short sentences as their internal reflection. Stay deeply in character with their personality. Your response may subtly influence what they decide to do next. Be concise and flavorful.`;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: thought },
+        ],
+        max_tokens: 80,
+        temperature: 0.9,
+      }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  }
+}

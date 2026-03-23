@@ -10,7 +10,7 @@ import { getDayNightState, applyDayNightOverlay, drawPointLight, PHASES } from '
 import { drawBuildings, getBuildingLights, BUILDING_DEFS, BUILDING_COSTS } from './buildings.js';
 import { drawMinimap } from './minimap.js';
 import { createInputHandler } from './input.js';
-import { getApiKey, setApiKey, getModel, setModel, isAiEnabled, testConnection, getGuidanceResponse } from './ai.js';
+import { getApiKey, setApiKey, getModel, setModel, isAiEnabled, testConnection, getGuidanceResponse, getThoughtResponse } from './ai.js';
 
 // --- Configuration ---
 const TILE_SIZE = 32;
@@ -361,6 +361,123 @@ function findBuildSite(tiles, buildings, center, mapSize, bw, bh) {
   return null;
 }
 
+// --- Villager Thought Templates ---
+const THOUGHT_TEMPLATES = {
+  hunter: [
+    "The forest is thinning. Am I hunting too much in one area?",
+    "I spotted strange tracks today. Should I follow them deeper?",
+    "The other villagers depend on me for food. Can I do more?",
+    "I wonder if there are better hunting grounds beyond the known lands.",
+    "My bow arm aches. Is this life sustainable?",
+  ],
+  miner: [
+    "The veins here are rich but the stone is hard. Is there a better technique?",
+    "I feel the mountain breathe. Am I digging too deep?",
+    "Iron is scarce. Should I focus on stone instead?",
+    "The other miners seem tired. Should we take turns resting?",
+    "I found a glint of something unusual in the rock today.",
+  ],
+  builder: [
+    "The village needs more shelter. What should I build next?",
+    "This wood is warped. Should I use it anyway or seek better timber?",
+    "I see cracks in the chapel wall. Should I repair or reinforce?",
+    "We're running low on building materials. Should I gather or build?",
+    "The village layout could be more defensible. Should I suggest changes?",
+  ],
+  knight: [
+    "The perimeter is quiet tonight. Too quiet?",
+    "Am I serving the village well in this role?",
+    "I miss my old trade, but duty calls. Was this the right choice?",
+    "The darkness beyond the torchlight feels... watchful.",
+    "Should I train others to fight, or is my solo watch enough?",
+  ],
+};
+
+const THOUGHT_TEMPLATES_GENERAL = [
+  "I wonder what lies beyond the edges of the map.",
+  "Food was scarce yesterday. Will we survive another winter?",
+  "The Voice hasn't spoken in a while. Have we been forgotten?",
+  "I feel a strange connection to this village. Why?",
+  "My strength is {strength_status}. What does that mean for my future?",
+  "The night sounds are getting louder. Should I be worried?",
+  "I trust my fellow villagers... mostly. But {personality_doubt}.",
+  "Today feels different. Something is changing.",
+];
+
+const PERSONALITY_DOUBTS = {
+  Stalwart: "I must stay strong regardless",
+  Skeptic: "can I really trust any of them?",
+  Dreamer: "maybe change is what we need",
+  Coward: "what if they can't protect me?",
+  Zealot: "the faithless may doom us all",
+  Pragmatist: "sentiment aside, are they pulling their weight?",
+};
+
+function generateThought(v) {
+  const classThoughts = THOUGHT_TEMPLATES[v.vclass] || THOUGHT_TEMPLATES_GENERAL;
+  const allOptions = [...classThoughts, ...THOUGHT_TEMPLATES_GENERAL];
+  let thought = allOptions[Math.floor(Math.random() * allOptions.length)];
+
+  // Fill in template variables
+  const strengthDesc = v.stats.strength >= 7 ? 'formidable' : v.stats.strength >= 5 ? 'average' : 'lacking';
+  thought = thought.replace('{strength_status}', strengthDesc);
+  thought = thought.replace('{personality_doubt}', PERSONALITY_DOUBTS[v.personality] || 'I wonder');
+
+  return thought;
+}
+
+function triggerVillagerThought(phase) {
+  // Each tick, small chance for a villager to have a thought (targeting 1-3 per day)
+  // There are ~12 day ticks, so we want ~0.15 chance per villager per tick for ~2/day avg
+  // But we process one villager at a time to avoid API spam
+  const candidates = villagers.filter(v =>
+    v.thoughtsToday < 3 &&
+    !v.thinkingInProgress &&
+    v.state !== 'sleeping'
+  );
+
+  if (candidates.length === 0) return;
+
+  // Only trigger one thought per tick max across all villagers
+  if (Math.random() > 0.12) return;
+
+  const v = candidates[Math.floor(Math.random() * candidates.length)];
+  const thought = generateThought(v);
+
+  v.thinkingInProgress = true;
+  v.speech = `"${thought.substring(0, 35)}..."`;
+  v.speechTimer = 3;
+
+  const gameContext = {
+    day: gameState.day,
+    tick: gameState.tick,
+    phase,
+    resources: { ...gameState.resources },
+  };
+
+  getThoughtResponse(v, thought, gameContext).then(response => {
+    v.thinkingInProgress = false;
+    v.thoughtsToday++;
+
+    const entry = {
+      thought,
+      response: response || '...',
+      day: gameState.day,
+      tick: gameState.tick,
+    };
+    v.thoughts.push(entry);
+
+    // Cap stored thoughts at 20 per villager
+    if (v.thoughts.length > 20) v.thoughts.shift();
+
+    if (response) {
+      v.speech = response.substring(0, 50) + (response.length > 50 ? '...' : '');
+      v.speechTimer = 4;
+      addEvent(`${v.name} reflects: "${response.substring(0, 60)}${response.length > 60 ? '...' : ''}"`, 'guidance');
+    }
+  });
+}
+
 // --- Game Tick ---
 function processTick() {
   gameState.tick++;
@@ -374,6 +491,10 @@ function processTick() {
   // Periodic events based on time of day
   if (gameState.tick === 1) {
     addEvent(`Day ${gameState.day} begins. The sun rises over the village.`, 'discovery');
+    // Reset daily thought counter for all villagers
+    for (const v of villagers) {
+      v.thoughtsToday = 0;
+    }
   }
   if (gameState.tick === 13) {
     addEvent('Dusk approaches. The villagers prepare for nightfall.', 'danger');
@@ -484,6 +605,11 @@ function processTick() {
         }
       }, 4000);
     }
+  }
+
+  // Villager thought/conscience system: 1-3 thoughts per day per villager
+  if (isAiEnabled() && phase !== PHASES.NIGHT) {
+    triggerVillagerThought(phase);
   }
 
   // Random villager seeking guidance (for demo)
@@ -707,9 +833,49 @@ function renderRoster() {
         <div class="roster-hp-bar"><div class="roster-hp-fill" style="width:${(v.hp / v.maxHp) * 100}%"></div></div>
         <span class="roster-hp-val">${v.hp}/${v.maxHp}</span>
       </div>
+      ${v.thoughts.length > 0 ? `
+      <div class="roster-thoughts">
+        <div class="roster-thoughts-toggle" data-villager-id="${v.id}">
+          Inner Thoughts (${v.thoughts.length}) <span class="toggle-arrow">▸</span>
+        </div>
+        <div class="roster-thoughts-list hidden" id="thoughts-${v.id}">
+          ${v.thoughts.slice().reverse().map(t => `
+            <div class="thought-entry">
+              <div class="thought-meta">Day ${t.day}, Tick ${t.tick}</div>
+              <div class="thought-text">"${escapeHtml(t.thought)}"</div>
+              <div class="thought-response">→ ${escapeHtml(t.response)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : `
+      <div class="roster-thoughts">
+        <div class="roster-thoughts-empty">No thoughts yet...</div>
+      </div>
+      `}
     `;
     list.appendChild(card);
   }
+
+  // Wire up accordion toggles
+  list.querySelectorAll('.roster-thoughts-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const vid = toggle.dataset.villagerId;
+      const thoughtsList = document.getElementById(`thoughts-${vid}`);
+      const arrow = toggle.querySelector('.toggle-arrow');
+      if (thoughtsList.classList.contains('hidden')) {
+        thoughtsList.classList.remove('hidden');
+        arrow.textContent = '▾';
+      } else {
+        thoughtsList.classList.add('hidden');
+        arrow.textContent = '▸';
+      }
+    });
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // --- UI Updates ---
