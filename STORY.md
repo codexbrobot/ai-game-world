@@ -12,10 +12,24 @@ You are a **wretch**: nobody, rolled up fresh from the gutter with random abilit
 
 ## Level 1: The Vorn Graveyard (built)
 
-- You enter through the south gate. Mist, dead trees, a gibbet with an old cage and hundreds of crooked stones.
-- **Rotting Dead** have crawled out of open graves; **Rattling Skeletons** wander between the stones.
-- Some disturbed graves glint. Searching one can turn up silver, a black poultice, a black feather (an Omen) or a cold hand that grabs you.
-- **The Vorn Mausoleum** stands at the centre: bronze doors bound in chain, with three keyholes shaped like weeping eyes. Something inside is breathing. **It cannot be entered yet.**
+About 110 × 130 m inside a ruined outer wall, with a dead wood pressing in outside. A winding main path runs north from the gate to the walled court at the heart of the graveyard; side paths branch off into coves.
+
+| Area | What's there |
+|---|---|
+| **The Lych Gate** | Where you enter. The only way in, and no way back. |
+| **The Pauper's Field** | Wooden crosses and long mass-grave mounds. Zombies. |
+| **Chapel of Saint Gall** (west) | Roofless ruin, broken pews, fallen beams. Someone still lights the altar candles. Skeletons. |
+| **The Charnel Pits** (east) | Fenced bone pits and a bone cart. Skeletons. |
+| **The Old Rows** (centre) | Dense old headstones either side of the main path. |
+| **Avenue of the Crypts** (east) | Six locked family crypts along an avenue of obelisks. |
+| **Sexton's Hollow** (west) | The gravedigger's hut, lamp still lit, and the gibbet. |
+| **The Drowned Graves** (north-west) | A black pool swallowing sinking headstones. Zombies. |
+| **The Fallen Bell** (north-east) | A ruined bell tower; the cracked funeral bell lies in the grass. |
+| **The Vorn Court** (north-centre) | A walled court with guards at the gate and the **Vorn Mausoleum**: bronze doors bound in chain, three keyholes shaped like weeping eyes, something breathing inside. **It cannot be entered yet.** |
+
+Each area announces itself the first time you enter it, and appears by name on the Map. Sixteen disturbed graves glint with something worth digging for: silver, a black poultice, a black feather (an Omen) or a cold hand that grabs you.
+
+The layout lives in `src/map.js` and can be edited without touching the building code.
 
 ## Open threads for the next levels
 

@@ -18,6 +18,7 @@
     <div class="actions">
       <button id="btnPoultice" type="button"></button>
       <button id="btnOmen" type="button"></button>
+      <button id="btnMap" type="button">Map</button>
       <button id="btnSheet" type="button">Sheet</button>
     </div>
   </div>
@@ -31,6 +32,12 @@
 </div>
 
 <div id="sheet" class="panel popup" hidden></div>
+
+<div id="mapView" class="panel popup map-popup" hidden>
+  <h3>The Vorn Graveyard</h3>
+  <canvas id="mapCanvas" aria-label="Map of the graveyard"></canvas>
+  <button id="btnCloseMap" type="button">Close</button>
+</div>
 
 <div id="toast" class="toast" hidden>
   <h3 id="toastTitle"></h3>

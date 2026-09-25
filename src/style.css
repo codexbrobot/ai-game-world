@@ -75,6 +75,9 @@ button:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
 }
 .popup h3 { margin: 0 0 4px; font-family: var(--display); font-weight: 500; font-size: 24px; color: var(--yellow); }
 
+.map-popup { width: min(94vw, 30rem); }
+#mapCanvas { display: block; width: 100%; aspect-ratio: 110 / 132; max-height: 62vh; }
+
 .toast {
   position: fixed; left: 50%; top: 26%; transform: translate(-50%, -50%); z-index: 3;
   width: min(90vw, 26rem); padding: 16px 18px; text-align: center; pointer-events: auto;

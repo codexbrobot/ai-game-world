@@ -22,13 +22,16 @@ Everything, including the three.js engine, is bundled into the one file; the onl
 - **Tap an undead** to attack it. You keep attacking once per round while it's in reach.
 - **Tap a glinting grave** to search it.
 - **Drag** to turn the camera; **pinch or scroll** to zoom.
+- **Map** shows the graveyard, the places you've found and where you are.
 
 ## Code layout
 
 | File | What it holds |
 |---|---|
 | `src/rules.js` | MÖRK BORG dice, character generation, attacks, defence, the bestiary |
-| `src/world.js` | The graveyard level: ground, fence, graves, trees, gibbet, mausoleum, lights |
+| `src/map.js` | The graveyard layout: walls, paths, areas, landmarks, monster spawns, loot |
+| `src/world.js` | Builds the level from the layout: walls, graves, trees, buildings, lights, collision |
+| `src/mapview.js` | The in-game Map screen |
 | `src/actors.js` | The wretch, zombie and skeleton models and their animation |
 | `src/main.js` | Game loop, player and monster behaviour, combat, input handling |
 | `src/hud.js` | On-screen interface and the character card |

@@ -1,6 +1,8 @@
 // Wretch: level 1, the Vorn graveyard.
 import * as THREE from 'three';
-import { buildGraveyard, G } from './world.js';
+import { buildGraveyard } from './world.js';
+import { MAP } from './map.js';
+import { drawMap } from './mapview.js';
 import { makeWretch, makeZombie, makeSkeleton, animate, animateDeath } from './actors.js';
 import * as R from './rules.js';
 import { createHud, characterCard } from './hud.js';
@@ -75,32 +77,29 @@ function main() {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const PLAYER_R = 0.35, FOE_R = 0.35, SPEED = 3.3, ROUND = 1.7, REACH = 1.6; // reach is at least as long as any monster's
-  const game = { mode: 'title', pc: R.rollWretch(), player: null, foes: [], destroyed: 0, sawDoor: false, deadT: 0 };
+  const game = { discovered: new Set(), mode: 'title', pc: R.rollWretch(), player: null, foes: [], destroyed: 0, sawDoor: false, deadT: 0 };
 
   // ---------- collision ----------
   function collide(p, r) {
-    for (const c of world.circles) {
+    for (const c of world.circlesNear(p.x, p.z)) {
       const dx = p.x - c.x, dz = p.z - c.z, dist = Math.hypot(dx, dz), min = c.r + r;
       if (dist < min && dist > 1e-5) {
         p.x = c.x + (dx / dist) * min;
         p.z = c.z + (dz / dist) * min;
       }
     }
-    for (const b of world.boxes) {
-      const cx = clamp(p.x, b.minX, b.maxX), cz = clamp(p.z, b.minZ, b.maxZ);
-      const dx = p.x - cx, dz = p.z - cz, dist = Math.hypot(dx, dz);
-      if (dist === 0) {
-        const exits = [[p.x - b.minX, b.minX - r, null], [b.maxX - p.x, b.maxX + r, null], [p.z - b.minZ, null, b.minZ - r], [b.maxZ - p.z, null, b.maxZ + r]];
-        exits.sort((a, c) => a[0] - c[0]);
-        if (exits[0][1] !== null) p.x = exits[0][1]; else p.z = exits[0][2];
-      } else if (dist < r) {
-        p.x = cx + (dx / dist) * r;
-        p.z = cz + (dz / dist) * r;
-      }
+    for (const sg of world.segments) {
+      const vx = sg.bx - sg.ax, vz = sg.bz - sg.az, len = vx * vx + vz * vz || 1;
+      const t = clamp(((p.x - sg.ax) * vx + (p.z - sg.az) * vz) / len, 0, 1);
+      const cx = sg.ax + vx * t, cz = sg.az + vz * t;
+      let dx = p.x - cx, dz = p.z - cz;
+      let dist = Math.hypot(dx, dz);
+      const min = sg.r + r;
+      if (dist >= min) continue;
+      if (dist < 1e-5) { dx = -vz; dz = vx; dist = Math.hypot(dx, dz) || 1; }
+      p.x = cx + (dx / dist) * min;
+      p.z = cz + (dz / dist) * min;
     }
-    const lim = G - 0.5;
-    p.x = clamp(p.x, -lim, lim);
-    p.z = clamp(p.z, -lim, lim);
   }
 
   const turnToward = (a, b, k) => {
@@ -156,8 +155,7 @@ function main() {
   function spawnFoes() {
     for (const f of game.foes) scene.remove(f.parts.root);
     game.foes = [];
-    world.openGraves.slice(0, 4).forEach((g) => game.foes.push(spawnFoe('zombie', g.x, g.z)));
-    for (const [x, z] of [[-13, -8], [12, -12], [-5, -15], [14, 9], [-14, 11]]) game.foes.push(spawnFoe('skeleton', x, z));
+    for (const [kind, x, z] of MAP.spawns) game.foes.push(spawnFoe(kind, x, z));
     for (const f of game.foes) collide(f.pos, FOE_R);
   }
 
@@ -165,6 +163,7 @@ function main() {
     for (const l of world.loot) {
       l.searched = false;
       l.sprite.visible = true;
+      collide(l.stand, PLAYER_R);
     }
   }
 
@@ -191,10 +190,11 @@ function main() {
     resetLoot();
     game.destroyed = 0;
     game.sawDoor = false;
+    game.discovered = new Set();
     hud.clearLog();
     hud.clearFloats();
     hud.vitals(game.pc);
-    hud.goal('Reach the mausoleum at the heart of the graveyard.');
+    hud.goal('Find the Vorn mausoleum. The path north leads into the graveyard.');
     $('title').hidden = true;
     $('hud').hidden = false;
     game.mode = 'play';
@@ -202,7 +202,7 @@ function main() {
     camTarget.copy(game.player.pos).setY(1);
     const pc = game.pc;
     hud.log(`${pc.name} climbs through the gate. ${pc.weapon.name} (d${pc.weapon.die}), ${pc.armor.name.toLowerCase()}.`);
-    hud.toast('The Vorn Graveyard', 'Mist, crooked stones, and something shuffling between them. The mausoleum waits at the centre.', 6);
+    
   }
 
   function die(cause) {
@@ -298,6 +298,17 @@ function main() {
     hud.log(`<span class="hurt">${name} ${res.kind === 'fumble' ? '<b>savages</b>' : 'wounds'} you for <b>${res.dmg}</b>${note}</span> · ${roll}`);
     if (res.dmg > 0) hurtPlayer(res.dmg, `was torn apart by a ${name.toLowerCase()}.`);
     else hud.float('0', 'miss', tmp.copy(game.player.pos).setY(2.1));
+  }
+
+  // ---------- places ----------
+  function discoverAreas() {
+    const p = game.player.pos;
+    for (const a of world.areas) {
+      if (game.discovered.has(a.id) || Math.hypot(p.x - a.x, p.z - a.z) > a.r) continue;
+      game.discovered.add(a.id);
+      hud.toast(a.name, a.text, 5);
+      if (a.id === 'court' && !game.sawDoor) hud.goal('Reach the mausoleum doors.');
+    }
   }
 
   // ---------- player ----------
@@ -576,6 +587,16 @@ function main() {
   $('omenWard').addEventListener('click', () => spendOmen('omenWard', 'The Omen coils around you. Your next wound will be turned aside.'));
   $('omenClose').addEventListener('click', () => { $('omenMenu').hidden = true; });
 
+  let mapTimer = 0;
+  const redrawMap = () => drawMap($('mapCanvas'), world, game.player, game.discovered);
+  $('btnMap').addEventListener('click', () => {
+    if (game.mode !== 'play') return;
+    const view = $('mapView');
+    view.hidden = !view.hidden;
+    if (!view.hidden) redrawMap();
+  });
+  $('btnCloseMap').addEventListener('click', () => { $('mapView').hidden = true; });
+
   let high = true;
   $('btnSheet').addEventListener('click', () => {
     const sheet = $('sheet');
@@ -625,7 +646,8 @@ function main() {
     const dt = Math.min(raw, 0.05);
     const t = clock.elapsedTime;
 
-    world.update(dt, t, calm);
+    world.update(dt, t, calm, game.mode === 'title' || !game.player ? camTarget : game.player.pos);
+    if (game.mode === 'play') discoverAreas();
     if (game.player) {
       if (game.mode === 'play') updatePlayer(dt);
       if (game.mode === 'dead') {
@@ -633,6 +655,7 @@ function main() {
         game.deadT += dt;
         if (game.deadT > 2 && $('death').hidden) {
           $('death').hidden = false;
+          $('mapView').hidden = true;
           $('hud').hidden = true;
           hud.clearFloats();
         }
@@ -640,7 +663,12 @@ function main() {
         animate(game.player, dt, t);
       }
     }
+    // Monsters far from the wretch (hidden in fog anyway) are frozen and not drawn.
+    const focus = game.mode === 'title' || !game.player ? camTarget : game.player.pos;
     for (const f of game.foes) {
+      const far = Math.hypot(f.pos.x - focus.x, f.pos.z - focus.z) > 48;
+      if (!f.gone) f.parts.root.visible = !far;
+      if (far && f.state !== 'dead') continue;
       updateFoe(f, dt);
       if (f.state !== 'dead') animate(f, dt, t);
     }
@@ -648,9 +676,9 @@ function main() {
 
     // Camera: slow orbit of the mausoleum on the title screen, follow the wretch in play.
     if (game.mode === 'title') {
-      camTarget.set(0, 1.5, 0);
+      camTarget.set(0, 1.5, -36);
       const a = t * 0.05;
-      camera.position.set(Math.sin(a) * 24, 11, Math.cos(a) * 24);
+      camera.position.set(Math.sin(a) * 28, 13, -36 + Math.cos(a) * 28);
     } else {
       // Ease in quickly when a fight starts, back out slowly when it ends.
       const foe = game.mode === 'play' ? currentOpponent() : null;
@@ -672,6 +700,10 @@ function main() {
 
     const target = game.player?.target?.type === 'foe' ? game.player.target.foe : null;
     hud.update(dt, camera, game.mode === 'play' ? target : null);
+    if (!$('mapView').hidden) {
+      mapTimer -= dt;
+      if (mapTimer <= 0) { mapTimer = 0.25; redrawMap(); }
+    }
 
     frames++;
     fpsAcc += raw;
