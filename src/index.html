@@ -1,0 +1,97 @@
+<title>Wretch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Almendra:wght@400;700&family=Archivo+Narrow:wght@400;500;700&family=Grenze+Gotisch:wght@500;800&display=swap">
+<style>/*STYLE*/</style>
+
+<canvas id="view" aria-label="A graveyard at night with a mausoleum at its centre"></canvas>
+
+<div id="hud" hidden>
+  <div class="hud-top">
+    <div class="frame journal"><span class="jlabel">Journal</span><span id="goal"></span></div>
+    <div class="hud-right">
+      <div class="frame portrait-block">
+        <div class="vitals-text">
+          <div class="pc-name" id="pcName"></div>
+          <div class="hp bevel-in"><div class="hp-fill" id="hpFill"></div><span class="hp-text" id="hpText"></span></div>
+          <div class="coin" id="coinText"></div>
+        </div>
+        <div class="portrait bevel-in" id="portrait"></div>
+      </div>
+      <div class="frame portrait-block target-block" id="targetFrame" hidden>
+        <div class="vitals-text">
+          <div class="pc-name foe-name" id="targetName"></div>
+          <div class="hp bevel-in"><div class="hp-fill" id="targetFill"></div><span class="hp-text" id="targetText"></span></div>
+        </div>
+        <div class="portrait small bevel-in" id="targetPortrait"></div>
+      </div>
+    </div>
+  </div>
+  <div class="hud-bottom">
+    <div class="frame log-frame"><ul id="log" aria-live="polite"></ul></div>
+    <div class="frame quickbar" role="toolbar" aria-label="Quickbar">
+      <button class="slot" id="btnAttack" type="button"><span class="key">1</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l11 11M13 17l5-5M15.5 15.5l4 4M19 3L8 14M11 17l-5-5M8.5 15.5l-4 4"/></svg><span class="label">Attack</span></button>
+      <button class="slot" id="btnPoultice" type="button"><span class="key">2</span><span class="badge" id="poulticeCount"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3h7M9.5 3v3.2C6.6 7.3 5.5 9.3 5.5 12v6c0 1.9 1.1 3 3 3h7c1.9 0 3-1.1 3-3v-6c0-2.7-1.1-4.7-4-5.8V3M5.5 13.5h13"/></svg><span class="label">Poultice</span></button>
+      <button class="slot" id="btnOmen" type="button"><span class="key">3</span><span class="badge" id="omenCount"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 3.5C12 4.5 6.5 10 5.5 19l-2 2M5.5 19c6-1 11-5.2 13.6-11M9 15.2l4.2-1M11.2 11.7l4.3-1"/></svg><span class="label">Omen</span></button>
+      <button class="slot" id="btnMap" type="button"><span class="key">4</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5L15 20l-6-2.5L3 20zM9 4v13.5M15 6.5V20"/></svg><span class="label">Map</span></button>
+      <button class="slot" id="btnSheet" type="button"><span class="key">5</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C8 3 5 7 5 12v8.5h14V12c0-5-3-9-7-9zM9 12.5c0-1.9 1.2-3.2 3-3.2s3 1.3 3 3.2V15H9z"/></svg><span class="label">Character</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="omenMenu" class="frame popup win" hidden>
+  <div class="win-title"><span>Spend an Omen</span><button class="x" id="omenClose" type="button" aria-label="Close">×</button></div>
+  <div class="win-body">
+    <button class="nwn-btn" id="omenMax" type="button">Your next hit deals maximum damage</button>
+    <button class="nwn-btn" id="omenWard" type="button">Your next wound is turned aside</button>
+  </div>
+</div>
+
+<div id="sheet" class="frame popup win" hidden></div>
+
+<div id="mapView" class="frame popup win map-popup" hidden>
+  <div class="win-title"><span>The Vorn Graveyard</span><button class="x" id="btnCloseMap" type="button" aria-label="Close">×</button></div>
+  <div class="win-body"><canvas id="mapCanvas" aria-label="Map of the graveyard"></canvas></div>
+</div>
+
+<div id="toast" class="frame toast" hidden>
+  <h3 id="toastTitle"></h3>
+  <p id="toastBody"></p>
+</div>
+
+<div id="tag" class="tag" hidden></div>
+
+<div id="title" class="screen">
+  <div class="scroll">
+    <header class="mast">
+      <h1>Wretch</h1>
+      <p class="tagline">The world is dying. You are nobody.</p>
+    </header>
+    <div class="intro">
+      <p>The comet has burned for nine nights. In the drowned town of Skarnvik the gates will be chained at the next dark moon, and nobody left inside will see another spring.</p>
+      <p>A stranger with a sewn-shut eye found you in the gutter and pressed a copper into your palm. <q>Beneath the Vorn mausoleum lies the Reliquary of the Hollow Saint. Bring it to me and you will have a purse of gold and a seat on the last cart out.</q></p>
+      <p>The graveyard is not empty. It never is.</p>
+    </div>
+    <section class="card" id="card" aria-label="Your character"></section>
+    <div class="row">
+      <button id="btnReroll" class="ghost" type="button">Roll another wretch</button>
+      <button id="btnStart" type="button">Enter the graveyard</button>
+    </div>
+    <p class="legal">Wretch is an independent production and is not affiliated with Ockult Örtmästare Games or Stockholm Kartell. It is published under the MÖRK BORG Third Party License. MÖRK BORG is copyright Ockult Örtmästare Games and Stockholm Kartell.</p>
+  </div>
+</div>
+
+<div id="death" class="screen" hidden>
+  <div class="scroll">
+    <h1 class="dead">Dead</h1>
+    <p id="deathText" class="death-text"></p>
+    <div class="row"><button id="btnAgain" type="button">Roll a new wretch</button></div>
+  </div>
+</div>
+
+<div id="fail" class="screen" hidden>
+  <div class="scroll">
+    <h2>The graveyard didn't load</h2>
+    <p id="failMsg"></p>
+  </div>
+</div>
+
+<script type="module">/*SCRIPT*/</script>
