@@ -48,7 +48,7 @@ function main() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 140);
+  const camera = new THREE.PerspectiveCamera(34, 1, 0.5, 160);
   const rand = seeded(1349);
   const world = buildGraveyard(renderer, scene, rand, coarse);
   const hud = createHud();
@@ -570,8 +570,8 @@ function main() {
     const now = w < h;
     if (now !== portrait) {
       portrait = now;
-      camera.fov = portrait ? 66 : 45;
-      cam.dist = portrait ? 13 : 11;
+      camera.fov = portrait ? 40 : 34;
+      cam.dist = portrait ? 19 : 15;
     }
     camera.updateProjectionMatrix();
   }

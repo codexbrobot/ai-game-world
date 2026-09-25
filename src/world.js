@@ -32,7 +32,7 @@ export function buildGraveyard(renderer, scene, rand, coarse) {
   // ---------- sky, fog, light ----------
   const fog = new THREE.Color(0x17180f);
   scene.background = fog;
-  scene.fog = new THREE.FogExp2(fog, 0.034);
+  scene.fog = new THREE.FogExp2(fog, 0.026);
 
   {
     const pmrem = new THREE.PMREMGenerator(renderer);

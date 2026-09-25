@@ -1,5 +1,5 @@
 // Tap or click to act, drag to orbit the camera, pinch or scroll to zoom.
-export const ZOOM = { min: 5, max: 20 };
+export const ZOOM = { min: 8, max: 30 };
 
 export function bindInput(canvas, onTap) {
   const cam = { yaw: 0, pitch: 0.95, dist: 11 };
