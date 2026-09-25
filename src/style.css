@@ -226,3 +226,14 @@ button:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
 .gear dd { margin: 0; }
 .sheet-extra { font-size: 12.5px; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .sheet-extra button { min-height: 34px; padding: 6px 10px; font-size: 12px; }
+
+/* ---------- portraits ---------- */
+.hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.target-block .vitals-text { width: 118px; }
+.foe-name { color: #ff6a55; font-size: 14.5px; }
+.target-block .hp-fill { background: linear-gradient(180deg, #d9a24a, #9a5a1c 55%, #4f2a0a); }
+.portrait.small { width: 46px; height: 52px; }
+.card-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.card-head .trait { margin: 4px 0 0; }
+.card-portrait { width: 76px; height: 88px; flex: 0 0 auto; overflow: hidden; }
+.card-portrait svg { display: block; width: 100%; height: 100%; }

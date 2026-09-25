@@ -174,6 +174,7 @@ export function broken(pc) {
   }
   if (r === 3) {
     pc.presence = Math.max(-3, pc.presence - 1);
+    pc.lostEye = true;
     return { text: 'An eye is gone. Presence ' + fmt(pc.presence) + '.', stun: 1, dead: false };
   }
   return { text: 'You bleed out between the graves.', stun: 0, dead: true };

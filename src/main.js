@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { buildGraveyard } from './world.js';
 import { MAP } from './map.js';
 import { drawMap } from './mapview.js';
+import { zombiePortrait, skeletonPortrait } from './portraits.js';
 import { makeWretch, makeZombie, makeSkeleton, animate, animateDeath } from './actors.js';
 import * as R from './rules.js';
 import { createHud, characterCard } from './hud.js';
@@ -144,7 +145,9 @@ function main() {
     parts.root.position.set(x, 0, z);
     scene.add(parts.root);
     const hp = def.hp();
+    const seed = `${kind}${x}${z}${Math.random()}`;
     return {
+      portrait: kind === 'zombie' ? zombiePortrait(seed, parts.skinHex) : skeletonPortrait(seed),
       kind, def, parts, pos: parts.root.position, home: new THREE.Vector3(x, 0, z), hp, maxHp: hp,
       state: 'wander', heading: Math.random() * Math.PI * 2, phase: Math.random() * 6, seed: Math.random() * 10,
       moving: false, goal: null, idleT: Math.random() * 3, swing: -1, struck: false,

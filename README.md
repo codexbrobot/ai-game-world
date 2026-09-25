@@ -34,7 +34,8 @@ Everything, including the three.js engine, is bundled into the one file; the onl
 | `src/mapview.js` | The in-game Map screen |
 | `src/actors.js` | The wretch, zombie and skeleton models and their animation |
 | `src/main.js` | Game loop, player and monster behaviour, combat, input handling |
-| `src/hud.js` | On-screen interface and the character card |
+| `src/hud.js` | On-screen interface, target frame and the character card |
+| `src/portraits.js` | Generated painted-style portraits for wretches, zombies and skeletons |
 | `src/textures.js` | Procedural textures (no image files) |
 | `src/index.html`, `src/style.css` | Page structure and styling |
 

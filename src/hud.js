@@ -1,6 +1,7 @@
 // On-screen interface: vitals, combat log, floating numbers, story toasts and the character card.
 import * as THREE from 'three';
 import { ARMOR, ARMOR_DIE, fmt, healthWord } from './rules.js';
+import { wretchPortrait } from './portraits.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,8 +9,10 @@ export function characterCard(pc) {
   const armor = `${pc.armor.name}${pc.armor.tier ? ` (tier ${pc.armor.tier}, −d${ARMOR_DIE[pc.armor.tier]})` : ''}`;
   const worn = pc.armor.tier < ARMOR.findIndex((a) => a.name === pc.armor.name) ? ', battered' : '';
   return `
-    <div class="name">${pc.name}</div>
-    <p class="trait">${pc.trait}</p>
+    <div class="card-head">
+      <div class="card-portrait bevel-in">${wretchPortrait(pc)}</div>
+      <div><div class="name">${pc.name}</div><p class="trait">${pc.trait}</p></div>
+    </div>
     <div class="abilities">
       <div class="ability"><span class="k">Str</span><span class="v">${fmt(pc.strength)}</span></div>
       <div class="ability"><span class="k">Agi</span><span class="v">${fmt(pc.agility)}</span></div>
@@ -32,6 +35,8 @@ export function createHud() {
   const floats = [];
   const v = new THREE.Vector3();
   let toastTimer = 0;
+  let portraitKey = '';
+  let shownFoe = null;
 
   const project = (pos, camera) => {
     v.copy(pos).project(camera);
@@ -52,6 +57,13 @@ export function createHud() {
     goal(text) { $('goal').textContent = text; },
     vitals(pc) {
       $('pcName').textContent = pc.name;
+      // Redraw the portrait only when it would change: a new wretch, a lost eye, or blood.
+      const bloodied = pc.hp / pc.maxHp < 0.4;
+      const key = `${pc.name}|${pc.lostEye}|${bloodied}`;
+      if (key !== portraitKey) {
+        portraitKey = key;
+        $('portrait').innerHTML = wretchPortrait(pc, { bloodied });
+      }
       $('hpFill').style.width = `${Math.max(0, pc.hp / pc.maxHp) * 100}%`;
       $('hpText').textContent = `${Math.max(0, pc.hp)} / ${pc.maxHp}`;
       $('coinText').textContent = `${pc.silver} silver`;
@@ -84,6 +96,20 @@ export function createHud() {
       if (toastTimer > 0) {
         toastTimer -= dt;
         if (toastTimer <= 0) $('toast').hidden = true;
+      }
+      // Target frame: the enemy's portrait and health, as in Neverwinter Nights.
+      const foe = target && target.state !== 'dead' ? target : null;
+      $('targetFrame').hidden = !foe;
+      if (foe) {
+        if (foe !== shownFoe) {
+          shownFoe = foe;
+          $('targetPortrait').innerHTML = foe.portrait;
+          $('targetName').textContent = foe.def.name;
+        }
+        $('targetFill').style.width = `${Math.max(0, foe.hp / foe.maxHp) * 100}%`;
+        $('targetText').textContent = healthWord(foe.hp, foe.maxHp);
+      } else {
+        shownFoe = null;
       }
       if (target && target.state !== 'dead') {
         const p = project(v.set(target.pos.x, 2.25, target.pos.z), camera);

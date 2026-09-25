@@ -134,7 +134,8 @@ export function makeWretch(weaponName) {
 }
 
 export function makeZombie(rand) {
-  const skin = std([0x7f8a66, 0x8a8a6a, 0x6f7a5c][Math.floor(rand() * 3)]);
+  const skinHex = [0x7f8a66, 0x8a8a6a, 0x6f7a5c][Math.floor(rand() * 3)];
+  const skin = std(skinHex);
   const rags = std([0x3b3428, 0x2f3a3a, 0x40342c][Math.floor(rand() * 3)], { side: THREE.DoubleSide, roughness: 1 });
   const a = rig({ legR: 0.1, armR: 0.075, shoulder: 0.32, legMat: rags, footMat: skin, armMat: skin, handMat: skin });
   add(a.body, new THREE.CapsuleGeometry(0.24, 0.36, 6, 12), rags, 0, 1.15, 0).scale.set(1, 1, 0.78);
@@ -152,7 +153,7 @@ export function makeZombie(rand) {
     add(a.body, new THREE.PlaneGeometry(0.08, len), rags, x, 0.8 - len / 2 + 0.2, 0.18).rotation.x = 0.1;
   }
   a.body.rotation.x = 0.3;
-  return Object.assign(a, { kind: 'zombie', restL: -1.3, restR: -1.2 });
+  return Object.assign(a, { kind: 'zombie', restL: -1.3, restR: -1.2, skinHex });
 }
 
 export function makeSkeleton() {

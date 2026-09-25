@@ -7,21 +7,21 @@
 <div id="hud" hidden>
   <div class="hud-top">
     <div class="frame journal"><span class="jlabel">Journal</span><span id="goal"></span></div>
-    <div class="frame portrait-block">
-      <div class="vitals-text">
-        <div class="pc-name" id="pcName"></div>
-        <div class="hp bevel-in"><div class="hp-fill" id="hpFill"></div><span class="hp-text" id="hpText"></span></div>
-        <div class="coin" id="coinText"></div>
+    <div class="hud-right">
+      <div class="frame portrait-block">
+        <div class="vitals-text">
+          <div class="pc-name" id="pcName"></div>
+          <div class="hp bevel-in"><div class="hp-fill" id="hpFill"></div><span class="hp-text" id="hpText"></span></div>
+          <div class="coin" id="coinText"></div>
+        </div>
+        <div class="portrait bevel-in" id="portrait"></div>
       </div>
-      <div class="portrait bevel-in">
-        <svg viewBox="0 0 58 64" aria-hidden="true">
-          <defs><radialGradient id="pbg" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="#4a3f2c"/><stop offset="1" stop-color="#0d0b08"/></radialGradient></defs>
-          <rect width="58" height="64" fill="url(#pbg)"/>
-          <path d="M29 9c-11 0-17 10-17 22 0 5 1 9 3 12l-7 21h42l-7-21c2-3 3-7 3-12 0-12-6-22-17-22z" fill="#2b2722"/>
-          <path d="M29 13c-8 0-12 8-12 18 0 3 1 6 2 8l20 0c1-2 2-5 2-8 0-10-4-18-12-18z" fill="#3a342c"/>
-          <ellipse cx="29" cy="31" rx="7.5" ry="9.5" fill="#050505"/>
-          <circle cx="26" cy="30" r="0.9" fill="#d6ae5c" opacity="0.7"/><circle cx="32" cy="30" r="0.9" fill="#d6ae5c" opacity="0.7"/>
-        </svg>
+      <div class="frame portrait-block target-block" id="targetFrame" hidden>
+        <div class="vitals-text">
+          <div class="pc-name foe-name" id="targetName"></div>
+          <div class="hp bevel-in"><div class="hp-fill" id="targetFill"></div><span class="hp-text" id="targetText"></span></div>
+        </div>
+        <div class="portrait small bevel-in" id="targetPortrait"></div>
       </div>
     </div>
   </div>
