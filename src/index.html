@@ -1,45 +1,58 @@
 <title>Wretch</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;700&family=Grenze+Gotisch:wght@500;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Almendra:wght@400;700&family=Archivo+Narrow:wght@400;500;700&family=Grenze+Gotisch:wght@500;800&display=swap">
 <style>/*STYLE*/</style>
 
 <canvas id="view" aria-label="A graveyard at night with a mausoleum at its centre"></canvas>
 
 <div id="hud" hidden>
   <div class="hud-top">
-    <div class="panel vitals">
-      <div class="pc-name" id="pcName"></div>
-      <div class="hp"><div class="hp-fill" id="hpFill"></div></div>
-      <div class="hp-text" id="hpText"></div>
+    <div class="frame journal"><span class="jlabel">Journal</span><span id="goal"></span></div>
+    <div class="frame portrait-block">
+      <div class="vitals-text">
+        <div class="pc-name" id="pcName"></div>
+        <div class="hp bevel-in"><div class="hp-fill" id="hpFill"></div><span class="hp-text" id="hpText"></span></div>
+        <div class="coin" id="coinText"></div>
+      </div>
+      <div class="portrait bevel-in">
+        <svg viewBox="0 0 58 64" aria-hidden="true">
+          <defs><radialGradient id="pbg" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="#4a3f2c"/><stop offset="1" stop-color="#0d0b08"/></radialGradient></defs>
+          <rect width="58" height="64" fill="url(#pbg)"/>
+          <path d="M29 9c-11 0-17 10-17 22 0 5 1 9 3 12l-7 21h42l-7-21c2-3 3-7 3-12 0-12-6-22-17-22z" fill="#2b2722"/>
+          <path d="M29 13c-8 0-12 8-12 18 0 3 1 6 2 8l20 0c1-2 2-5 2-8 0-10-4-18-12-18z" fill="#3a342c"/>
+          <ellipse cx="29" cy="31" rx="7.5" ry="9.5" fill="#050505"/>
+          <circle cx="26" cy="30" r="0.9" fill="#d6ae5c" opacity="0.7"/><circle cx="32" cy="30" r="0.9" fill="#d6ae5c" opacity="0.7"/>
+        </svg>
+      </div>
     </div>
-    <div class="panel goal"><span class="label">Goal</span><span id="goal"></span></div>
   </div>
   <div class="hud-bottom">
-    <ul id="log" aria-live="polite"></ul>
-    <div class="actions">
-      <button id="btnPoultice" type="button"></button>
-      <button id="btnOmen" type="button"></button>
-      <button id="btnMap" type="button">Map</button>
-      <button id="btnSheet" type="button">Sheet</button>
+    <div class="frame log-frame"><ul id="log" aria-live="polite"></ul></div>
+    <div class="frame quickbar" role="toolbar" aria-label="Quickbar">
+      <button class="slot" id="btnAttack" type="button"><span class="key">1</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l11 11M13 17l5-5M15.5 15.5l4 4M19 3L8 14M11 17l-5-5M8.5 15.5l-4 4"/></svg><span class="label">Attack</span></button>
+      <button class="slot" id="btnPoultice" type="button"><span class="key">2</span><span class="badge" id="poulticeCount"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3h7M9.5 3v3.2C6.6 7.3 5.5 9.3 5.5 12v6c0 1.9 1.1 3 3 3h7c1.9 0 3-1.1 3-3v-6c0-2.7-1.1-4.7-4-5.8V3M5.5 13.5h13"/></svg><span class="label">Poultice</span></button>
+      <button class="slot" id="btnOmen" type="button"><span class="key">3</span><span class="badge" id="omenCount"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 3.5C12 4.5 6.5 10 5.5 19l-2 2M5.5 19c6-1 11-5.2 13.6-11M9 15.2l4.2-1M11.2 11.7l4.3-1"/></svg><span class="label">Omen</span></button>
+      <button class="slot" id="btnMap" type="button"><span class="key">4</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5L15 20l-6-2.5L3 20zM9 4v13.5M15 6.5V20"/></svg><span class="label">Map</span></button>
+      <button class="slot" id="btnSheet" type="button"><span class="key">5</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C8 3 5 7 5 12v8.5h14V12c0-5-3-9-7-9zM9 12.5c0-1.9 1.2-3.2 3-3.2s3 1.3 3 3.2V15H9z"/></svg><span class="label">Character</span></button>
     </div>
   </div>
 </div>
 
-<div id="omenMenu" class="panel popup" hidden>
-  <h3>Spend an Omen</h3>
-  <button id="omenMax" type="button">Your next hit deals maximum damage</button>
-  <button id="omenWard" type="button">Your next wound is turned aside</button>
-  <button id="omenClose" class="ghost" type="button">Keep it</button>
+<div id="omenMenu" class="frame popup win" hidden>
+  <div class="win-title"><span>Spend an Omen</span><button class="x" id="omenClose" type="button" aria-label="Close">×</button></div>
+  <div class="win-body">
+    <button class="nwn-btn" id="omenMax" type="button">Your next hit deals maximum damage</button>
+    <button class="nwn-btn" id="omenWard" type="button">Your next wound is turned aside</button>
+  </div>
 </div>
 
-<div id="sheet" class="panel popup" hidden></div>
+<div id="sheet" class="frame popup win" hidden></div>
 
-<div id="mapView" class="panel popup map-popup" hidden>
-  <h3>The Vorn Graveyard</h3>
-  <canvas id="mapCanvas" aria-label="Map of the graveyard"></canvas>
-  <button id="btnCloseMap" type="button">Close</button>
+<div id="mapView" class="frame popup win map-popup" hidden>
+  <div class="win-title"><span>The Vorn Graveyard</span><button class="x" id="btnCloseMap" type="button" aria-label="Close">×</button></div>
+  <div class="win-body"><canvas id="mapCanvas" aria-label="Map of the graveyard"></canvas></div>
 </div>
 
-<div id="toast" class="toast" hidden>
+<div id="toast" class="frame toast" hidden>
   <h3 id="toastTitle"></h3>
   <p id="toastBody"></p>
 </div>

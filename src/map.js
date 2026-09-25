@@ -2,7 +2,7 @@
 // world.js builds the level from this data; main.js spawns monsters and loot from it.
 
 export const MAP = {
-  start: [0, 61],
+  start: [0, 56],
 
   // Ruined outer wall. The gap between the first and last points is the Lych Gate.
   outerWall: [

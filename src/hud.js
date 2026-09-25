@@ -53,13 +53,14 @@ export function createHud() {
     vitals(pc) {
       $('pcName').textContent = pc.name;
       $('hpFill').style.width = `${Math.max(0, pc.hp / pc.maxHp) * 100}%`;
-      $('hpText').textContent = `${Math.max(0, pc.hp)} / ${pc.maxHp} HP · ${pc.silver}s`;
-      const bp = $('btnPoultice');
-      bp.textContent = `Poultice ×${pc.poultices}`;
-      bp.disabled = pc.poultices === 0 || pc.hp >= pc.maxHp;
-      const bo = $('btnOmen');
-      bo.textContent = pc.omenMax || pc.omenWard ? 'Omen ready' : `Omens ×${pc.omens}`;
-      bo.disabled = pc.omens === 0 && !pc.omenMax && !pc.omenWard;
+      $('hpText').textContent = `${Math.max(0, pc.hp)} / ${pc.maxHp}`;
+      $('coinText').textContent = `${pc.silver} silver`;
+      $('poulticeCount').textContent = pc.poultices;
+      $('btnPoultice').disabled = pc.poultices === 0 || pc.hp >= pc.maxHp;
+      const armed = pc.omenMax || pc.omenWard;
+      $('omenCount').textContent = armed ? '✦' : pc.omens;
+      $('btnOmen').classList.toggle('armed', armed);
+      $('btnOmen').disabled = pc.omens === 0 && !armed;
     },
     toast(title, body, seconds = 7) {
       $('toastTitle').textContent = title;
@@ -87,7 +88,7 @@ export function createHud() {
       if (target && target.state !== 'dead') {
         const p = project(v.set(target.pos.x, 2.25, target.pos.z), camera);
         tagEl.hidden = p.behind;
-        tagEl.textContent = `${target.def.name} · ${healthWord(target.hp, target.maxHp)}`;
+        tagEl.innerHTML = `${target.def.name}<small>${healthWord(target.hp, target.maxHp)}</small>`;
         tagEl.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`;
       } else {
         tagEl.hidden = true;

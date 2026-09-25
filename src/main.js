@@ -572,7 +572,39 @@ function main() {
   });
   $('btnOmen').addEventListener('click', () => {
     if (game.mode !== 'play') return;
-    $('omenMenu').hidden = false;
+    const pc = game.pc;
+    if (pc.omenMax || pc.omenWard) { hud.log('An Omen is already waiting to be spent.'); return; }
+    const menu = $('omenMenu');
+    const open = menu.hidden;
+    closePopups();
+    menu.hidden = !open;
+  });
+
+  // Quickbar slot 1: attack the nearest undead in sight.
+  $('btnAttack').addEventListener('click', () => {
+    if (game.mode !== 'play') return;
+    const p = game.player;
+    let best = null, bestD = 12;
+    for (const f of game.foes) {
+      if (f.state === 'dead' || !f.parts.root.visible) continue;
+      const d = f.pos.distanceTo(p.pos);
+      if (d < bestD) { bestD = d; best = f; }
+    }
+    if (!best) { hud.log('Nothing undead close enough to fight.'); return; }
+    p.target = { type: 'foe', foe: best };
+    p.move = null;
+  });
+
+  function closePopups() {
+    for (const id of ['omenMenu', 'sheet', 'mapView']) $(id).hidden = true;
+  }
+
+  // Keyboard: 1–5 match the quickbar slots, Escape closes windows.
+  addEventListener('keydown', (e) => {
+    if (game.mode !== 'play' || e.repeat) return;
+    if (e.key === 'Escape') { closePopups(); return; }
+    const slot = ['btnAttack', 'btnPoultice', 'btnOmen', 'btnMap', 'btnSheet'][Number(e.key) - 1];
+    if (slot && !$(slot).disabled) $(slot).click();
   });
   const spendOmen = (flag, text) => {
     const pc = game.pc;
@@ -592,7 +624,9 @@ function main() {
   $('btnMap').addEventListener('click', () => {
     if (game.mode !== 'play') return;
     const view = $('mapView');
-    view.hidden = !view.hidden;
+    const open = view.hidden;
+    closePopups();
+    view.hidden = !open;
     if (!view.hidden) redrawMap();
   });
   $('btnCloseMap').addEventListener('click', () => { $('mapView').hidden = true; });
@@ -601,9 +635,12 @@ function main() {
   $('btnSheet').addEventListener('click', () => {
     const sheet = $('sheet');
     if (!sheet.hidden) { sheet.hidden = true; return; }
-    sheet.innerHTML = `<div class="card">${characterCard(game.pc)}</div>
-      <div class="sheet-extra"><span id="fps">– fps</span><button id="btnQuality" class="ghost" type="button">Graphics: ${high ? 'High' : 'Low'}</button></div>
-      <button id="btnCloseSheet" type="button">Close</button>`;
+    closePopups();
+    sheet.innerHTML = `<div class="win-title"><span>Character</span><button class="x" id="btnCloseSheet" type="button" aria-label="Close">×</button></div>
+      <div class="win-body">
+        <div class="card">${characterCard(game.pc)}</div>
+        <div class="sheet-extra"><span id="fps">– fps</span><button id="btnQuality" class="nwn-btn" type="button">Graphics: ${high ? 'High' : 'Low'}</button></div>
+      </div>`;
     sheet.hidden = false;
     $('btnCloseSheet').addEventListener('click', () => { sheet.hidden = true; });
     $('btnQuality').addEventListener('click', (e) => {
