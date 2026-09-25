@@ -1,0 +1,77 @@
+<title>Wretch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;700&family=Grenze+Gotisch:wght@500;800&display=swap">
+<style>/*STYLE*/</style>
+
+<canvas id="view" aria-label="A graveyard at night with a mausoleum at its centre"></canvas>
+
+<div id="hud" hidden>
+  <div class="hud-top">
+    <div class="panel vitals">
+      <div class="pc-name" id="pcName"></div>
+      <div class="hp"><div class="hp-fill" id="hpFill"></div></div>
+      <div class="hp-text" id="hpText"></div>
+    </div>
+    <div class="panel goal"><span class="label">Goal</span><span id="goal"></span></div>
+  </div>
+  <div class="hud-bottom">
+    <ul id="log" aria-live="polite"></ul>
+    <div class="actions">
+      <button id="btnPoultice" type="button"></button>
+      <button id="btnOmen" type="button"></button>
+      <button id="btnSheet" type="button">Sheet</button>
+    </div>
+  </div>
+</div>
+
+<div id="omenMenu" class="panel popup" hidden>
+  <h3>Spend an Omen</h3>
+  <button id="omenMax" type="button">Your next hit deals maximum damage</button>
+  <button id="omenWard" type="button">Your next wound is turned aside</button>
+  <button id="omenClose" class="ghost" type="button">Keep it</button>
+</div>
+
+<div id="sheet" class="panel popup" hidden></div>
+
+<div id="toast" class="toast" hidden>
+  <h3 id="toastTitle"></h3>
+  <p id="toastBody"></p>
+</div>
+
+<div id="tag" class="tag" hidden></div>
+
+<div id="title" class="screen">
+  <div class="scroll">
+    <header class="mast">
+      <h1>Wretch</h1>
+      <p class="tagline">The world is dying. You are nobody.</p>
+    </header>
+    <div class="intro">
+      <p>The comet has burned for nine nights. In the drowned town of Skarnvik the gates will be chained at the next dark moon, and nobody left inside will see another spring.</p>
+      <p>A stranger with a sewn-shut eye found you in the gutter and pressed a copper into your palm. <q>Beneath the Vorn mausoleum lies the Reliquary of the Hollow Saint. Bring it to me and you will have a purse of gold and a seat on the last cart out.</q></p>
+      <p>The graveyard is not empty. It never is.</p>
+    </div>
+    <section class="card" id="card" aria-label="Your character"></section>
+    <div class="row">
+      <button id="btnReroll" class="ghost" type="button">Roll another wretch</button>
+      <button id="btnStart" type="button">Enter the graveyard</button>
+    </div>
+    <p class="legal">Wretch is an independent production and is not affiliated with Ockult Örtmästare Games or Stockholm Kartell. It is published under the MÖRK BORG Third Party License. MÖRK BORG is copyright Ockult Örtmästare Games and Stockholm Kartell.</p>
+  </div>
+</div>
+
+<div id="death" class="screen" hidden>
+  <div class="scroll">
+    <h1 class="dead">Dead</h1>
+    <p id="deathText" class="death-text"></p>
+    <div class="row"><button id="btnAgain" type="button">Roll a new wretch</button></div>
+  </div>
+</div>
+
+<div id="fail" class="screen" hidden>
+  <div class="scroll">
+    <h2>The graveyard didn't load</h2>
+    <p id="failMsg"></p>
+  </div>
+</div>
+
+<script type="module">/*SCRIPT*/</script>
