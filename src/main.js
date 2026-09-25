@@ -54,6 +54,23 @@ function main() {
   const hud = createHud();
   const cam = bindInput(canvas, onTap);
   const camTarget = new THREE.Vector3(0, 1, 0);
+  // Combat camera: 0 = exploring, 1 = fully zoomed in on a fight.
+  let combatBlend = 0;
+  const COMBAT_ZOOM = 0.55, COMBAT_TILT = 0.12, FIGHT_RANGE = 4;
+
+  // The enemy the fight should frame: your target, or the nearest monster attacking you.
+  function currentOpponent() {
+    const p = game.player;
+    const t = p.target?.type === 'foe' ? p.target.foe : null;
+    if (t && t.state !== 'dead' && t.pos.distanceTo(p.pos) < FIGHT_RANGE * 1.5) return t;
+    let best = null, bestD = FIGHT_RANGE;
+    for (const f of game.foes) {
+      if (f.state !== 'chase') continue;
+      const d = f.pos.distanceTo(p.pos);
+      if (d < bestD) { bestD = d; best = f; }
+    }
+    return best;
+  }
   const tmp = new THREE.Vector3();
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -168,6 +185,7 @@ function main() {
   });
 
   function startRun() {
+    combatBlend = 0;
     spawnPlayer();
     spawnFoes();
     resetLoot();
@@ -634,13 +652,19 @@ function main() {
       const a = t * 0.05;
       camera.position.set(Math.sin(a) * 24, 11, Math.cos(a) * 24);
     } else {
+      // Ease in quickly when a fight starts, back out slowly when it ends.
+      const foe = game.mode === 'play' ? currentOpponent() : null;
+      combatBlend += ((foe ? 1 : 0) - combatBlend) * Math.min(1, dt * (foe ? 2.5 : 1.2));
       tmp.copy(game.player.pos).setY(1);
-      camTarget.lerp(tmp, 1 - Math.exp(-dt * 8));
-      const cp = Math.cos(cam.pitch);
+      if (foe) tmp.lerp(a3.set(foe.pos.x, 1, foe.pos.z), 0.5 * combatBlend); // frame both fighters
+      camTarget.lerp(tmp, 1 - Math.exp(-dt * 6));
+      const dist = cam.dist * (1 - (1 - COMBAT_ZOOM) * combatBlend);
+      const pitch = cam.pitch - COMBAT_TILT * combatBlend;
+      const cp = Math.cos(pitch);
       camera.position.set(
-        camTarget.x + Math.sin(cam.yaw) * cp * cam.dist,
-        camTarget.y + Math.sin(cam.pitch) * cam.dist,
-        camTarget.z + Math.cos(cam.yaw) * cp * cam.dist,
+        camTarget.x + Math.sin(cam.yaw) * cp * dist,
+        camTarget.y + Math.sin(pitch) * dist,
+        camTarget.z + Math.cos(cam.yaw) * cp * dist,
       );
     }
     camera.lookAt(camTarget);
