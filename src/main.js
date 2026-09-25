@@ -57,7 +57,7 @@ function main() {
   const tmp = new THREE.Vector3();
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  const PLAYER_R = 0.35, FOE_R = 0.35, SPEED = 3.3, ROUND = 1.7, REACH = 1.3;
+  const PLAYER_R = 0.35, FOE_R = 0.35, SPEED = 3.3, ROUND = 1.7, REACH = 1.6; // reach is at least as long as any monster's
   const game = { mode: 'title', pc: R.rollWretch(), player: null, foes: [], destroyed: 0, sawDoor: false, deadT: 0 };
 
   // ---------- collision ----------
@@ -256,6 +256,9 @@ function main() {
 
   function foeStrikes(foe) {
     const pc = game.pc;
+    // Hit back automatically, as in Neverwinter Nights, unless you're busy doing something else.
+    const p = game.player;
+    if (!p.target && !p.move && p.searchT < 0) p.target = { type: 'foe', foe };
     const res = R.defend(pc, foe.def.damage);
     const roll = `Defence ${res.r} ${R.fmt(pc.agility)} = ${res.total} vs DR ${res.dr}`;
     const name = foeLabel(foe);
@@ -310,12 +313,15 @@ function main() {
 
     if (goal) {
       const dist = stepToward(p, goal, SPEED, stopAt, dt, PLAYER_R);
-      if (p.stuck > 0.6) {
+      // A headstone may stop you just short of a monster: swing anyway if it's nearly in reach.
+      const blockedButClose = t?.type === 'foe' && p.stuck > 0.2 && dist <= REACH + 0.6;
+      if (p.stuck > 0.6 && t?.type !== 'foe') {
         p.stuck = 0;
         p.move = null;
         p.target = null;
-      } else if (dist <= stopAt) {
+      } else if (dist <= stopAt || blockedButClose) {
         if (t?.type === 'foe') {
+          p.moving = false;
           p.heading = turnToward(p.heading, Math.atan2(t.foe.pos.x - p.pos.x, t.foe.pos.z - p.pos.z), dt * 12);
           if (p.roundT <= 0 && p.swing < 0) {
             p.swing = 0;
@@ -511,6 +517,13 @@ function main() {
     ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     if (!ray.ray.intersectPlane(groundPlane, hit)) return;
+    // A tap on the ground right beside a monster means attack it.
+    const near = game.foes.find((f) => f.state !== 'dead' && Math.hypot(f.pos.x - hit.x, f.pos.z - hit.z) < 1);
+    if (near) {
+      p.target = { type: 'foe', foe: near };
+      p.move = null;
+      return;
+    }
     const goal = hit.clone();
     collide(goal, PLAYER_R);
     p.target = null;
