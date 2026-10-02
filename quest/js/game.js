@@ -93,6 +93,7 @@
     const ab = (label, v) => `<div class="ab"><span>${label}</span><b>${fmt(v)}</b></div>`;
     const scrolls = pc.scrolls.length ? pc.scrolls.map((k) => esc(Q.SCROLLS[k].name)).join(', ') : 'none';
     return `
+      <img class="face" src="${Q.portraitUrl(pc.name)}" alt="" onerror="this.remove()">
       <h2 class="pcname">${esc(pc.name)}</h2>
       <p class="trait">${esc(pc.trait)}</p>
       <div class="abs">${ab('Strength', pc.strength)}${ab('Agility', pc.agility)}${ab('Presence', pc.presence)}${ab('Toughness', pc.toughness)}</div>
@@ -127,13 +128,18 @@
   function visitInn() {
     const pc = S.pc;
     const better = pc.killsSinceBetter >= 5;
-    modal('The Drowned Lamb', `
+    modal('The Drowned Lamb', art('inn') + `
       <p>Damp straw, a bowl of grey gruel, a landlord who will not meet your eye. ${better ? '<br><b class="yellow">You have survived enough horror to change. Sleep and you will Get Better.</b>' : ''}</p>
       <p class="small">A night's sleep restores your Omens and your Powers.</p>`, [
       { label: 'A bed (10s): all HP back', disabled: pc.silver < 10, action: () => { pc.silver -= 10; sleep(true); } },
       { label: 'The gutter (free): d4 HP', action: () => sleep(false) },
       { label: 'Leave', ghost: true },
     ]);
+  }
+
+  // A painted picture at the top of a dialog; it disappears quietly if the file is missing.
+  function art(name) {
+    return `<img class="modal-art" src="${Q.assetUrl(name)}" alt="" onerror="this.remove()">`;
   }
 
   function sleep(bed) {
@@ -175,7 +181,7 @@
       return `<button class="shoprow" data-i="${i}" ${can ? '' : 'disabled'}>
         <span><b>${esc(item.name)}</b><small>${esc(item.note)}${owned ? ' · yours is as good' : ''}</small></span><span class="price">${item.price}s</span></button>`;
     }).join('');
-    modal('Thrumm’s Stall', `<p>Thrumm sells what the dead no longer need. You have <b>${pc.silver}s</b>.</p><div class="shop">${rows}</div>`, [{ label: 'Leave', ghost: true }]);
+    modal('Thrumm’s Stall', `${art('stall')}<p>Thrumm sells what the dead no longer need. You have <b>${pc.silver}s</b>.</p><div class="shop">${rows}</div>`, [{ label: 'Leave', ghost: true }]);
     document.querySelectorAll('.shoprow').forEach((b) => b.addEventListener('click', () => {
       const item = Q.SHOP[+b.dataset.i];
       pc.silver -= item.price;
@@ -192,7 +198,7 @@
     if (S.hasRelic) {
       S.won = true;
       clearSave();
-      modal('The Bell-Tongue', `
+      modal('The Bell-Tongue', `${art('stranger')}
         <p>The Stranger takes the clapper in both hands and laughs, a dry sound like pages tearing.</p>
         <p>“Three hundred silver, as promised. And a seat on the last cart.”</p>
         <p>As the cart rolls out of Skarnvik you hear it: one note, rung on no bell at all. Above you the comet turns, slowly, toward the sound.</p>
@@ -204,7 +210,7 @@
     S.metStranger = true;
     save();
     renderTown();
-    modal('The Stranger', `
+    modal('The Stranger', `${art('stranger')}
       <p>A stranger with a sewn-shut eye takes your wrist in a cold grip.</p>
       <p>“Under the hill lies the Weeping Vault. At its bottom the Pale Abbess still wears the <b>Bell-Tongue</b>, the clapper of the last bell of Skarnvik. Bring it to me.”</p>
       <p>“Three hundred silver, and a seat on the last cart out before the gates are chained.”</p>
@@ -327,7 +333,7 @@
   // Places that ask before doing anything.
   function arriveAt(t) {
     if (t === 'G') {
-      modal('The stair up', '<p>Grey daylight leaks down the steps. Skarnvik is above.</p>', [
+      modal('The stair up', art('stair') + '<p>Grey daylight leaks down the steps. Skarnvik is above.</p>', [
         { label: 'Climb out', action: () => { show('town'); save(); } },
         { label: 'Stay below', ghost: true },
       ]);
@@ -353,7 +359,7 @@
       log('You take the <b class="yellow">Bell-Tongue</b>. It is warm, and it hums.', 'hit');
       draw();
       save();
-      modal('The Bell-Tongue', '<p>The clapper of the last bell, black iron as long as your forearm. It is warm. It hums against your ribs.</p><p>Take it up to the Stranger in Skarnvik.</p>', [{ label: 'Go' }]);
+      modal('The Bell-Tongue', art('relic') + '<p>The clapper of the last bell, black iron as long as your forearm. It is warm. It hums against your ribs.</p><p>Take it up to the Stranger in Skarnvik.</p>', [{ label: 'Go' }]);
     }
   }
 
@@ -706,7 +712,7 @@
     renderHud();
     draw();
     const pc = S.pc;
-    modal('Dead', `
+    modal('Dead', `${art('grave')}
       <p class="epitaph">Here lies <b>${esc(pc.name)}</b>.<br>${esc(pc.trait)}</p>
       <p>Killed by ${esc(cause)} in ${esc(floor().name)}, with ${pc.kills} foe${pc.kills === 1 ? '' : 's'} slain and ${pc.silver}s in a purse someone else will empty.</p>
       <p class="small">The Weeping Vault keeps what it takes. A new wretch is already on the way.</p>`, [
@@ -758,6 +764,8 @@
     if (!S) return;
     const pc = S.pc;
     $('hudName').textContent = pc.name;
+    const face = Q.portraitUrl(pc.name);
+    if ($('hudFace').getAttribute('src') !== face) $('hudFace').src = face;
     $('hudHp').textContent = `${Math.max(pc.hp, 0)}/${pc.maxHp}`;
     $('hpFill').style.width = `${Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100}%`;
     $('hudMore').innerHTML = `Omens <b>${pc.omens}</b>${pc.omenMax ? '<i title="next hit at maximum">▲</i>' : ''}${pc.omenWard ? '<i title="next wound turned aside">◆</i>' : ''} · <b>${pc.silver}</b>s${pc.bleeding ? ' · <span class="pink">bleeding</span>' : ''}`;
@@ -931,4 +939,9 @@
 
   bind();
   renderTitle();
+  Q.loadArt(() => {
+    if (!S) return;
+    if (S.where === 'crawl') draw();
+    if (S.where === 'town') renderTown();
+  });
 })();

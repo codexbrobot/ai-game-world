@@ -1,0 +1,10 @@
+# For tools/make_art.py. Install torch from the CPU index first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+diffusers
+transformers
+accelerate
+safetensors
+pillow
+numpy
+scipy
+rembg[cpu]

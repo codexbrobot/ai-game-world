@@ -40,6 +40,42 @@ var Q = window.Q || (window.Q = {});
     return c;
   }
 
+  // ---------- painted assets ----------
+  // Generated images in assets/ (see tools/make_art.py). Until one loads, the drawn fallback is used.
+  const IMG = {};
+  const SPRITE_NAMES = ['rats', 'zombie', 'skeleton', 'cultist', 'abbess', 'remains', 'remains-scroll', 'font', 'relic'];
+  const SURFACE_NAMES = ['wall-stone', 'wall-ossuary', 'wall-relief', 'door', 'floor', 'ceiling'];
+  const SCENE_NAMES = ['town'];
+
+  function loadArt(onLoad) {
+    const names = [...SPRITE_NAMES, ...SURFACE_NAMES, ...SCENE_NAMES];
+    let pending = names.length;
+    for (const name of names) {
+      const im = new Image();
+      im.decoding = 'async';
+      const done = () => { pending -= 1; if (onLoad) onLoad(name, pending); };
+      im.onload = done;
+      im.onerror = done;
+      im.src = assetUrl(name);
+      IMG[name] = im;
+    }
+  }
+
+  function assetUrl(name) { return `assets/${name}.webp`; }
+  function art(name) {
+    const im = IMG[name];
+    return im && im.complete && im.naturalWidth ? im : null;
+  }
+  const texW = (t) => t.naturalWidth || t.width;
+  const texH = (t) => t.naturalHeight || t.height;
+
+  // Which wretch portrait goes with a name.
+  function portraitUrl(name) {
+    let h = 0;
+    for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return assetUrl(`wretch-${h % 8}`);
+  }
+
   // ---------- wall textures ----------
   const TEX = 256; // textures are drawn on a 128 grid at double resolution
   let textures = null;
@@ -143,6 +179,14 @@ var Q = window.Q || (window.Q = {});
     return layerCanvas;
   }
 
+  // Mostly plain stone, some ossuary, the odd carved saint.
+  function wallTexture(T, t, gx, gy) {
+    const h = (((gx * 7 + gy * 13) % 10) + 10) % 10;
+    if (t === 'D') return art('door') || T.door;
+    const name = h <= 5 ? 'wall-stone' : h <= 8 ? 'wall-ossuary' : 'wall-relief';
+    return art(name) || T.stone[h % 3];
+  }
+
   function fog(z) { return Math.min(0.94, Math.max(0, (z - 0.7) / 5.2)); }
 
   function drawView(ctx, W, H, view) {
@@ -179,7 +223,7 @@ var Q = window.Q || (window.Q = {});
         const t = tile(gx, gy);
         const zN = Math.max(NEAR, lz), zF = lz + 1;
         if (t === '#' || t === 'D') {
-          const tex = t === 'D' ? T.door : T.stone[(((gx * 7 + gy * 13) % 3) + 3) % 3];
+          const tex = wallTexture(T, t, gx, gy);
           // the side face that looks toward the centre line
           if (lx !== 0) {
             const sx = lx < 0 ? lx + 0.5 : lx - 0.5;
@@ -195,7 +239,10 @@ var Q = window.Q || (window.Q = {});
           }
           continue;
         }
-        // open cell: floor marks and objects
+        // open cell: floor and ceiling, marks, then objects
+        const floorTex = art('floor'), ceilTex = art('ceiling');
+        if (floorTex) flatFace(ctx, P, floorTex, lx, zN, zF, lz, -0.5);
+        if (ceilTex) flatFace(ctx, P, ceilTex, lx, zN, zF, lz, 0.5);
         floorMarks(ctx, P, lx, zN, zF, gx, gy, t);
         if (Math.abs(lx) <= lz + 1) visible.push({ lx, lz, gx, gy, t });
         const sprites = [];
@@ -266,16 +313,39 @@ var Q = window.Q || (window.Q = {});
       const [, ba] = P(x, za, -0.5);
       const [, tb] = P(x, zb, 0.5), [, bb] = P(x, zb, -0.5);
       const left = Math.min(xa, xb), w = Math.abs(xb - xa) + 0.8;
-      const ua = (za - lz) * TEX, ub = (zb - lz) * TEX; // texture columns
+      const tw = texW(tex), th = texH(tex);
+      const ua = (za - lz) * tw, ub = (zb - lz) * tw; // texture columns
       // draw as a slanted quad: approximate with the larger height, clipped to the trapezoid
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(xa, ta); ctx.lineTo(xb, tb); ctx.lineTo(xb, bb); ctx.lineTo(xa, ba); ctx.closePath();
       ctx.clip();
       const top = Math.min(ta, tb), bottom = Math.max(ba, bb);
-      ctx.drawImage(tex, Math.min(ua, ub), 0, Math.max(1, Math.abs(ub - ua)), TEX, left, top, w, bottom - top);
+      ctx.drawImage(tex, Math.min(ua, ub), 0, Math.max(1, Math.abs(ub - ua)), th, left, top, w, bottom - top);
       ctx.fillStyle = `rgba(0,0,0,${Math.min(0.96, fog((za + zb) / 2) + 0.18)})`;
       ctx.fillRect(left, top, w, bottom - top);
+      ctx.restore();
+    }
+  }
+
+  // A floor (y = -0.5) or ceiling (y = 0.5) tile, drawn as strips of constant depth.
+  function flatFace(ctx, P, tex, lx, z0, z1, lz, y) {
+    const strips = lz <= 1 ? 10 : lz <= 3 ? 6 : 3;
+    const tw = texW(tex), th = texH(tex);
+    for (let i = 0; i < strips; i++) {
+      const za = z0 + ((z1 - z0) * i) / strips, zb = z0 + ((z1 - z0) * (i + 1)) / strips;
+      const a0 = P(lx - 0.5, za, y), a1 = P(lx + 0.5, za, y), b1 = P(lx + 0.5, zb, y), b0 = P(lx - 0.5, zb, y);
+      const top = Math.min(a0[1], b0[1]), bottom = Math.max(a0[1], b0[1]);
+      if (bottom < -50 || top > 2000) continue;
+      const left = Math.min(a0[0], b0[0]), right = Math.max(a1[0], b1[0]);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(b1[0], b1[1]); ctx.lineTo(b0[0], b0[1]); ctx.closePath();
+      ctx.clip();
+      const va = (1 - (za - lz)) * th, vb = (1 - (zb - lz)) * th;
+      ctx.drawImage(tex, 0, Math.min(va, vb), tw, Math.max(1, Math.abs(va - vb)), left, top - 0.5, right - left, bottom - top + 1);
+      ctx.fillStyle = `rgba(0,0,0,${Math.min(0.97, fog((za + zb) / 2) + (y > 0 ? 0.35 : 0.12))})`;
+      ctx.fillRect(left, top - 1, right - left, bottom - top + 2);
       ctx.restore();
     }
   }
@@ -321,7 +391,32 @@ var Q = window.Q || (window.Q = {});
   }
 
   // ---------- items on the floor ----------
+  // Heights in world units (a wall is 1 high).
+  const ITEM_ART = { L: ['remains', 0.24], S: ['remains-scroll', 0.24], F: ['font', 0.5], f: ['font', 0.5], R: ['relic', 0.55] };
+  const MONSTER_ART = { rats: 0.36, zombie: 0.92, skeleton: 0.95, cultist: 0.95, abbess: 1.04 };
+
+  function drawArt(ctx, im, x, y, s, height, dim) {
+    const h = height * s, w = h * (im.naturalWidth / im.naturalHeight);
+    ctx.drawImage(im, x - w / 2, y - h, w, h);
+    if (dim) {
+      // a dry font: its pink drained away
+      ctx.save();
+      ctx.globalCompositeOperation = 'saturation';
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x - w / 2, y - h, w, h);
+      ctx.restore();
+    }
+  }
+
   function drawItem(ctx, t, x, y, s, seed) {
+    const a = ITEM_ART[t];
+    const im = a && art(a[0]);
+    if (im) {
+      ctx.save();
+      drawArt(ctx, im, x, y, s, a[1], t === 'f');
+      ctx.restore();
+      return;
+    }
     const r = rng('item' + seed);
     ctx.save();
     ctx.translate(x, y);
@@ -384,7 +479,15 @@ var Q = window.Q || (window.Q = {});
     const k = lunge ? 1.12 : 1;
     ctx.scale(s * k, s * k);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ({ rats: drawRats, zombie: drawZombie, skeleton: drawSkeleton, cultist: drawCultist, abbess: drawAbbess })[m.kind](ctx, r, m);
+    const im = art(m.kind);
+    if (im) {
+      // the image is drawn in unit space: scale back out so it stays crisp
+      ctx.scale(1 / s, 1 / s);
+      drawArt(ctx, im, 0, 0, s, MONSTER_ART[m.kind]);
+      ctx.scale(s, s);
+    } else {
+      ({ rats: drawRats, zombie: drawZombie, skeleton: drawSkeleton, cultist: drawCultist, abbess: drawAbbess })[m.kind](ctx, r, m);
+    }
     if (hurt) {
       ctx.fillStyle = PINK;
       const sr = rng(m.id + 'blood' + Math.floor(fx.hitUntil));
@@ -554,6 +657,14 @@ var Q = window.Q || (window.Q = {});
 
   // ---------- the town of Skarnvik ----------
   function drawTown(ctx, W, H) {
+    const im = art('town');
+    if (im) {
+      // cover the frame, anchored to the bottom
+      const k = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+      const w = im.naturalWidth * k, h = im.naturalHeight * k;
+      ctx.drawImage(im, (W - w) / 2, H - h, w, h);
+      return;
+    }
     const r = rng('skarnvik');
     ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
     // the comet: a yellow gash across the sky, pink tail
@@ -666,5 +777,5 @@ var Q = window.Q || (window.Q = {});
     scratch(ctx, [[ox - 3, oy - 3], [ox + cs * cols + 3, oy - 3], [ox + cs * cols + 3, oy + cs * rows + 3], [ox - 3, oy + cs * rows + 3], [ox - 3, oy - 3]], r, 2, 1);
   }
 
-  Object.assign(Q, { drawView, drawTown, drawMap, DIRS });
+  Object.assign(Q, { drawView, drawTown, drawMap, DIRS, loadArt, assetUrl, portraitUrl });
 })();
