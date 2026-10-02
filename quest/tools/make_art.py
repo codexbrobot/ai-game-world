@@ -111,8 +111,10 @@ for i, face in enumerate(FACES):
                              prompt=f'head and shoulders portrait of {face}, grimy medieval peasant, '
                                     f'staring at the viewer, dark background, {STYLE}')
 
-# Chosen seeds (filled in after looking at the candidates).
-SEEDS = {}
+# Chosen seeds (picked from the contact sheets).
+SEEDS = {
+    'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
+}
 
 
 # ---------------- generation ----------------
