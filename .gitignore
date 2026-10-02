@@ -2,3 +2,4 @@ node_modules/
 dist/
 quest/tools/raw/
 quest/tools/sheets/
+__pycache__/
