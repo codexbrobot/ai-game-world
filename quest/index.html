@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;700&family=Grenze+Gotisch:wght@500;900&family=UnifrakturMaguntia&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- title -->
+<section id="title" class="screen title">
+  <div class="title-block">
+    <p class="kicker">A crawl in the dying world of Mörk Borg</p>
+    <h1>Quest</h1>
+    <p class="sub">The Weeping Vault</p>
+    <p class="blurb">The comet has burned nine nights. Under the hill, a dead abbess wears the clapper of the last bell. Somebody wants it badly.</p>
+    <div class="row">
+      <button id="btnContinue" type="button" hidden>Continue</button>
+      <button id="btnNew" type="button">Roll a wretch</button>
+    </div>
+    <p class="legal">Quest is an independent production and is not affiliated with Ockult Örtmästare Games or Stockholm Kartell. It is published under the MÖRK BORG Third Party License. MÖRK BORG is copyright Ockult Örtmästare Games and Stockholm Kartell.</p>
+  </div>
+</section>
+
+<!-- character -->
+<section id="create" class="screen" hidden>
+  <div class="paper">
+    <p class="kicker">You are nobody. Here is your nobody.</p>
+    <div id="sheet" class="sheet"></div>
+    <div class="row">
+      <button id="btnReroll" type="button" class="ghost">Roll again</button>
+      <button id="btnAccept" type="button">Into the dark</button>
+    </div>
+  </div>
+</section>
+
+<!-- town -->
+<section id="town" class="screen" hidden>
+  <div class="town-wrap">
+    <div class="town-art"><canvas id="townArt" aria-label="Skarnvik at night: crooked houses, a gallows and the comet"></canvas><h2>Skarnvik</h2></div>
+    <p id="townStatus" class="status"></p>
+    <p id="townGoal" class="goal"></p>
+    <div class="places">
+      <button id="goStranger" type="button"><b>The Stranger</b><small>by the dry well</small></button>
+      <button id="goInn" type="button"><b>The Drowned Lamb</b><small>sleep, heal, get better</small></button>
+      <button id="goShop" type="button"><b>Thrumm’s Stall</b><small>weapons, armor, poultices</small></button>
+      <button id="goCrypt" type="button" class="danger"><b>The Crypt Stair</b><small>down into the Weeping Vault</small></button>
+    </div>
+    <button id="goSheet" type="button" class="ghost small-btn">Your wretch</button>
+  </div>
+</section>
+
+<!-- crawl -->
+<section id="crawl" hidden>
+  <header class="hud">
+    <div class="who"><span id="hudName"></span><span id="hudPlace" class="place"></span></div>
+    <div class="vitals">
+      <div class="hpbar"><div id="hpFill"></div><span id="hudHp"></span></div>
+      <div id="hudMore" class="more"></div>
+    </div>
+  </header>
+  <div class="stage">
+    <div class="viewwrap">
+      <canvas id="view" aria-label="First-person view of the dungeon"></canvas>
+      <canvas id="mini" aria-label="Map of this floor. Tap to enlarge."></canvas>
+      <div id="foe" class="foe" hidden></div>
+    </div>
+    <div class="controls">
+      <ol id="log" aria-live="polite"></ol>
+      <div id="pad" class="pad" role="group" aria-label="Movement">
+        <button type="button" data-move="turnL" aria-label="Turn left">↶</button>
+        <button type="button" data-move="fwd" aria-label="Step forward">▲</button>
+        <button type="button" data-move="turnR" aria-label="Turn right">↷</button>
+        <button type="button" data-move="strafeL" aria-label="Step left">◀</button>
+        <button type="button" data-move="back" aria-label="Step back">▼</button>
+        <button type="button" data-move="strafeR" aria-label="Step right">▶</button>
+      </div>
+      <div id="fight" class="fight" role="group" aria-label="Combat" hidden>
+        <button type="button" data-fight="attack" class="big">Attack</button>
+        <button type="button" data-fight="scroll" id="bScroll">Scroll <small></small></button>
+        <button type="button" data-fight="poultice" id="bPoultice">Poultice <small></small></button>
+        <button type="button" data-fight="omen" id="bOmen">Omen <small></small></button>
+        <button type="button" data-fight="flee" class="ghost">Flee</button>
+      </div>
+      <div class="tools">
+        <button type="button" id="tMap" class="ghost">Map</button>
+        <button type="button" id="tSheet" class="ghost">Wretch</button>
+        <button type="button" id="tPoultice" class="ghost">Poultice <small></small></button>
+        <button type="button" id="tScroll" class="ghost" hidden>Mend</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="modal" class="modal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div id="modalButtons" class="buttons"></div>
+  </div>
+</div>
+
+<script src="js/rules.js"></script>
+<script src="js/data.js"></script>
+<script src="js/art.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
