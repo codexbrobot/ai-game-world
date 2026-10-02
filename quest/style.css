@@ -211,7 +211,12 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 }
 .modal h2 { margin: 0 0 8px; font-family: var(--display); font-weight: 900; font-size: 34px; line-height: 1; color: var(--yellow); }
 .modal p { margin: 0 0 10px; }
-.modal-art { display: block; width: calc(100% + 36px); margin: -16px -18px 12px; aspect-ratio: 4 / 3; object-fit: cover; border-bottom: 3px solid var(--yellow); }
+.modal-art {
+  display: block; width: calc(100% + 36px); margin: 6px -18px 12px; aspect-ratio: 4 / 3; object-fit: cover;
+  border-top: 3px solid var(--yellow); border-bottom: 3px solid var(--yellow);
+}
+/* a cut-out (the Bell-Tongue) sits on a glow instead of filling the frame */
+.modal-art.cutout { object-fit: contain; padding: 14px; background: radial-gradient(circle at 50% 55%, rgba(255, 225, 26, 0.35), transparent 62%), #12100c; }
 .modal.dead .modal-art { border-color: var(--pink); }
 .modal .buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .modal .buttons button { text-transform: none; letter-spacing: 0.01em; font-size: 16px; text-align: left; }

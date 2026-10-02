@@ -138,8 +138,8 @@
   }
 
   // A painted picture at the top of a dialog; it disappears quietly if the file is missing.
-  function art(name) {
-    return `<img class="modal-art" src="${Q.assetUrl(name)}" alt="" onerror="this.remove()">`;
+  function art(name, cutout) {
+    return `<img class="modal-art${cutout ? ' cutout' : ''}" src="${Q.assetUrl(name)}" alt="" onerror="this.remove()">`;
   }
 
   function sleep(bed) {
@@ -359,7 +359,7 @@
       log('You take the <b class="yellow">Bell-Tongue</b>. It is warm, and it hums.', 'hit');
       draw();
       save();
-      modal('The Bell-Tongue', art('relic') + '<p>The clapper of the last bell, black iron as long as your forearm. It is warm. It hums against your ribs.</p><p>Take it up to the Stranger in Skarnvik.</p>', [{ label: 'Go' }]);
+      modal('The Bell-Tongue', art('relic', true) + '<p>The clapper of the last bell, black iron as long as your forearm. It is warm. It hums against your ribs.</p><p>Take it up to the Stranger in Skarnvik.</p>', [{ label: 'Go' }]);
     }
   }
 
