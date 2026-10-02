@@ -66,20 +66,21 @@ ART = {
     'relic': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
                   prompt=f'a black iron bell clapper relic glowing yellow, resting on a small stone altar, {ISOLATED}, {STYLE}'),
     # --- dungeon surfaces ---
-    # 'Texture' or 'seamless' gets tile sample sheets, and the illustration style draws whole corridors,
-    # so each surface is described as a straight-on subject that fills the picture. The edge is trimmed (crop).
-    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
-                       prompt=f'a massive dungeon wall of large rough irregular stone blocks with deep cracks, {SURFACE}'),
-    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
-                         prompt=f'a catacomb wall completely covered with stacked human skulls and bones, {SURFACE}'),
-    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
-                        prompt=f'a weathered stone wall with a carved relief of a weeping saint, {SURFACE}'),
-    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.9,
-                 prompt=f'a heavy wooden dungeon door with iron bands and rivets, {SURFACE}'),
-    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
-                  prompt=f'an old cracked stone flagstone floor with dirt and bone fragments, seen from directly above, {SURFACE}'),
-    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
-                    prompt=f'a rough dark rock surface with hanging roots and cobwebs, {SURFACE}'),
+    # Asked for a wall, the model paints a whole room in perspective. So each surface starts from a flat
+    # layout drawn here (init: stone blocks, rows of skulls, door planks...), which the model paints over
+    # in ink (image-to-image), keeping the flat, straight-on structure. The edge is trimmed (crop).
+    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='blocks',
+                       prompt=f'a dungeon wall of large rough stone blocks with deep cracks, {SURFACE}'),
+    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='skulls',
+                         prompt=f'a catacomb wall of stacked human skulls and long bones, {SURFACE}'),
+    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='relief',
+                        prompt=f'a stone wall with a carved relief of a weeping saint in a niche, {SURFACE}'),
+    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='door',
+                 prompt=f'a heavy arched wooden door with iron bands and rivets in a stone wall, {SURFACE}'),
+    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='flags',
+                  prompt=f'a cracked stone flagstone floor with dirt and bone fragments, {SURFACE}'),
+    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='roots',
+                    prompt=f'rough dark stone blocks with hanging roots and cobwebs, {SURFACE}'),
     # --- scenes ---
     'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
@@ -123,8 +124,116 @@ SEEDS = {
 }
 
 
+# ---------------- layouts for image-to-image ----------------
+def _blocks(d, rnd, w, h, rows, tone=(95, 150), mortar=28, x0=0, y0=0):
+    y = y0
+    row_h = (h - y0) / rows
+    for r in range(rows):
+        rh = row_h * rnd.uniform(0.85, 1.15)
+        x = x0 - rnd.uniform(0, 80)
+        while x < w:
+            bw = rnd.uniform(70, 170)
+            g = rnd.randint(*tone)
+            d.rectangle([x + 4, y + 4, x + bw - 4, y + rh - 4], fill=g)
+            # a little shading on each block
+            d.rectangle([x + 4, y + rh - 14, x + bw - 4, y + rh - 4], fill=max(0, g - 35))
+            d.line([x + 6, y + 6, x + bw - 6, y + 6], fill=min(255, g + 40), width=3)
+            x += bw
+        d.line([0, y + rh, w, y + rh], fill=mortar, width=7)
+        y += rh
+
+
+def layout(kind, size, seed_name):
+    import random
+    from PIL import ImageDraw
+    w, h = size
+    rnd = random.Random(seed_name)
+    img = Image.new('L', size, 30)
+    d = ImageDraw.Draw(img)
+    if kind in ('blocks', 'relief'):
+        _blocks(d, rnd, w, h, rows=6)
+        if kind == 'relief':
+            # a niche with a robed, praying figure
+            d.rectangle([w * 0.3, h * 0.12, w * 0.7, h * 0.92], fill=45)
+            d.ellipse([w * 0.3, h * 0.02, w * 0.7, h * 0.32], fill=45)
+            d.ellipse([w * 0.44, h * 0.16, w * 0.56, h * 0.3], fill=175)          # head
+            d.polygon([(w * 0.5, h * 0.3), (w * 0.36, h * 0.9), (w * 0.64, h * 0.9)], fill=150)  # robe
+            d.polygon([(w * 0.47, h * 0.42), (w * 0.53, h * 0.42), (w * 0.5, h * 0.52)], fill=200)  # hands
+    elif kind == 'skulls':
+        d.rectangle([0, 0, w, h], fill=35)
+        rows = 7
+        rh = h / rows
+        for r in range(rows):
+            y = r * rh
+            if r % 3 == 2:
+                # a row of long bones
+                for k in range(5):
+                    x = k * w / 5 + rnd.uniform(-8, 8)
+                    d.rounded_rectangle([x + 4, y + rh * 0.3, x + w / 5 - 4, y + rh * 0.7], radius=12, fill=185)
+                continue
+            n = 6
+            for k in range(n):
+                cx = (k + 0.5 + (0.5 if r % 2 else 0)) * w / n
+                cy = y + rh * 0.5
+                sw, sh = w / n * 0.42, rh * 0.46
+                g = rnd.randint(165, 210)
+                d.ellipse([cx - sw, cy - sh, cx + sw, cy + sh * 0.8], fill=g)
+                d.rectangle([cx - sw * 0.55, cy + sh * 0.3, cx + sw * 0.55, cy + sh], fill=g - 15)
+                for ex in (-0.42, 0.42):
+                    d.ellipse([cx + ex * sw - sw * 0.25, cy - sh * 0.1, cx + ex * sw + sw * 0.25, cy + sh * 0.35], fill=20)
+                d.polygon([(cx, cy + sh * 0.35), (cx - sw * 0.1, cy + sh * 0.6), (cx + sw * 0.1, cy + sh * 0.6)], fill=25)
+    elif kind == 'door':
+        _blocks(d, rnd, w, h, rows=6)
+        x0, x1, top = w * 0.18, w * 0.82, h * 0.12
+        d.rectangle([x0 - 10, top + (x1 - x0) / 2 - 10, x1 + 10, h], fill=25)
+        d.ellipse([x0 - 10, top - 10, x1 + 10, top + (x1 - x0) + 10], fill=25)
+        d.ellipse([x0, top, x1, top + (x1 - x0)], fill=95)
+        d.rectangle([x0, top + (x1 - x0) / 2, x1, h], fill=95)
+        planks = 6
+        for k in range(1, planks):
+            x = x0 + (x1 - x0) * k / planks
+            d.line([x, top, x, h], fill=40, width=5)
+        for y in (h * 0.38, h * 0.72):
+            d.rectangle([x0, y, x1, y + 22], fill=55)
+            for k in range(7):
+                rx = x0 + 14 + k * (x1 - x0 - 28) / 6
+                d.ellipse([rx - 5, y + 6, rx + 5, y + 16], fill=170)
+        d.ellipse([w * 0.66, h * 0.55, w * 0.74, h * 0.63], outline=170, width=5)
+    elif kind == 'flags':
+        d.rectangle([0, 0, w, h], fill=30)
+        y = 0
+        while y < h:
+            rh = rnd.uniform(90, 150)
+            x = -rnd.uniform(0, 60)
+            while x < w:
+                bw = rnd.uniform(90, 170)
+                g = rnd.randint(85, 135)
+                d.polygon([(x + rnd.uniform(3, 9), y + rnd.uniform(3, 9)), (x + bw - rnd.uniform(3, 9), y + rnd.uniform(3, 9)),
+                           (x + bw - rnd.uniform(3, 9), y + rh - rnd.uniform(3, 9)), (x + rnd.uniform(3, 9), y + rh - rnd.uniform(3, 9))], fill=g)
+                x += bw
+            y += rh
+        for _ in range(9):
+            x, y = rnd.uniform(0, w), rnd.uniform(0, h)
+            d.line([x, y, x + rnd.uniform(-40, 40), y + rnd.uniform(-12, 12)], fill=210, width=5)
+    elif kind == 'roots':
+        _blocks(d, rnd, w, h, rows=5, tone=(55, 95), mortar=18)
+        for _ in range(7):
+            x = rnd.uniform(0, w)
+            pts, y = [], 0
+            while y < h * rnd.uniform(0.4, 0.9):
+                pts.append((x, y))
+                x += rnd.uniform(-14, 14)
+                y += rnd.uniform(12, 26)
+            d.line(pts, fill=15, width=rnd.randint(4, 9))
+    noise = np.random.default_rng(len(seed_name)).normal(0, 14, (h, w))
+    arr = np.clip(np.asarray(img, np.float32) + noise, 0, 255).astype(np.uint8)
+    return Image.fromarray(arr).filter(ImageFilter.GaussianBlur(1.2)).convert('RGB')
+
+
 # ---------------- generation ----------------
 _pipe = None
+_img2img = None
+STRENGTH = 0.62  # how far image-to-image may stray from the drawn layout
 
 
 def pipe():
@@ -140,9 +249,10 @@ def pipe():
 
 
 def raw_path(name, seed):
-    # keyed on the prompt and size too, so editing a prompt never reuses a stale render
+    # keyed on the prompt, size and layout too, so editing any of them never reuses a stale render
     spec = ART[name]
-    key = hashlib.sha1(f"{spec['prompt']}|{spec['size']}".encode()).hexdigest()[:8]
+    key = hashlib.sha1(f"{spec['prompt']}|{spec['size']}|{spec.get('init')}|{STRENGTH if spec.get('init') else ''}"
+                       .encode()).hexdigest()[:8]
     return RAW_DIR / f'{name}-{seed}-{key}.png'
 
 
@@ -154,8 +264,18 @@ def generate(name, seed, steps=8):
     spec = ART[name]
     w, h = spec['size']
     g = torch.Generator('cpu').manual_seed(seed)
-    img = pipe()(prompt=spec['prompt'], width=w, height=h, num_inference_steps=steps,
-                 guidance_scale=8.0, generator=g, output_type='pil').images[0]
+    if spec.get('init'):
+        global _img2img
+        if _img2img is None:
+            from diffusers import LatentConsistencyModelImg2ImgPipeline
+            _img2img = LatentConsistencyModelImg2ImgPipeline(**pipe().components)
+            _img2img.set_progress_bar_config(disable=True)
+        init = layout(spec['init'], (w, h), f'{name}-{seed}')
+        img = _img2img(prompt=spec['prompt'], image=init, strength=STRENGTH, num_inference_steps=steps,
+                       guidance_scale=8.0, generator=g, output_type='pil').images[0]
+    else:
+        img = pipe()(prompt=spec['prompt'], width=w, height=h, num_inference_steps=steps,
+                     guidance_scale=8.0, generator=g, output_type='pil').images[0]
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     img.save(path)
     return img
@@ -323,7 +443,7 @@ def contact_sheet(name, seeds, out_dir):
 
 def main(argv):
     ap = argparse.ArgumentParser()
-    ap.add_argument('command', choices=['candidates', 'build'])
+    ap.add_argument('command', choices=['candidates', 'build', 'layouts'])
     ap.add_argument('names', nargs='*')
     ap.add_argument('--seeds', nargs='*', type=int, default=[1, 2, 3])
     ap.add_argument('--out', default=str(HERE / 'sheets'))
@@ -332,6 +452,13 @@ def main(argv):
     for name in names:
         if name not in ART:
             sys.exit(f'unknown asset {name}')
+    if args.command == 'layouts':
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            if ART[name].get('init'):
+                layout(ART[name]['init'], ART[name]['size'], f'{name}-1').save(out / f'layout-{name}.jpg')
+        return
     if args.command == 'candidates':
         for name in names:
             print(contact_sheet(name, args.seeds, Path(args.out)), flush=True)
