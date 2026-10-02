@@ -393,7 +393,7 @@ var Q = window.Q || (window.Q = {});
   // ---------- items on the floor ----------
   // Heights in world units (a wall is 1 high).
   const ITEM_ART = { L: ['remains', 0.24], S: ['remains-scroll', 0.24], F: ['font', 0.5], f: ['font', 0.5], R: ['relic', 0.55] };
-  const MONSTER_ART = { rats: 0.36, zombie: 0.92, skeleton: 0.95, cultist: 0.95, abbess: 1.04 };
+  const MONSTER_ART = { rats: 0.3, zombie: 0.92, skeleton: 0.95, cultist: 0.95, abbess: 1.04 };
 
   function drawArt(ctx, im, x, y, s, height) {
     const h = height * s, w = h * (im.naturalWidth / im.naturalHeight);
@@ -506,7 +506,18 @@ var Q = window.Q || (window.Q = {});
     if (im) {
       // the image is drawn in unit space: scale back out so it stays crisp
       ctx.scale(1 / s, 1 / s);
-      drawArt(ctx, im, 0, 0, s, MONSTER_ART[m.kind]);
+      if (m.kind === 'rats') {
+        // one painted rat, three times over: a swarm
+        for (const [dx, dy, k, flip] of [[-0.2, -0.05, 0.75, -1], [0.22, -0.04, 0.7, 1], [0, 0, 1, 1]]) {
+          ctx.save();
+          ctx.translate(dx * s, dy * s);
+          ctx.scale(flip, 1);
+          drawArt(ctx, im, 0, 0, s, MONSTER_ART.rats * k);
+          ctx.restore();
+        }
+      } else {
+        drawArt(ctx, im, 0, 0, s, MONSTER_ART[m.kind]);
+      }
       ctx.scale(s, s);
     } else {
       ({ rats: drawRats, zombie: drawZombie, skeleton: drawSkeleton, cultist: drawCultist, abbess: drawAbbess })[m.kind](ctx, r, m);

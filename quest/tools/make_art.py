@@ -93,7 +93,7 @@ ART = {
                 prompt=f'a grim medieval tavern interior with a dying hearth fire and drunken peasants, {STYLE}'),
     'stall': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None,
                   prompt=f'a ragged market stall selling rusty swords, axes and dented armor, {STYLE}'),
-    'stranger': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None,
+    'stranger': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None, crop=0.9,
                      prompt=f'portrait of a hooded stranger with one eye sewn shut, thin cruel smile, {STYLE}'),
     'stair': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None,
                   prompt=f'worn stone stairs descending into a dark crypt entrance under a ruined arch, {STYLE}'),
@@ -119,9 +119,10 @@ for i, face in enumerate(FACES):
 
 # Chosen seeds (picked from the contact sheets).
 SEEDS = {
-    'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
+    'rats': 1, 'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
     'remains': 2, 'remains-scroll': 1, 'font': 3, 'relic': 2,
     'wall-stone': 1, 'wall-ossuary': 2, 'wall-relief': 2, 'door': 2, 'floor': 1, 'ceiling': 1,
+    'town': 2, 'title': 1, 'inn': 1, 'stall': 1, 'stranger': 2, 'stair': 2, 'grave': 2,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
 }
 
