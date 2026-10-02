@@ -29,8 +29,8 @@ PINK = (255, 61, 139)
 STYLE = ('grimdark medieval horror, black ink illustration, heavy crosshatching, rough woodcut, '
          'high contrast, gritty photocopied zine art, dark fantasy')
 ISOLATED = 'centered, isolated on a plain white background'
-TEXTURE = ('flat orthographic front view, no perspective, close-up, full frame, no border, '
-           'black ink crosshatching, woodcut print, high contrast')
+SURFACE = ('straight-on front view, it fills the entire picture, no perspective, '
+           'pen and ink drawing, dense crosshatching, woodcut, high contrast')
 
 # kind: sprite (cut out, bone ink), texture (dark stone grade), scene (bone ink, full frame), portrait.
 # size: the size generated; out: the size written.
@@ -66,20 +66,20 @@ ART = {
     'relic': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
                   prompt=f'a black iron bell clapper relic glowing yellow, resting on a small stone altar, {ISOLATED}, {STYLE}'),
     # --- dungeon surfaces ---
-    # The illustration style makes the model draw whole corridors, so surfaces get a flat-texture style,
-    # and the outer edge is trimmed off (crop) to lose any paper border.
-    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
-                       prompt=f'seamless texture of a rough stone block wall, {TEXTURE}'),
-    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
-                         prompt=f'seamless texture of a wall built entirely of stacked human skulls and bones, {TEXTURE}'),
-    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
-                        prompt=f'a carved stone relief of a weeping saint on a flat crypt wall, {TEXTURE}'),
-    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.92,
-                 prompt=f'a heavy rotten wooden door with iron bands filling the whole frame, {TEXTURE}'),
-    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
-                  prompt=f'seamless texture of cracked stone flagstones with dirt, seen from directly above, {TEXTURE}'),
-    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
-                    prompt=f'seamless texture of rough dark stone with roots and cobwebs, seen from directly below, {TEXTURE}'),
+    # 'Texture' or 'seamless' gets tile sample sheets, and the illustration style draws whole corridors,
+    # so each surface is described as a straight-on subject that fills the picture. The edge is trimmed (crop).
+    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
+                       prompt=f'a massive dungeon wall of large rough irregular stone blocks with deep cracks, {SURFACE}'),
+    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
+                         prompt=f'a catacomb wall completely covered with stacked human skulls and bones, {SURFACE}'),
+    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
+                        prompt=f'a weathered stone wall with a carved relief of a weeping saint, {SURFACE}'),
+    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.9,
+                 prompt=f'a heavy wooden dungeon door with iron bands and rivets, {SURFACE}'),
+    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
+                  prompt=f'an old cracked stone flagstone floor with dirt and bone fragments, seen from directly above, {SURFACE}'),
+    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.88,
+                    prompt=f'a rough dark rock surface with hanging roots and cobwebs, {SURFACE}'),
     # --- scenes ---
     'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
