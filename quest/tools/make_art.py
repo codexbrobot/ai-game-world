@@ -104,11 +104,11 @@ FACES = [
     'an old woman with one milky eye and a hood',
     'a gaunt young man with a shaved head and scars',
     'a bearded man with rotten teeth and a broken nose',
-    'a pale woman with matted hair and a scar across her lips',
+    'a gaunt middle-aged woman with matted grey hair and a scar across her lips',
     'a bald old man with a crooked nose and warts',
     'a hollow-cheeked young woman with a shaved head and a burn scar',
     'a one-eared man with a scruffy beard and a hood',
-    'a sickly woman with sunken eyes and a rag tied over her head',
+    'a sickly middle-aged woman with sunken eyes, lined skin and a rag tied over her head',
 ]
 for i, face in enumerate(FACES):
     ART[f'wretch-{i}'] = dict(kind='portrait', size=(384, 448), out=(384, 448), seed=None,
@@ -119,6 +119,7 @@ for i, face in enumerate(FACES):
 SEEDS = {
     'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
     'remains': 2, 'remains-scroll': 1, 'font': 3, 'relic': 2,
+    'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1,
 }
 
 
