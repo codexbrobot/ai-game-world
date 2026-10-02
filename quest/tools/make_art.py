@@ -35,10 +35,11 @@ FLAT = 'flat, black ink crosshatching, woodcut print, high contrast'
 # size: the size generated; out: the size written.
 ART = {
     # --- monsters ---
-    # 'medieval horror' turns rats into hooded men, so the rats get a plainer style
-    'rats': dict(kind='sprite', size=(512, 384), out=(512, 384), seed=None,
-                 prompt=f'three huge mangy sewer rats with long naked tails and yellow eyes, animals, side view, '
-                        f'on the ground, {ISOLATED}, black ink illustration, heavy crosshatching, rough woodcut, '
+    # Prompts alone give rat-men, so one rat is painted over a drawn crouching-rat silhouette (init),
+    # and the game draws it two or three times as a swarm.
+    'rats': dict(kind='sprite', size=(512, 384), out=(512, 384), seed=None, init='rat', strength=0.78,
+                 prompt=f'a giant mangy sewer rat on all fours with a long naked tail, snarling, yellow eyes, animal, '
+                        f'side view, {ISOLATED}, black ink illustration, heavy crosshatching, rough woodcut, '
                         f'high contrast, gritty zine art'),
     'zombie': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                    prompt=f'full body illustration of a rotting zombie in a torn burial shroud, arms reaching forward, '
@@ -119,6 +120,7 @@ for i, face in enumerate(FACES):
 SEEDS = {
     'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
     'remains': 2, 'remains-scroll': 1, 'font': 3, 'relic': 2,
+    'wall-stone': 1, 'wall-ossuary': 2, 'wall-relief': 2, 'door': 2, 'floor': 1, 'ceiling': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
 }
 
@@ -162,6 +164,17 @@ def layout(kind, size, seed_name):
             d.ellipse([w * 0.44, h * 0.16, w * 0.56, h * 0.3], fill=175)          # head
             d.polygon([(w * 0.5, h * 0.3), (w * 0.36, h * 0.9), (w * 0.64, h * 0.9)], fill=150)  # robe
             d.polygon([(w * 0.47, h * 0.42), (w * 0.53, h * 0.42), (w * 0.5, h * 0.52)], fill=200)  # hands
+    elif kind == 'rat':
+        d.rectangle([0, 0, w, h], fill=242)
+        cy = h * 0.62
+        d.ellipse([w * 0.22, cy - h * 0.2, w * 0.68, cy + h * 0.14], fill=70)                      # body
+        d.polygon([(w * 0.62, cy - h * 0.16), (w * 0.9, cy + h * 0.02), (w * 0.64, cy + h * 0.08)], fill=60)  # head
+        d.ellipse([w * 0.63, cy - h * 0.22, w * 0.7, cy - h * 0.12], fill=80)                      # ear
+        d.ellipse([w * 0.75, cy - h * 0.09, w * 0.78, cy - h * 0.06], fill=230)                    # eye
+        for lx in (0.3, 0.38, 0.55, 0.62):                                                         # legs
+            d.rectangle([w * lx, cy + h * 0.08, w * lx + w * 0.03, cy + h * 0.24], fill=65)
+        d.line([(w * 0.24, cy), (w * 0.12, cy + h * 0.1), (w * 0.05, cy + h * 0.02), (w * 0.02, cy - h * 0.1)],
+               fill=110, width=9)                                                                  # tail
     elif kind == 'skulls':
         d.rectangle([0, 0, w, h], fill=35)
         rows = 7
