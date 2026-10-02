@@ -395,25 +395,48 @@ var Q = window.Q || (window.Q = {});
   const ITEM_ART = { L: ['remains', 0.24], S: ['remains-scroll', 0.24], F: ['font', 0.5], f: ['font', 0.5], R: ['relic', 0.55] };
   const MONSTER_ART = { rats: 0.36, zombie: 0.92, skeleton: 0.95, cultist: 0.95, abbess: 1.04 };
 
-  function drawArt(ctx, im, x, y, s, height, dim) {
+  function drawArt(ctx, im, x, y, s, height) {
     const h = height * s, w = h * (im.naturalWidth / im.naturalHeight);
     ctx.drawImage(im, x - w / 2, y - h, w, h);
-    if (dim) {
-      // a dry font: its pink drained away
-      ctx.save();
-      ctx.globalCompositeOperation = 'saturation';
-      ctx.fillStyle = '#000';
-      ctx.fillRect(x - w / 2, y - h, w, h);
-      ctx.restore();
-    }
+    return [w, h];
   }
 
+  // Painted items, with a few touches pasted on in code, collage-style.
   function drawItem(ctx, t, x, y, s, seed) {
     const a = ITEM_ART[t];
     const im = a && art(a[0]);
     if (im) {
       ctx.save();
-      drawArt(ctx, im, x, y, s, a[1], t === 'f');
+      if (t === 'R') {
+        // the Bell-Tongue glows
+        const g = ctx.createRadialGradient(x, y - a[1] * s * 0.55, 0, x, y - a[1] * s * 0.55, a[1] * s * 0.75);
+        g.addColorStop(0, 'rgba(255,225,26,0.55)'); g.addColorStop(1, 'rgba(255,225,26,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(x - s, y - a[1] * s * 1.4, 2 * s, a[1] * s * 1.4);
+      }
+      const [w, h] = drawArt(ctx, im, x, y, s, a[1]);
+      if (t === 'F') {
+        // pink water brimming in the bowl, and its glow
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = 'rgba(255,61,139,0.7)';
+        ctx.beginPath(); ctx.ellipse(x, y - h * 0.86, w * 0.34, h * 0.075, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(x, y - h * 0.9, 0, x, y - h * 0.9, w * 0.6);
+        g.addColorStop(0, 'rgba(255,61,139,0.35)'); g.addColorStop(1, 'rgba(255,61,139,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(x - w, y - h * 1.5, w * 2, h);
+      }
+      if (t === 'S') {
+        // a yellow scroll on the heap
+        ctx.translate(x + w * 0.18, y - h * 0.22);
+        ctx.rotate(-0.28);
+        ctx.fillStyle = YELLOW; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, s * 0.006);
+        ctx.fillRect(-s * 0.075, -s * 0.024, s * 0.15, s * 0.048);
+        ctx.strokeRect(-s * 0.075, -s * 0.024, s * 0.15, s * 0.048);
+        ctx.fillStyle = INK;
+        ctx.fillRect(-s * 0.05, -s * 0.008, s * 0.1, s * 0.005);
+        ctx.fillRect(-s * 0.05, s * 0.005, s * 0.07, s * 0.005);
+      }
       ctx.restore();
       return;
     }

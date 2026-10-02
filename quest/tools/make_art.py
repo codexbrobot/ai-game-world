@@ -29,6 +29,8 @@ PINK = (255, 61, 139)
 STYLE = ('grimdark medieval horror, black ink illustration, heavy crosshatching, rough woodcut, '
          'high contrast, gritty photocopied zine art, dark fantasy')
 ISOLATED = 'centered, isolated on a plain white background'
+TEXTURE = ('flat orthographic front view, no perspective, close-up, full frame, no border, '
+           'black ink crosshatching, woodcut print, high contrast')
 
 # kind: sprite (cut out, bone ink), texture (dark stone grade), scene (bone ink, full frame), portrait.
 # size: the size generated; out: the size written.
@@ -64,18 +66,20 @@ ART = {
     'relic': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
                   prompt=f'a black iron bell clapper relic glowing yellow, resting on a small stone altar, {ISOLATED}, {STYLE}'),
     # --- dungeon surfaces ---
-    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None,
-                       prompt=f'ancient crypt wall of rough stone blocks, flat frontal view, texture, {STYLE}'),
-    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None,
-                         prompt=f'ossuary wall of stacked human skulls and long bones, flat frontal view, texture, {STYLE}'),
-    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None,
-                        prompt=f'crypt wall with a carved stone relief of a weeping saint, flat frontal view, {STYLE}'),
-    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None,
-                 prompt=f'a heavy rotten wooden dungeon door with iron bands set in a stone wall, flat frontal view, {STYLE}'),
-    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None,
-                  prompt=f'dungeon floor of cracked flagstones with dirt and bone fragments, top-down view, texture, {STYLE}'),
-    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None,
-                    prompt=f'dark vaulted stone ceiling with hanging roots and cobwebs, seen from below, texture, {STYLE}'),
+    # The illustration style makes the model draw whole corridors, so surfaces get a flat-texture style,
+    # and the outer edge is trimmed off (crop) to lose any paper border.
+    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
+                       prompt=f'seamless texture of a rough stone block wall, {TEXTURE}'),
+    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
+                         prompt=f'seamless texture of a wall built entirely of stacked human skulls and bones, {TEXTURE}'),
+    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
+                        prompt=f'a carved stone relief of a weeping saint on a flat crypt wall, {TEXTURE}'),
+    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.92,
+                 prompt=f'a heavy rotten wooden door with iron bands filling the whole frame, {TEXTURE}'),
+    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
+                  prompt=f'seamless texture of cracked stone flagstones with dirt, seen from directly above, {TEXTURE}'),
+    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.86,
+                    prompt=f'seamless texture of rough dark stone with roots and cobwebs, seen from directly below, {TEXTURE}'),
     # --- scenes ---
     'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
@@ -114,6 +118,7 @@ for i, face in enumerate(FACES):
 # Chosen seeds (picked from the contact sheets).
 SEEDS = {
     'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
+    'remains': 2, 'remains-scroll': 1, 'font': 3, 'relic': 2,
 }
 
 
@@ -222,6 +227,12 @@ def _subject_mask(img):
 def grade(name, img):
     spec = ART[name]
     kind = spec['kind']
+    if spec.get('crop'):
+        # keep the middle of the picture
+        k = spec['crop']
+        w, h = img.size
+        cw, ch = round(w * k), round(h * k)
+        img = img.crop(((w - cw) // 2, (h - ch) // 2, (w + cw) // 2, (h + ch) // 2)).resize((w, h), Image.LANCZOS)
     rgb = _arr(img)
     lum = rgb @ np.array([0.299, 0.587, 0.114], np.float32)
     seed = sum(map(ord, name))
