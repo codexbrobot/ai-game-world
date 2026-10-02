@@ -29,8 +29,7 @@ PINK = (255, 61, 139)
 STYLE = ('grimdark medieval horror, black ink illustration, heavy crosshatching, rough woodcut, '
          'high contrast, gritty photocopied zine art, dark fantasy')
 ISOLATED = 'centered, isolated on a plain white background'
-SURFACE = ('straight-on front view, it fills the entire picture, no perspective, '
-           'pen and ink drawing, dense crosshatching, woodcut, high contrast')
+FLAT = 'flat, black ink crosshatching, woodcut print, high contrast'
 
 # kind: sprite (cut out, bone ink), texture (dark stone grade), scene (bone ink, full frame), portrait.
 # size: the size generated; out: the size written.
@@ -68,19 +67,19 @@ ART = {
     # --- dungeon surfaces ---
     # Asked for a wall, the model paints a whole room in perspective. So each surface starts from a flat
     # layout drawn here (init: stone blocks, rows of skulls, door planks...), which the model paints over
-    # in ink (image-to-image), keeping the flat, straight-on structure. The edge is trimmed (crop).
-    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='blocks',
-                       prompt=f'a dungeon wall of large rough stone blocks with deep cracks, {SURFACE}'),
-    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='skulls',
-                         prompt=f'a catacomb wall of stacked human skulls and long bones, {SURFACE}'),
-    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='relief',
-                        prompt=f'a stone wall with a carved relief of a weeping saint in a niche, {SURFACE}'),
-    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='door',
-                 prompt=f'a heavy arched wooden door with iron bands and rivets in a stone wall, {SURFACE}'),
-    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='flags',
-                  prompt=f'a cracked stone flagstone floor with dirt and bone fragments, {SURFACE}'),
-    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='roots',
-                    prompt=f'rough dark stone blocks with hanging roots and cobwebs, {SURFACE}'),
+    # in ink (image-to-image). 'Close-up ... flat' keeps it flat; strength is how far it may stray.
+    'wall-stone': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='blocks', strength=0.7,
+                       prompt=f'close-up of an old wall of rough hewn grey stone blocks with dark mortar, cracked and chipped, {FLAT}'),
+    'wall-ossuary': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='skulls', strength=0.7,
+                         prompt=f'close-up of a wall of stacked human skulls and bones, {FLAT}'),
+    'wall-relief': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='relief', strength=0.68,
+                        prompt=f'close-up of a stone wall with a carved stone relief of a weeping saint in a niche, {FLAT}'),
+    'door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='door', strength=0.64,
+                 prompt=f'close-up of a heavy arched wooden door with iron bands and rivets in a stone wall, {FLAT}'),
+    'floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='flags', strength=0.68,
+                  prompt=f'close-up of cracked grey flagstones with dirt between them, {FLAT}'),
+    'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='roots', strength=0.66,
+                    prompt=f'close-up of rough dark stone blocks with hanging roots and cobwebs, {FLAT}'),
     # --- scenes ---
     'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
@@ -120,7 +119,7 @@ for i, face in enumerate(FACES):
 SEEDS = {
     'skeleton': 2, 'zombie': 2, 'cultist': 1, 'abbess': 1,
     'remains': 2, 'remains-scroll': 1, 'font': 3, 'relic': 2,
-    'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1,
+    'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
 }
 
 
@@ -134,10 +133,14 @@ def _blocks(d, rnd, w, h, rows, tone=(95, 150), mortar=28, x0=0, y0=0):
         while x < w:
             bw = rnd.uniform(70, 170)
             g = rnd.randint(*tone)
-            d.rectangle([x + 4, y + 4, x + bw - 4, y + rh - 4], fill=g)
-            # a little shading on each block
-            d.rectangle([x + 4, y + rh - 14, x + bw - 4, y + rh - 4], fill=max(0, g - 35))
-            d.line([x + 6, y + 6, x + bw - 6, y + 6], fill=min(255, g + 40), width=3)
+            j = lambda: rnd.uniform(2, 10)
+            d.polygon([(x + j(), y + j()), (x + bw - j(), y + j()), (x + bw - j(), y + rh - j()), (x + j(), y + rh - j())], fill=g)
+            # a little shading on each block, and a crack or two
+            d.line([x + 8, y + rh - 10, x + bw - 8, y + rh - 10], fill=max(0, g - 40), width=6)
+            d.line([x + 8, y + 8, x + bw - 8, y + 8], fill=min(255, g + 40), width=3)
+            for _ in range(rnd.randint(0, 2)):
+                cx, cy = x + rnd.uniform(10, bw - 10), y + rnd.uniform(8, rh - 8)
+                d.line([cx, cy, cx + rnd.uniform(-25, 25), cy + rnd.uniform(-20, 20)], fill=max(0, g - 60), width=2)
             x += bw
         d.line([0, y + rh, w, y + rh], fill=mortar, width=7)
         y += rh
@@ -225,15 +228,24 @@ def layout(kind, size, seed_name):
                 x += rnd.uniform(-14, 14)
                 y += rnd.uniform(12, 26)
             d.line(pts, fill=15, width=rnd.randint(4, 9))
-    noise = np.random.default_rng(len(seed_name)).normal(0, 14, (h, w))
-    arr = np.clip(np.asarray(img, np.float32) + noise, 0, 255).astype(np.uint8)
+    # stone grain: noise at a few scales, so there is texture for the model to ink over
+    rng = np.random.default_rng(len(seed_name))
+    grain = np.zeros((h, w), np.float32)
+    for scale, amp in ((64, 22), (16, 16), (4, 10), (1, 8)):
+        small = rng.normal(0, 1, (max(1, h // scale), max(1, w // scale))).astype(np.float32)
+        grain += amp * np.asarray(Image.fromarray(small).resize((w, h), Image.BICUBIC))
+    arr = np.clip(np.asarray(img, np.float32) + grain, 0, 255).astype(np.uint8)
     return Image.fromarray(arr).filter(ImageFilter.GaussianBlur(1.2)).convert('RGB')
 
 
 # ---------------- generation ----------------
 _pipe = None
 _img2img = None
-STRENGTH = 0.62  # how far image-to-image may stray from the drawn layout
+STRENGTH = 0.68  # how far image-to-image may stray from the drawn layout, unless the asset says
+
+
+def _strength(spec):
+    return spec.get('strength', STRENGTH)
 
 
 def pipe():
@@ -251,7 +263,7 @@ def pipe():
 def raw_path(name, seed):
     # keyed on the prompt, size and layout too, so editing any of them never reuses a stale render
     spec = ART[name]
-    key = hashlib.sha1(f"{spec['prompt']}|{spec['size']}|{spec.get('init')}|{STRENGTH if spec.get('init') else ''}"
+    key = hashlib.sha1(f"{spec['prompt']}|{spec['size']}|{spec.get('init')}|{_strength(spec) if spec.get('init') else ''}"
                        .encode()).hexdigest()[:8]
     return RAW_DIR / f'{name}-{seed}-{key}.png'
 
@@ -271,7 +283,7 @@ def generate(name, seed, steps=8):
             _img2img = LatentConsistencyModelImg2ImgPipeline(**pipe().components)
             _img2img.set_progress_bar_config(disable=True)
         init = layout(spec['init'], (w, h), f'{name}-{seed}')
-        img = _img2img(prompt=spec['prompt'], image=init, strength=STRENGTH, num_inference_steps=steps,
+        img = _img2img(prompt=spec['prompt'], image=init, strength=_strength(spec), num_inference_steps=steps,
                        guidance_scale=8.0, generator=g, output_type='pil').images[0]
     else:
         img = pipe()(prompt=spec['prompt'], width=w, height=h, num_inference_steps=steps,
@@ -386,10 +398,10 @@ def grade(name, img):
             res = res.crop(bbox)
         return _fit(res, spec['out'], anchor='bottom')
     if kind == 'texture':
-        t = _contrast(lum, k=5.5, mid=0.55, gamma=1.15)
+        t = _contrast(lum, k=6.5, mid=0.55, gamma=1.15)
         out = _duotone(t, INK, STONE)
         out = _accents(rgb, out, 0.8)
-        out = _grain(out, 0.05, seed)
+        out = _grain(out, 0.07, seed)
     else:  # scene, portrait
         t = _contrast(lum, k=7.0, mid=0.5)
         out = _duotone(t, INK, BONE)
