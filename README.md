@@ -38,5 +38,3 @@ Everything, including the three.js engine, is bundled into the one file; the onl
 | `src/portraits.js` | Generated painted-style portraits for wretches, zombies and skeletons |
 | `src/textures.js` | Procedural textures (no image files) |
 | `src/index.html`, `src/style.css` | Page structure and styling |
-
-The old "AI Village" design is kept in `archive/ai-village/`.
