@@ -32,6 +32,7 @@ ISOLATED = 'centered, isolated on a plain white background'
 FLAT = 'flat, black ink crosshatching, woodcut print, high contrast'
 
 # kind: sprite (cut out, bone ink), texture (dark stone grade), scene (bone ink, full frame), portrait.
+# light: the colour the highlights print in (bone unless given).
 # size: the size generated; out: the size written.
 ART = {
     # --- monsters ---
@@ -82,7 +83,7 @@ ART = {
     'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='roots', strength=0.66,
                     prompt=f'close-up of rough dark stone blocks with hanging roots and cobwebs, {FLAT}'),
     # --- scenes ---
-    'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None,
+    'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None, light=YELLOW, crop=0.97,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
                         f'yellow windows, a gallows with a hanged man, a crooked church spire, muddy street, {STYLE}'),
     'title': dict(kind='scene', size=(512, 768), out=(640, 960), seed=None,
@@ -417,7 +418,7 @@ def grade(name, img):
         out = _grain(out, 0.07, seed)
     else:  # scene, portrait
         t = _contrast(lum, k=7.0, mid=0.5)
-        out = _duotone(t, INK, BONE)
+        out = _duotone(t, INK, spec.get('light', BONE))
         out = _accents(rgb, out)
         out = _grain(out, 0.06, seed)
     res = Image.fromarray((out * 255).astype(np.uint8), 'RGB')
