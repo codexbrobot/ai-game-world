@@ -187,6 +187,10 @@ var Q = window.Q || (window.Q = {});
     return art(name) || T.stone[h % 3];
   }
 
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   function fog(z) { return Math.min(0.94, Math.max(0, (z - 0.7) / 5.2)); }
 
   function drawView(ctx, W, H, view) {
@@ -201,7 +205,7 @@ var Q = window.Q || (window.Q = {});
     const tile = (gx, gy) => (grid[gy] && grid[gy][gx]) || '#';
 
     ctx.save();
-    if (fx.shakeUntil > now) ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 8);
+    if (fx.shakeUntil > now && !reducedMotion()) ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 8);
 
     // ceiling and floor
     const ceil = ctx.createLinearGradient(0, 0, 0, cy);

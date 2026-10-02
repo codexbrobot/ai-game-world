@@ -6,6 +6,8 @@ A small first-person dungeon crawler in the style of *The Quest* (Redshift, 2009
 
 Open `index.html` in a browser. There is no build step and nothing to install, and it works on a phone. The only network request is for Google Fonts; the pictures load from `assets/`. The game saves to your browser after every step.
 
+To publish it as a single web page (a claude.ai artifact, for example), run `python tools/build_page.py`. It writes `dist/quest.html` with the CSS and scripts inlined; publish that page together with the `assets/` folder.
+
 ## Controls
 
 | | Phone | Keyboard |
@@ -50,6 +52,7 @@ You're a wretch, rolled up from the gutter: 3d6 abilities, Toughness + d8 HP, d2
 | `js/game.js` | Game state, movement, monster AI, combat, the town, saving and input |
 | `assets/` | The generated pictures (WebP) |
 | `tools/make_art.py` | Generates and grades the pictures |
+| `tools/build_page.py` | Bundles the game into one page for publishing |
 
 Edit the maps in `js/data.js` (the key is at the top of the file).
 
