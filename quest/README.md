@@ -16,6 +16,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 | Turn left / right | ↶ / ↷ | ← / → or A / D |
 | Step sideways | ◀ / ▶ | Q / E |
 | Attack, Scroll, Poultice, Omen, Flee | the fight buttons | 1–5 (Space also attacks) |
+| Hurry the dice | tap the dice, or any fight button | Space, Enter or 1 |
 | Map, character | Map, Wretch (or tap the mini-map) | M, C |
 
 ## The game
@@ -48,13 +49,20 @@ You're a wretch, rolled up from the gutter: 3d6 abilities, Toughness + d8 HP, d2
 |---|---|
 | `js/rules.js` | Dice, character generation, attacks, defence, Broken, morale, Getting Better |
 | `js/data.js` | The two floor maps, the bestiary, loot and the shop |
-| `js/art.js` | The first-person view (textured walls, floor and ceiling), sprites, the town picture and the map |
-| `js/game.js` | Game state, movement, monster AI, combat, the town, saving and input |
+| `js/art.js` | The first-person view (a raycaster with textured walls, floor and ceiling), sprites, the town picture and the map |
+| `js/dice.js` | The dice thrown on screen for every roll in a fight |
+| `js/game.js` | Game state, the gliding camera, monster AI, combat played out a die at a time, the town, saving and input |
 | `assets/` | The generated pictures (WebP) |
 | `tools/make_art.py` | Generates and grades the pictures |
 | `tools/build_page.py` | Bundles the game into one page for publishing |
 
 Edit the maps in `js/data.js` (the key is at the top of the file).
+
+### Moving and dice
+
+The rules move in whole squares, but the view doesn't jump. `js/art.js` is a raycaster (one ray per screen column, with the floor and ceiling drawn as perspective-mapped pattern rows), so the camera can stand anywhere and face any angle. `js/game.js` glides it between squares with a slight head-bob, swings it round on turns, and walks monsters from square to square. A move pressed mid-glide is remembered and played as soon as the camera arrives.
+
+Every roll in a fight is thrown on screen by `js/dice.js`: the dice tumble in, land on the number actually rolled, and a caption gives the sum (for example *Strength 14 + 1 = 15 vs DR 12*). The rules in `js/rules.js` report each die they roll, so what you see is what was rolled. Animations are skipped for anyone who prefers reduced motion.
 
 ## Art
 

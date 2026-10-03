@@ -8,8 +8,98 @@
   const $ = (id) => document.getElementById(id);
 
   let S = null; // the run in progress
-  const fx = { flashUntil: 0, flashColor: 'pink', shakeUntil: 0, hitId: null, hitUntil: 0, lungeId: null, lungeUntil: 0 };
+  const fx = { flashUntil: 0, flashColor: 'pink', shakeUntil: 0, hitId: null, hitUntil: 0, lungeId: null, lungeUntil: 0, fadeUntil: 0, fadeDur: 1 };
   let modalOpen = false;
+  let busy = false; // dice are on the table, or a step is playing out: input waits (a tap hurries the dice)
+
+  // ---------- the camera ----------
+  // The rules move in whole squares. The camera glides between them and swings round on turns,
+  // and monsters walk from square to square instead of appearing in the next one.
+  const MS = { step: 280, turn: 230, bump: 190, monster: 300 };
+  const BACK = 0.49; // the eye stands at the back of its square, so the wall ahead is a pace away
+  const cam = { fx: 0, fy: 0, fa: 0, tx: 0, ty: 0, ta: 0, start: 0, dur: 0, kind: 'still', bumpDir: 0 };
+  const slides = new Map(); // monster id -> { x, y, start, dur }: where it is walking from
+  let queued = null; // one move remembered while the camera is still gliding
+
+  const speed = () => (Q.speed === undefined ? 1 : Q.speed);
+  const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const motionMs = (kind) => (reducedMotion() ? 0 : MS[kind] * speed());
+  const angleOf = (dir) => ((dir - 1) * Math.PI) / 2;
+  const ease = (t) => 0.5 - 0.5 * Math.cos(Math.PI * t);
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+
+  // The camera as drawn at this moment, part-way from where it was to where the wretch now is.
+  function pose(now = performance.now()) {
+    const t = cam.dur > 0 ? Math.min(1, Math.max(0, (now - cam.start) / cam.dur)) : 1;
+    const e = ease(t);
+    return {
+      x: cam.fx + (cam.tx - cam.fx) * e, y: cam.fy + (cam.ty - cam.fy) * e, a: cam.fa + (cam.ta - cam.fa) * e,
+      bob: cam.kind === 'step' ? Math.sin(Math.PI * t) : 0,
+      bump: cam.kind === 'bump' ? Math.sin(Math.PI * t) : 0,
+      done: t >= 1,
+    };
+  }
+
+  // Send the camera to the wretch's square and facing: 'step' and 'turn' glide, 'jump' cuts.
+  function follow(kind) {
+    const now = performance.now();
+    const p = pose(now);
+    let ta = angleOf(S.dir);
+    ta += Math.round((p.a - ta) / (2 * Math.PI)) * 2 * Math.PI; // the short way round
+    if (kind === 'jump') Object.assign(cam, { fx: S.x, fy: S.y, fa: ta, tx: S.x, ty: S.y, ta, dur: 0, kind: 'still' });
+    else Object.assign(cam, { fx: p.x, fy: p.y, fa: p.a, tx: S.x, ty: S.y, ta, start: now, dur: motionMs(kind), kind });
+    animate();
+  }
+
+  // Walk into a wall, or shoulder a door: the camera lurches that way and back.
+  function bump(md) {
+    const p = pose();
+    Object.assign(cam, { fx: S.x, fy: S.y, fa: p.a, tx: S.x, ty: S.y, ta: p.a, start: performance.now(), dur: motionMs('bump'), kind: 'bump', bumpDir: md });
+    animate();
+  }
+
+  // Wait for the camera to finish its glide.
+  function settle() {
+    const left = cam.start + cam.dur - performance.now();
+    return left > 0 ? wait(left) : Promise.resolve();
+  }
+
+  // Where a monster is drawn: part-way along its step, if it is walking.
+  function monsterPos(m, now = performance.now()) {
+    const s = slides.get(m.id);
+    if (!s) return m;
+    const t = s.dur > 0 ? (now - s.start) / s.dur : 1;
+    if (t >= 1) return m;
+    const e = ease(t);
+    return { x: s.x + (m.x - s.x) * e, y: s.y + (m.y - s.y) * e };
+  }
+
+  // ---------- dice on the table ----------
+  const D = (sides, value, tone, label) => ({ sides, value, tone, label });
+  const throwDice = (spec) => (Q.Dice ? Q.Dice.roll(spec) : Promise.resolve());
+  // 'Strength 14 + 1 = 15 vs DR 12'
+  function testText(label, t, mod) {
+    const sum = mod ? ` ${mod > 0 ? '+' : '−'} ${Math.abs(mod)} = ${t.total}` : '';
+    return `${label} ${t.r}${sum} vs DR ${t.dr}`;
+  }
+  // '5 × 2 − 2 armor = 8'
+  function damageText(dmgRoll, doubled, absorbed, total) {
+    return `${dmgRoll}${doubled ? ' × 2' : ''}${absorbed ? ` − ${absorbed} armor` : ''} = ${total}`;
+  }
+
+  // Run one thing the player did, from first die to last, with input held until it is over.
+  async function run(task) {
+    if (busy) return;
+    busy = true;
+    try {
+      await task();
+    } finally {
+      busy = false;
+      if (Q.Dice) Q.Dice.clear();
+      if (S && S.where === 'crawl') { renderHud(); draw(); }
+      save();
+    }
+  }
 
   // ---------- small helpers ----------
   const floor = () => S.floors[S.floorIx];
@@ -234,76 +324,92 @@
       const [dx, dy] = DIRS[k];
       if (!blocks(tileAt(S.x + dx, S.y + dy))) { S.dir = k; break; }
     }
+    slides.clear();
+    queued = null;
+    follow('jump');
+    fx.fadeDur = 420 * speed();
+    fx.fadeUntil = performance.now() + fx.fadeDur;
     show('crawl');
     updateExplored();
     renderHud();
     draw();
+    animate();
     save();
   }
 
   function act(action) {
-    if (!S || S.where !== 'crawl' || modalOpen || S.dead) return;
-    if (S.combat) return;
-    if (action === 'turnL') { S.dir = (S.dir + 3) % 4; afterLook(); return; }
-    if (action === 'turnR') { S.dir = (S.dir + 1) % 4; afterLook(); return; }
+    if (!S || S.where !== 'crawl' || modalOpen || S.dead || busy || S.combat) return;
+    // still gliding from the last move: remember this one and do it when the camera arrives
+    if (!pose().done) { queued = action; return; }
+    if (action === 'turnL' || action === 'turnR') {
+      S.dir = (S.dir + (action === 'turnL' ? 3 : 1)) % 4;
+      follow('turn');
+      updateExplored();
+      renderHud();
+      save();
+      return;
+    }
     const md = { fwd: S.dir, back: (S.dir + 2) % 4, strafeL: (S.dir + 3) % 4, strafeR: (S.dir + 1) % 4 }[action];
     if (md === undefined) return;
-    step(md);
+    run(() => step(md));
   }
 
-  function afterLook() {
-    updateExplored();
-    draw();
-    renderHud();
-  }
-
-  function step(md) {
+  async function step(md) {
     const [dx, dy] = DIRS[md];
     const nx = S.x + dx, ny = S.y + dy;
     const t = tileAt(nx, ny);
     if (t === '#') {
-      fx.shakeUntil = performance.now() + 120;
-      animate();
+      bump(md);
       return;
     }
     if (t === 'D') {
       floor().grid[ny][nx] = '.';
       log('The door groans open.');
-      endTurn();
+      bump(md);
+      await endTurn();
       return;
     }
     const m = monsterAt(nx, ny);
     if (m) {
       S.dir = md;
-      startCombat();
+      follow('turn');
+      await startCombat();
       return;
     }
     S.x = nx; S.y = ny;
-    stepOn(t);
+    follow('step');
+    await stepOn(t);
     if (S.dead) return;
-    endTurn();
-    if (!S.combat && !S.dead) arriveAt(tileAt(S.x, S.y));
-  }
-
-  // Things that happen the moment you set foot on a tile.
-  function stepOn(t) {
-    const g = floor().grid;
-    if (t === 'p') {
-      g[S.y][S.x] = '.';
-      const r = Q.test(S.pc.agility, Q.DR);
-      if (r.ok) log(`The flagstone tilts. You leap clear. <span class="dim">(Agility ${roll20(r, S.pc.agility)})</span>`);
-      else {
-        const dmg = d(6);
-        log(`The floor gives way into a spiked pit! <span class="dim">(Agility ${roll20(r, S.pc.agility)})</span>`, 'hurt');
-        hurt(dmg, 'the pit');
-      }
-    } else if (t === 'L' || t === 'S') {
-      g[S.y][S.x] = '.';
-      searchRemains(t === 'S');
+    await endTurn();
+    if (!S.combat && !S.dead && 'G<>FR'.includes(tileAt(S.x, S.y))) {
+      await settle();
+      arriveAt(tileAt(S.x, S.y));
     }
   }
 
-  function searchRemains(scroll) {
+  // Things that happen the moment you set foot on a tile.
+  async function stepOn(t) {
+    const g = floor().grid;
+    const pc = S.pc;
+    if (t === 'p') {
+      g[S.y][S.x] = '.';
+      await settle();
+      const r = Q.test(pc.agility, Q.DR);
+      await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'You leap clear' : 'The floor gives way!', tone: r.ok ? 'good' : 'bad', text: `A hidden pit · ${testText('Agility', r, pc.agility)}` });
+      if (r.ok) log(`The flagstone tilts. You leap clear. <span class="dim">(Agility ${roll20(r, pc.agility)})</span>`);
+      else {
+        const dmg = d(6);
+        await throwDice({ dice: [D(6, dmg, 'pink', 'Spikes')], verdict: `−${dmg} HP`, tone: 'bad', text: 'Spikes: d6 damage' });
+        log(`The floor gives way into a spiked pit! <span class="dim">(Agility ${roll20(r, pc.agility)})</span>`, 'hurt');
+        await hurt(dmg, 'the pit');
+      }
+    } else if (t === 'L' || t === 'S') {
+      g[S.y][S.x] = '.';
+      await searchRemains(t === 'S');
+    }
+  }
+
+  async function searchRemains(scroll) {
     const pc = S.pc;
     if (scroll) {
       const key = S.floorIx === 0 ? 'flame' : 'mend';
@@ -326,7 +432,7 @@
     }
     if (res.kind === 'hand') {
       log('A cold hand closes around your wrist!', 'hurt');
-      hurt(res.dmg, 'a grasping hand');
+      await hurt(res.dmg, 'a grasping hand');
     }
   }
 
@@ -350,7 +456,7 @@
       ]);
     } else if (t === 'F') {
       modal('A black font', '<p>A font of black stone, brimming with pink water that does not ripple.</p>', [
-        { label: 'Drink', action: drinkFont },
+        { label: 'Drink', action: () => run(drinkFont) },
         { label: 'Leave it', ghost: true },
       ]);
     } else if (t === 'R') {
@@ -363,32 +469,41 @@
     }
   }
 
-  function drinkFont() {
+  async function drinkFont() {
     const pc = S.pc;
     floor().grid[S.y][S.x] = 'f';
     const r = d(6);
-    if (r === 1) { log('It burns like lye.', 'hurt'); hurt(d(4), 'the font'); }
-    else if (r <= 3) log('It tastes of iron and nothing happens. The font runs dry.');
-    else if (r <= 5) { const h = d(6); pc.hp = Math.min(pc.maxHp, pc.hp + h); pc.bleeding = false; log(`Warmth spreads through you. <b>+${h} HP</b>.`, 'hit'); }
-    else { pc.omens += 1; log('You see your own death, and it is not today. <b>+1 Omen</b>.', 'hit'); }
+    const verdict = ['', 'It burns!', 'Iron', 'Iron', 'Warmth', 'Warmth', 'An Omen'][r];
+    await throwDice({ dice: [D(6, r, 'bone', 'Font')], verdict, tone: r === 1 ? 'bad' : r <= 3 ? 'neutral' : 'good', text: '1 burns · 2–3 nothing · 4–5 heal d6 · 6 an Omen' });
+    if (r === 1) {
+      const burn = d(4);
+      log('It burns like lye.', 'hurt');
+      await hurt(burn, 'the font');
+    } else if (r <= 3) log('It tastes of iron and nothing happens. The font runs dry.');
+    else if (r <= 5) {
+      const h = d(6);
+      await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: 'Warmth spreads through you' });
+      pc.hp = Math.min(pc.maxHp, pc.hp + h);
+      pc.bleeding = false;
+      log(`Warmth spreads through you. <b>+${h} HP</b>.`, 'hit');
+    } else { pc.omens += 1; log('You see your own death, and it is not today. <b>+1 Omen</b>.', 'hit'); }
     renderHud();
-    draw();
-    save();
   }
 
-  function endTurn() {
+  async function endTurn() {
     S.turn += 1;
     const pc = S.pc;
     if (pc.bleeding && S.turn % 6 === 0) {
       log('You are bleeding.', 'hurt');
-      hurt(1, 'blood loss');
+      await hurt(1, 'blood loss');
       if (S.dead) return;
     }
     monstersAct();
     updateExplored();
     renderHud();
     draw();
-    if (!S.combat && adjacentFoes().length) startCombat();
+    animate();
+    if (!S.combat && adjacentFoes().length) await startCombat();
     save();
   }
 
@@ -442,13 +557,21 @@
       if (m.alert) {
         if (dm.slow && S.turn % 2) continue;
         const next = pathStep(m);
-        if (next) { m.x = next[0]; m.y = next[1]; }
+        if (next) walk(m, next[0], next[1]);
       } else if (!dm.boss && d(4) === 1) {
         const [dx, dy] = DIRS[d(4) - 1];
         const nx = m.x + dx, ny = m.y + dy;
-        if (!blocks(tileAt(nx, ny)) && !monsterAt(nx, ny) && !(nx === S.x && ny === S.y) && !'G<>R'.includes(tileAt(nx, ny))) { m.x = nx; m.y = ny; }
+        if (!blocks(tileAt(nx, ny)) && !monsterAt(nx, ny) && !(nx === S.x && ny === S.y) && !'G<>R'.includes(tileAt(nx, ny))) walk(m, nx, ny);
       }
     }
+  }
+
+  // A monster takes a step; it is drawn walking there over the next moment.
+  function walk(m, x, y) {
+    const from = monsterPos(m);
+    slides.set(m.id, { x: from.x, y: from.y, start: performance.now(), dur: motionMs('monster') });
+    m.x = x;
+    m.y = y;
   }
 
   // Mark what the wretch can see: the cone ahead, and the cells around them.
@@ -469,40 +592,53 @@
   }
 
   // ---------- combat ----------
+  // Every roll is thrown on screen: the dice tumble, land on what was rolled, and the result is
+  // read out before the next roll is made.
   function frontFoe() {
     const [dx, dy] = DIRS[S.dir];
     return monsterAt(S.x + dx, S.y + dy);
   }
 
+  // Face the foe ahead, or turn toward one at your side or back.
   function faceFoe() {
     if (frontFoe()) return frontFoe();
     const foes = adjacentFoes();
     if (!foes.length) return null;
     const m = foes[0];
     S.dir = DIRS.findIndex(([dx, dy]) => S.x + dx === m.x && S.y + dy === m.y);
+    follow('turn');
     return m;
   }
 
-  function startCombat() {
+  async function startCombat() {
     const m = faceFoe();
     if (!m) return;
     S.combat = { dazed: false };
     for (const f of adjacentFoes()) { f.alert = true; f.seen = true; }
     log(`<b class="yellow">${esc(m.name)}!</b> <span class="dim">${esc(def(m).desc)}</span>`);
+    renderHud();
+    await settle();
     const init = d(6);
-    if (init <= 3) {
-      log(`They strike first. <span class="dim">(initiative d6 ${init})</span>`, 'dim');
-      foesAttack();
-    } else log(`You are quicker. <span class="dim">(initiative d6 ${init})</span>`, 'dim');
+    const first = init <= 3;
+    await throwDice({ dice: [D(6, init, 'bone', 'Initiative')], verdict: first ? 'They strike first' : 'You are quicker', tone: first ? 'bad' : 'good', text: 'd6: on 1–3 the enemy acts first' });
+    log(first ? `They strike first. <span class="dim">(initiative d6 ${init})</span>` : `You are quicker. <span class="dim">(initiative d6 ${init})</span>`, 'dim');
+    if (first) await foesAttack();
+    if (S.dead) return;
+    if (!adjacentFoes().length) afterRound();
     renderHud();
     draw();
   }
 
   function combatAction(kind) {
-    if (!S.combat || modalOpen || S.dead) return;
-    const pc = S.pc;
+    if (!S || !S.combat || modalOpen || S.dead) return;
+    if (busy) { if (Q.Dice) Q.Dice.skip(); return; } // a tap while the dice roll hurries them
     if (kind === 'omen') return omenMenu();
     if (kind === 'scroll') return scrollMenu();
+    run(() => fightRound(kind));
+  }
+
+  async function fightRound(kind) {
+    const pc = S.pc;
     if (S.combat.dazed) {
       S.combat.dazed = false;
       log('You stand frozen, and the moment passes.', 'dim');
@@ -511,43 +647,30 @@
     const m = faceFoe();
     if (!m) return afterRound();
     if (kind === 'attack') {
-      const res = Q.attack(pc, def(m));
-      const roll = `<span class="dim">(Strength ${roll20(res, pc.strength)})</span>`;
-      if (res.kind === 'fumble') {
-        log(`Your ${esc(pc.weapon.name)} goes wide and you stumble. ${roll}`, 'miss');
-        foeStrike(m, true);
-        if (S.dead) return;
-      } else if (res.kind === 'miss') {
-        log(`You miss ${the(m)}. ${roll}`, 'miss');
-      } else {
-        const note = [res.kind === 'crit' ? 'CRITICAL' : '', res.maxed ? 'Omen: maximum damage' : '', res.absorbed ? `armor soaks ${res.absorbed}` : ''].filter(Boolean).join(', ');
-        log(`You hit ${the(m)} for <b>${res.dmg}</b>${note ? ` (${note})` : ''}. ${roll}`, res.kind === 'crit' ? 'crit' : 'hit');
-        damageFoe(m, res.dmg);
-      }
+      await swing(m, false);
+      if (S.dead) return;
     } else if (kind === 'poultice') {
       if (pc.poultices <= 0) return;
-      pc.poultices -= 1;
-      const h = d(6);
-      pc.hp = Math.min(pc.maxHp, pc.hp + h);
-      pc.bleeding = false;
-      log(`You slap on a black poultice. <b>+${h} HP</b>.`, 'hit');
+      await poultice('You slap on a black poultice.');
     } else if (kind === 'flee') {
-      const r = Q.test(pc.agility, Q.DR);
       const away = fleeCell(m);
-      if (r.ok && away) {
-        log(`You break away! <span class="dim">(Agility ${roll20(r, pc.agility)})</span>`);
-        for (const f of adjacentFoes()) f.stun = 2;
-        S.x = away[0]; S.y = away[1];
-        S.combat = null;
-        updateExplored();
-        renderHud();
-        draw();
-        save();
-        return;
+      if (!away) log('There is nowhere to run.', 'miss');
+      else {
+        const r = Q.test(pc.agility, Q.DR);
+        await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'You break away!' : 'Caught', tone: r.ok ? 'good' : 'bad', text: `Flee · ${testText('Agility', r, pc.agility)}` });
+        if (r.ok) {
+          log(`You break away! <span class="dim">(Agility ${roll20(r, pc.agility)})</span>`);
+          for (const f of adjacentFoes()) f.stun = 2;
+          S.x = away[0]; S.y = away[1];
+          S.combat = null;
+          follow('step');
+          updateExplored();
+          return;
+        }
+        log(`You cannot get away. <span class="dim">(Agility ${roll20(r, pc.agility)})</span>`, 'miss');
       }
-      log(away ? `You cannot get away. <span class="dim">(Agility ${roll20(r, pc.agility)})</span>` : 'There is nowhere to run.', 'miss');
     }
-    foesTurn();
+    await foesTurn();
   }
 
   function fleeCell(m) {
@@ -555,17 +678,55 @@
     return options.find(([x, y]) => !blocks(tileAt(x, y)) && !monsterAt(x, y) && Math.abs(x - m.x) + Math.abs(y - m.y) > 1) || null;
   }
 
-  function damageFoe(m, dmg) {
+  // The wretch strikes: a Strength test, then the weapon's die against the foe's armor die.
+  async function swing(m, riposte) {
+    const pc = S.pc;
+    const dm = def(m);
+    const res = Q.attack(pc, dm);
+    const verdict = { crit: 'Critical!', hit: 'Hit!', miss: 'Miss', fumble: 'Fumble!' }[res.kind];
+    await throwDice({ dice: [D(20, res.r, 'yellow', 'Strength')], verdict, tone: res.kind === 'hit' || res.kind === 'crit' ? 'good' : 'bad', text: `${riposte ? 'Riposte · ' : ''}${testText('Strength', res, pc.strength)}` });
+    const roll = `<span class="dim">(Strength ${roll20(res, pc.strength)})</span>`;
+    if (res.kind === 'fumble') {
+      log(`Your ${esc(pc.weapon.name)} goes wide and you stumble. ${roll}`, 'miss');
+      if (!riposte) await foeStrike(m, true);
+      return;
+    }
+    if (res.kind === 'miss') {
+      log(`You miss ${the(m)}. ${roll}`, 'miss');
+      return;
+    }
+    const dice = [D(pc.weapon.die, res.dmgRoll, 'bone', res.maxed ? 'Omen' : 'Damage')];
+    if (dm.armor) dice.push(D(dm.armor, res.armorRoll, 'dim', 'Armor'));
+    await throwDice({
+      dice, verdict: res.dmg ? `${res.dmg} damage` : 'It glances off', tone: res.dmg ? 'good' : 'neutral',
+      text: `${esc(pc.weapon.name)} d${pc.weapon.die}${res.maxed ? ' (Omen: maximum)' : ''} · ${damageText(res.dmgRoll, res.kind === 'crit', res.absorbed, res.dmg)}`,
+    });
+    const note = [res.kind === 'crit' ? 'CRITICAL' : '', res.maxed ? 'Omen: maximum damage' : '', res.absorbed ? `armor soaks ${res.absorbed}` : ''].filter(Boolean).join(', ');
+    log(`${riposte ? 'Your riposte hits' : 'You hit'} ${the(m)} for <b>${res.dmg}</b>${note ? ` (${note})` : ''}. ${roll}`, res.kind === 'crit' ? 'crit' : 'hit');
+    await damageFoe(m, res.dmg);
+  }
+
+  async function damageFoe(m, dmg) {
     m.hp -= dmg;
     fx.hitId = m.id; fx.hitUntil = performance.now() + 380;
     animate();
+    renderHud();
     if (m.hp <= 0) return slay(m);
-    if (!m.moraleChecked && m.hp <= m.maxHp / 2 && def(m).morale) {
+    const score = def(m).morale;
+    if (!m.moraleChecked && m.hp <= m.maxHp / 2 && score) {
       m.moraleChecked = true;
-      if (Q.moraleBreaks(def(m).morale)) {
+      const mo = Q.morale(score);
+      await throwDice({
+        dice: [D(6, mo.a, 'bone', 'Morale'), D(6, mo.b, 'bone')],
+        verdict: mo.breaks ? verb(m, 'It flees!', 'They scatter!') : verb(m, 'It holds', 'They hold'), tone: mo.breaks ? 'good' : 'neutral',
+        text: `Morale · 2d6 = ${mo.total} vs ${score}: over it, and they run`,
+      });
+      if (mo.breaks) {
         m.hp = 0;
         m.fled = true;
-        log(`${the(m, true)} ${verb(m, 'flees', 'scatter')} into the dark. <span class="dim">(morale broken)</span>`, 'hit');
+        log(`${the(m, true)} ${verb(m, 'flees', 'scatter')} into the dark. <span class="dim">(morale 2d6 ${mo.total} vs ${score})</span>`, 'hit');
+        renderHud();
+        draw();
       }
     }
   }
@@ -579,54 +740,66 @@
     pc.silver += silver;
     log(`<b>${the(m, true)}</b> ${verb(m, 'is', 'are')} dead.${silver ? ` <b>${silver}s</b> in the filth.` : ''}`, 'crit');
     if (dm.boss) log('The Abbess crumples. Her weeping stops. On the altar beyond, something hums.', 'hit');
+    renderHud();
+    draw();
   }
 
   // The foes' half of the round, then see whether the fight goes on.
-  function foesTurn() {
+  async function foesTurn() {
     if (S.dead) return;
-    foesAttack();
+    await foesAttack();
     if (S.dead) return;
     afterRound();
   }
 
-  function foesAttack() {
+  async function foesAttack() {
     for (const m of adjacentFoes()) {
       if (S.dead) return;
+      if (m.hp <= 0) continue;
       if (m.stun > 0) { m.stun -= 1; continue; }
-      foeStrike(m, false);
+      await foeStrike(m, false);
     }
   }
 
-  function foeStrike(m, free) {
+  // A foe strikes. Monsters never roll: the wretch rolls Defence, then the foe's damage die
+  // against the wretch's armor die.
+  async function foeStrike(m, free) {
     const pc = S.pc;
     const dm = def(m);
     fx.lungeId = m.id; fx.lungeUntil = performance.now() + 260;
+    animate();
     if (dm.boss && !free && d(6) <= 2) {
       const r = Q.test(pc.presence, Q.DR);
+      await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'You endure it' : 'Frozen with dread', tone: r.ok ? 'good' : 'bad', text: `The Abbess wails · ${testText('Presence', r, pc.presence)}` });
       if (r.ok) log(`The Abbess wails. You grit your teeth through it. <span class="dim">(Presence ${roll20(r, pc.presence)})</span>`, 'dim');
       else {
         log(`The Abbess wails and your limbs turn to lead. <span class="dim">(Presence ${roll20(r, pc.presence)})</span>`, 'hurt');
         if (S.combat) S.combat.dazed = true;
       }
-      animate();
       return;
     }
     const res = Q.defend(pc, dm.die);
+    const verdict = { riposte: 'Riposte!', dodge: 'Dodged', wound: 'Hit', fumble: 'Fumble!' }[res.kind];
+    await throwDice({ dice: [D(20, res.r, 'yellow', 'Defence')], verdict, tone: res.kind === 'riposte' || res.kind === 'dodge' ? 'good' : 'bad', text: `${the(m, true)} ${verb(m, 'attacks', 'attack')} · ${testText('Agility', res, pc.agility)}` });
     const rollTxt = `<span class="dim">(Defence ${roll20(res, pc.agility)})</span>`;
     if (res.kind === 'riposte') {
       log(`You slip ${the(m)}’s blow and strike back! ${rollTxt}`, 'hit');
-      const back = Q.attack(pc, dm);
-      if (back.dmg) { log(`Your riposte deals <b>${back.dmg}</b>.`, 'hit'); damageFoe(m, back.dmg); }
-    } else if (res.kind === 'dodge') {
-      log(`${the(m, true)} ${verb(m, 'misses', 'miss')}. ${rollTxt}`, 'miss');
-    } else {
-      const notes = [res.kind === 'fumble' ? 'FUMBLE: double damage' : '', res.absorbed ? `armor soaks ${res.absorbed}` : '', res.brokeArmor ? `armor cracks to ${S.pc.armor.name}` : '', res.warded ? 'an Omen turns it aside' : ''].filter(Boolean).join(', ');
-      const hits = verb(m, 'hits', 'hit');
-      if (res.dmg) log(`${the(m, true)} ${hits} you for <b>${res.dmg}</b>${notes ? ` (${notes})` : ''}. ${rollTxt}`, 'hurt');
-      else log(`${the(m, true)} ${hits} you, but it does no harm (${notes}). ${rollTxt}`, 'miss');
-      if (res.dmg > 0) hurt(res.dmg, m.name);
+      await swing(m, true);
+      return;
     }
-    animate();
+    if (res.kind === 'dodge') {
+      log(`${the(m, true)} ${verb(m, 'misses', 'miss')}. ${rollTxt}`, 'miss');
+      return;
+    }
+    const dice = [D(dm.die, res.dmgRoll, 'pink', 'Wound')];
+    if (res.armorDie) dice.push(D(res.armorDie, res.armorRoll, 'dim', 'Armor'));
+    const sum = damageText(res.dmgRoll, res.kind === 'fumble', res.absorbed, res.before) + (res.warded ? ', but an Omen turns it aside' : '');
+    await throwDice({ dice, verdict: res.dmg ? `−${res.dmg} HP` : 'No harm done', tone: res.dmg ? 'bad' : 'good', text: `${esc(dm.name)} d${dm.die}${res.kind === 'fumble' ? ', doubled' : ''} · ${sum}` });
+    const notes = [res.kind === 'fumble' ? 'FUMBLE: double damage' : '', res.absorbed ? `armor soaks ${res.absorbed}` : '', res.brokeArmor ? `armor cracks to ${S.pc.armor.name}` : '', res.warded ? 'an Omen turns it aside' : ''].filter(Boolean).join(', ');
+    const hits = verb(m, 'hits', 'hit');
+    if (res.dmg) log(`${the(m, true)} ${hits} you for <b>${res.dmg}</b>${notes ? ` (${notes})` : ''}. ${rollTxt}`, 'hurt');
+    else log(`${the(m, true)} ${hits} you, but it does no harm (${notes}). ${rollTxt}`, 'miss');
+    if (res.dmg > 0) await hurt(res.dmg, m.name);
   }
 
   function afterRound() {
@@ -639,6 +812,18 @@
     renderHud();
     draw();
     save();
+  }
+
+  // A black poultice: d6 HP back, and the bleeding stops.
+  async function poultice(text) {
+    const pc = S.pc;
+    pc.poultices -= 1;
+    const h = d(6);
+    await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: 'Black poultice: d6 HP, and the bleeding stops' });
+    pc.hp = Math.min(pc.maxHp, pc.hp + h);
+    pc.bleeding = false;
+    log(`${text} <b>+${h} HP</b>.`, 'hit');
+    renderHud();
   }
 
   function omenMenu() {
@@ -656,48 +841,63 @@
     if (!pc.scrolls.length) return;
     if (pc.powers <= 0) { log('Your mind is spent. No more scrolls until you sleep.', 'dim'); return; }
     modal('Read a scroll', `<p>Presence test, DR 12. ${pc.powers} use${pc.powers === 1 ? '' : 's'} left today.</p>`, [
-      ...pc.scrolls.map((k) => ({ label: `${Q.SCROLLS[k].name}: ${Q.SCROLLS[k].text}`, action: () => readScroll(k) })),
+      ...pc.scrolls.map((k) => ({ label: `${Q.SCROLLS[k].name}: ${Q.SCROLLS[k].text}`, action: () => run(() => readScroll(k)) })),
       { label: 'Not now', ghost: true },
     ]);
   }
 
-  function readScroll(key) {
+  async function readScroll(key) {
     const pc = S.pc;
-    if (S.combat && S.combat.dazed) { S.combat.dazed = false; log('You stand frozen, and the moment passes.', 'dim'); foesTurn(); return; }
+    if (S.combat && S.combat.dazed) {
+      S.combat.dazed = false;
+      log('You stand frozen, and the moment passes.', 'dim');
+      await foesTurn();
+      return;
+    }
     pc.powers -= 1;
     const r = Q.test(pc.presence, Q.DR);
+    await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'The words take hold' : 'The words turn to ash', tone: r.ok ? 'good' : 'bad', text: `${esc(Q.SCROLLS[key].name)} · ${testText('Presence', r, pc.presence)}` });
     const rollTxt = `<span class="dim">(Presence ${roll20(r, pc.presence)})</span>`;
     if (!r.ok) {
       pc.powers = 0;
       log(`The words turn to ash in your mouth. No more scrolls until you sleep. ${rollTxt}`, 'miss');
-      if (r.fumble) { log('The ash burns.', 'hurt'); hurt(d(2), 'the scroll'); }
+      if (r.fumble) {
+        log('The ash burns.', 'hurt');
+        await hurt(d(2), 'the scroll');
+      }
     } else if (key === 'flame') {
       const m = S.combat && faceFoe();
       if (m) {
-        const dmg = d(8) * (r.crit ? 2 : 1);
-        log(`<b class="pink">Black flame</b> wraps ${the(m)} for <b>${dmg}</b>. ${rollTxt}`, 'crit');
+        const rolled = d(8), dmg = rolled * (r.crit ? 2 : 1);
         fx.flashColor = 'pink'; fx.flashUntil = performance.now() + 350;
-        damageFoe(m, dmg);
+        animate();
+        await throwDice({ dice: [D(8, rolled, 'pink', 'Flame')], verdict: `${dmg} damage`, tone: 'good', text: `Black flame · d8${r.crit ? ' × 2' : ''} = ${dmg}` });
+        log(`<b class="pink">Black flame</b> wraps ${the(m)} for <b>${dmg}</b>. ${rollTxt}`, 'crit');
+        await damageFoe(m, dmg);
       } else log(`Black flame gutters in the empty air. ${rollTxt}`, 'dim');
     } else if (key === 'mend') {
-      const h = d(6) * (r.crit ? 2 : 1);
+      const rolled = d(6), h = rolled * (r.crit ? 2 : 1);
+      await throwDice({ dice: [D(6, rolled, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: `Mending bone · d6${r.crit ? ' × 2' : ''} = ${h}` });
       pc.hp = Math.min(pc.maxHp, pc.hp + h);
       pc.bleeding = false;
       log(`Bone knits with a sound like snapping twigs. <b>+${h} HP</b>. ${rollTxt}`, 'hit');
     }
+    renderHud();
     if (S.dead) return;
-    if (S.combat) foesTurn(); else { renderHud(); draw(); save(); }
+    if (S.combat) await foesTurn();
   }
 
   // ---------- harm and death ----------
-  function hurt(dmg, cause) {
+  async function hurt(dmg, cause) {
     const pc = S.pc;
     pc.hp -= dmg;
     fx.flashColor = 'pink'; fx.flashUntil = performance.now() + 350; fx.shakeUntil = performance.now() + 220;
     animate();
+    renderHud();
     if (pc.hp < 0) return die(cause);
     if (pc.hp === 0) {
       const b = Q.broken(pc);
+      await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: `0 HP: roll d4 on the Broken table · ${esc(b.text)}` });
       log(`<b>Broken.</b> ${esc(b.text)}`, 'hurt');
       if (b.dead) return die(cause);
       if (b.lostTurn && S.combat) S.combat.dazed = true;
@@ -736,24 +936,37 @@
     const dpr = c.width / W;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const g = floor().grid;
+    const now = performance.now();
+    const p = pose(now);
+    const f = [Math.cos(p.a), Math.sin(p.a)];
+    const lurch = DIRS[cam.bumpDir].map((v) => v * 0.1 * p.bump);
     Q.drawView(ctx, W, H, {
-      grid: g, x: S.x, y: S.y, dir: S.dir, monsters: floor().monsters, fx, now: performance.now(),
-      items: (x, y) => { const t = g[y] && g[y][x]; return t && 'LSFfR'.includes(t) ? t : null; },
+      grid: g, monsters: floor().monsters, monsterPos: (m) => monsterPos(m, now), fx, now,
+      cam: { x: p.x + 0.5 - BACK * f[0] + lurch[0], y: p.y + 0.5 - BACK * f[1] + lurch[1], a: p.a, eye: 0.5 - 0.022 * p.bob },
     });
     const mini = $('mini'), mctx = mini.getContext('2d');
     const md = mini.width / 112;
     mctx.setTransform(md, 0, 0, md, 0, 0);
-    Q.drawMap(mctx, 112, 112, { mini: true, grid: g, explored: floor().explored, x: S.x, y: S.y, dir: S.dir, monsters: floor().monsters });
+    Q.drawMap(mctx, 112, 112, { mini: true, grid: g, explored: floor().explored, x: p.x, y: p.y, a: p.a, monsters: floor().monsters, monsterPos: (m) => monsterPos(m, now) });
   }
 
+  // Redraw every frame while anything moves: the camera, a walking monster, a flash or a flinch.
   let animating = false;
   function animate() {
     if (animating) return;
     animating = true;
     const tick = () => {
-      draw();
       const now = performance.now();
-      if (Math.max(fx.flashUntil, fx.shakeUntil, fx.hitUntil, fx.lungeUntil) > now) requestAnimationFrame(tick);
+      for (const [id, sl] of slides) if (now - sl.start >= sl.dur) slides.delete(id);
+      draw();
+      if (S && pose(now).done && queued) {
+        const next = queued;
+        queued = null;
+        act(next);
+      }
+      const moving = S && S.where === 'crawl' && (!pose(now).done || slides.size > 0
+        || Math.max(fx.flashUntil, fx.shakeUntil, fx.hitUntil, fx.lungeUntil, fx.fadeUntil) > now);
+      if (moving) requestAnimationFrame(tick);
       else { animating = false; draw(); }
     };
     requestAnimationFrame(tick);
@@ -845,14 +1058,8 @@
 
   function usePoulticeOutside() {
     const pc = S.pc;
-    if (S.combat || pc.poultices <= 0) return;
-    pc.poultices -= 1;
-    const h = d(6);
-    pc.hp = Math.min(pc.maxHp, pc.hp + h);
-    pc.bleeding = false;
-    log(`You bind your wounds with a black poultice. <b>+${h} HP</b>.`, 'hit');
-    renderHud();
-    save();
+    if (S.combat || pc.poultices <= 0 || busy) return;
+    run(() => poultice('You bind your wounds with a black poultice.'));
   }
 
   // ---------- flow ----------
@@ -877,12 +1084,13 @@
     S = saved;
     S.combat = null;
     if (S.where === 'crawl') {
+      follow('jump');
       show('crawl');
       renderLog();
       renderHud();
       updateExplored();
       draw();
-      if (adjacentFoes().length) startCombat();
+      if (adjacentFoes().length) run(startCombat);
     } else show('town');
   }
 
@@ -910,7 +1118,7 @@
     $('tMap').addEventListener('click', showMap);
     $('tSheet').addEventListener('click', showSheet);
     $('tPoultice').addEventListener('click', usePoulticeOutside);
-    $('tScroll').addEventListener('click', () => { if (!S.combat) scrollMenu(); });
+    $('tScroll').addEventListener('click', () => { if (!S.combat && !busy) scrollMenu(); });
     $('mini').addEventListener('click', showMap);
     $('modal').addEventListener('click', (e) => { if (e.target === $('modal') && $('modal').dataset.closable === 'yes') closeModal(); });
 
@@ -922,6 +1130,11 @@
       }
       if (!S || S.where !== 'crawl') return;
       const k = e.key.toLowerCase();
+      if (busy) {
+        // the dice are rolling: space, enter or 1 hurries them
+        if ((k === ' ' || k === 'enter' || k === '1') && Q.Dice) { e.preventDefault(); Q.Dice.skip(); }
+        return;
+      }
       if (S.combat) {
         const map = { 1: 'attack', 2: 'scroll', 3: 'poultice', 4: 'omen', 5: 'flee', ' ': 'attack', enter: 'attack' };
         if (map[k]) { e.preventDefault(); combatAction(map[k]); }
@@ -936,7 +1149,9 @@
 
   // For testing from the browser console.
   Q.debug = () => S;
+  Q.debugPose = () => pose();
 
+  if (Q.Dice) Q.Dice.init($('dice'));
   bind();
   renderTitle();
   Q.loadArt(() => {

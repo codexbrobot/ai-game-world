@@ -167,11 +167,14 @@ var Q = window.Q || (window.Q = {});
 
   // ---------- the first-person view ----------
   //
-  // The camera stands at the back edge of its cell, so the wall just ahead sits at depth 1.
-  // A cell `lx` across and `lz` ahead spans x lx±0.5 and depth lz..lz+1. Walls are 1 high.
+  // A raycaster: one ray per screen column finds the nearest wall. The camera can stand anywhere and
+  // face any way, so steps glide and turns swing round instead of jumping from square to square.
+  // World units: cell (gx, gy) spans gx..gx+1 and gy..gy+1, walls are 1 high, y grows southward.
+  // The camera is { x, y, a, eye }: a position, an angle (0 faces east) and the eye's height.
   const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-  const NEAR = 0.06;
-  const MAX_DEPTH = 6;
+  const FOV = 68;
+  const FAR = 9; // past this the fog is total
+  const NEAR = 0.05;
 
   let layerCanvas = null;
   function spriteLayer(size) {
@@ -193,94 +196,46 @@ var Q = window.Q || (window.Q = {});
 
   function fog(z) { return Math.min(0.94, Math.max(0, (z - 0.7) / 5.2)); }
 
+  // Repeating patterns for the floor and ceiling, remade once the painted textures arrive.
+  const planes = {};
+  function planePattern(ctx, name, fallback) {
+    const src = art(name) || fallback;
+    const p = planes[name];
+    if (p && p.src === src && p.ctx === ctx) return p;
+    planes[name] = { src, ctx, pattern: ctx.createPattern(src, 'repeat'), size: texW(src) };
+    return planes[name];
+  }
+
   function drawView(ctx, W, H, view) {
-    const { grid, x: px, y: py, dir, monsters, items, fx, now } = view;
+    const { grid, cam, fx, now } = view;
     const T = getTextures();
-    const F = (W / 2) / Math.tan((68 * Math.PI) / 360);
-    const cx = W / 2, cy = H / 2;
-    const P = (x, z, y) => [cx + (x / z) * F, cy - (y / z) * F];
-    const [fx0, fz0] = DIRS[dir];
-    const right = DIRS[(dir + 1) % 4];
-    const cellAt = (lx, lz) => [px + fx0 * lz + right[0] * lx, py + fz0 * lz + right[1] * lx];
-    const tile = (gx, gy) => (grid[gy] && grid[gy][gx]) || '#';
+    const F = (W / 2) / Math.tan((FOV * Math.PI) / 360);
+    const R = {
+      W, H, F, cx: W / 2, cy: H / 2, cam, eye: cam.eye, grid,
+      fx: Math.cos(cam.a), fy: Math.sin(cam.a),
+      tile: (gx, gy) => (grid[gy] && grid[gy][gx]) || '#',
+    };
+    R.rx = -R.fy; R.ry = R.fx; // the camera's right hand
+    // world point -> [right, depth, height] in camera space, and camera space -> screen
+    R.toCam = (wx, wy, h) => {
+      const dx = wx - cam.x, dy = wy - cam.y;
+      return [dx * R.rx + dy * R.ry, dx * R.fx + dy * R.fy, h];
+    };
+    R.proj = ([xr, z, h]) => [R.cx + (xr / z) * F, R.cy - ((h - R.eye) / z) * F];
 
     ctx.save();
     if (fx.shakeUntil > now && !reducedMotion()) ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 8);
-
-    // ceiling and floor
-    const ceil = ctx.createLinearGradient(0, 0, 0, cy);
-    ceil.addColorStop(0, '#050504'); ceil.addColorStop(1, '#000');
-    ctx.fillStyle = ceil; ctx.fillRect(-10, -10, W + 20, cy + 10);
-    const floor = ctx.createLinearGradient(0, cy, 0, H);
-    floor.addColorStop(0, '#000'); floor.addColorStop(1, '#1c1913');
-    ctx.fillStyle = floor; ctx.fillRect(-10, cy, W + 20, H - cy + 10);
-
-    const visible = [];
-    for (let lz = MAX_DEPTH; lz >= 0; lz--) {
-      const span = lz + 2;
-      // outer cells first, centre last
-      const order = [];
-      for (let k = span; k >= 1; k--) order.push(-k, k);
-      order.push(0);
-      for (const lx of order) {
-        const [gx, gy] = cellAt(lx, lz);
-        const t = tile(gx, gy);
-        const zN = Math.max(NEAR, lz), zF = lz + 1;
-        if (t === '#' || t === 'D') {
-          const tex = wallTexture(T, t, gx, gy);
-          // the side face that looks toward the centre line
-          if (lx !== 0) {
-            const sx = lx < 0 ? lx + 0.5 : lx - 0.5;
-            sideFace(ctx, P, tex, sx, zN, zF, lz);
-            inkEdges(ctx, P, [[sx, zN], [sx, zF]], gx + ',' + gy + 's', (zN + zF) / 2);
-          }
-          // front face
-          if (lz >= 1) {
-            const [ax, ay] = P(lx - 0.5, lz, 0.5), [bx, by] = P(lx + 0.5, lz, -0.5);
-            ctx.drawImage(tex, ax, ay, bx - ax, by - ay);
-            ctx.fillStyle = `rgba(0,0,0,${fog(lz)})`; ctx.fillRect(ax, ay, bx - ax, by - ay);
-            inkEdges(ctx, P, [[lx - 0.5, lz], [lx + 0.5, lz]], gx + ',' + gy + 'f', lz);
-          }
-          continue;
-        }
-        // open cell: floor and ceiling, marks, then objects
-        const floorTex = art('floor'), ceilTex = art('ceiling');
-        if (floorTex) flatFace(ctx, P, floorTex, lx, zN, zF, lz, -0.5);
-        if (ceilTex) flatFace(ctx, P, ceilTex, lx, zN, zF, lz, 0.5);
-        floorMarks(ctx, P, lx, zN, zF, gx, gy, t);
-        if (Math.abs(lx) <= lz + 1) visible.push({ lx, lz, gx, gy, t });
-        const sprites = [];
-        const item = items(gx, gy);
-        if (item) sprites.push({ type: 'item', t: item });
-        const m = monsters.find((mm) => mm.x === gx && mm.y === gy && mm.hp > 0);
-        if (m && lz > 0) sprites.push({ type: 'monster', m });
-        if (lz === 0) continue;
-        for (const s of sprites) {
-          const zc = lz + 0.5;
-          const [sx, groundY] = P(lx, zc, -0.5);
-          const scale = F / zc;
-          // Draw the sprite on its own layer so the fog darkens only the sprite.
-          const box = Math.ceil(scale * 1.4);
-          const layer = spriteLayer(box);
-          const g = layer.getContext('2d');
-          g.clearRect(0, 0, box, box);
-          if (s.type === 'item') drawItem(g, s.t, box / 2, box - 2, scale, gx + ',' + gy);
-          else drawMonster(g, s.m, box / 2, box - 2, scale, fx, now);
-          const f = fog(zc);
-          if (f > 0.02) {
-            g.globalCompositeOperation = 'source-atop';
-            g.fillStyle = `rgba(0,0,0,${f * 0.92})`;
-            g.fillRect(0, 0, box, box);
-            g.globalCompositeOperation = 'source-over';
-          }
-          ctx.drawImage(layer, 0, 0, box, box, sx - box / 2, groundY - box + 2, box, box);
-        }
-      }
-    }
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-10, -10, W + 20, H + 20);
+    drawPlanes(ctx, R, T);
+    drawStairs(ctx, R);
+    const walls = castWalls(ctx, R, T);
+    drawInk(ctx, R, walls);
+    drawSprites(ctx, R, walls.z, view);
     ctx.restore();
 
     // lantern vignette and grain
-    const vig = ctx.createRadialGradient(cx, cy * 1.1, H * 0.25, cx, cy, W * 0.72);
+    const vig = ctx.createRadialGradient(R.cx, R.cy * 1.1, H * 0.25, R.cx, R.cy, W * 0.72);
     vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.85)');
     ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 0.9;
@@ -292,106 +247,253 @@ var Q = window.Q || (window.Q = {});
       ctx.fillStyle = fx.flashColor === 'pink' ? `rgba(255,61,139,${0.45 * a})` : `rgba(255,225,26,${0.3 * a})`;
       ctx.fillRect(0, 0, W, H);
     }
-    return visible;
-  }
-
-  // Scratched bone-white lines along the top and bottom of a wall, and up its ends.
-  function inkEdges(ctx, P, [[x0, z0], [x1, z1]], seed, z) {
-    const a = 0.75 - fog(z);
-    if (a <= 0.04) return;
-    const r = rng(seed);
-    ctx.strokeStyle = `rgba(233,226,204,${a})`;
-    ctx.lineWidth = Math.max(1, 3.2 / Math.max(1, z));
-    for (const y of [0.5, -0.5]) scratch(ctx, [P(x0, z0, y), P((x0 + x1) / 2, (z0 + z1) / 2, y), P(x1, z1, y)], r, 2.5, 2);
-    for (const [x, zz] of [[x0, z0], [x1, z1]]) {
-      if (zz < 0.3) continue;
-      scratch(ctx, [P(x, zz, 0.5), P(x, zz, -0.5)], r, 2, 1);
+    if (fx.fadeUntil > now) {
+      ctx.fillStyle = `rgba(0,0,0,${Math.min(1, (fx.fadeUntil - now) / fx.fadeDur)})`;
+      ctx.fillRect(0, 0, W, H);
     }
   }
 
-  function sideFace(ctx, P, tex, x, z0, z1, lz) {
-    const strips = lz <= 1 ? 14 : 7;
-    for (let i = 0; i < strips; i++) {
-      const za = z0 + ((z1 - z0) * i) / strips, zb = z0 + ((z1 - z0) * (i + 1)) / strips;
-      const [xa, ta] = P(x, za, 0.5), [xb] = P(x, zb, 0.5);
-      const [, ba] = P(x, za, -0.5);
-      const [, tb] = P(x, zb, 0.5), [, bb] = P(x, zb, -0.5);
-      const left = Math.min(xa, xb), w = Math.abs(xb - xa) + 0.8;
+  // Floor and ceiling, a band of rows at a time. Every row lies at one depth, so it is a straight
+  // line across the texture: a pattern fill with the right transform paints it in one go.
+  function drawPlanes(ctx, R, T) {
+    const { W, H, F, cx, cy, cam, eye } = R;
+    const floor = planePattern(ctx, 'floor', T.stone[0]);
+    const ceiling = planePattern(ctx, 'ceiling', T.stone[2]);
+    const canMap = floor.pattern && floor.pattern.setTransform && typeof DOMMatrix !== 'undefined';
+    const ROW = 2;
+    for (let y = 0; y < H; y += ROW) {
+      const yc = y + ROW / 2;
+      const below = yc > cy;
+      const dy = Math.abs(yc - cy);
+      if (dy < 0.5) continue;
+      const height = below ? eye : 1 - eye; // eye to floor, or eye to ceiling
+      const z = (height * F) / dy;
+      if (z > FAR) continue;
+      const plane = below ? floor : ceiling;
+      if (canMap) {
+        // canvas (x, y) -> world: A + B·x + C·(y - yc); then world -> texture pixels (S per cell)
+        const dzdy = ((below ? -1 : 1) * height * F) / (dy * dy);
+        const Ax = cam.x + R.fx * z - (R.rx * z * cx) / F, Ay = cam.y + R.fy * z - (R.ry * z * cx) / F;
+        const Bx = (R.rx * z) / F, By = (R.ry * z) / F;
+        const Cx = R.fx * dzdy, Cy = R.fy * dzdy;
+        const S = plane.size;
+        const m11 = S * Bx, m12 = S * Cx, m21 = S * By, m22 = S * Cy;
+        const t1 = S * (Ax - Cx * yc), t2 = S * (Ay - Cy * yc);
+        const det = m11 * m22 - m12 * m21;
+        if (Math.abs(det) < 1e-12) continue;
+        const i11 = m22 / det, i12 = -m12 / det, i21 = -m21 / det, i22 = m11 / det;
+        plane.pattern.setTransform(new DOMMatrix([i11, i21, i12, i22, -(i11 * t1 + i12 * t2), -(i21 * t1 + i22 * t2)]));
+        ctx.fillStyle = plane.pattern;
+      } else {
+        ctx.fillStyle = below ? '#1c1913' : '#0d0c0a';
+      }
+      ctx.fillRect(0, y, W, ROW);
+      ctx.fillStyle = `rgba(0,0,0,${Math.min(0.97, fog(z) + (below ? 0.12 : 0.35)).toFixed(3)})`;
+      ctx.fillRect(0, y, W, ROW);
+    }
+  }
+
+  // One ray per column through the grid until it meets a wall (Amanatides–Woo stepping).
+  function castWalls(ctx, R, T) {
+    const { W, F, cx, cy, cam, eye } = R;
+    const z = new Float32Array(W), top = new Float32Array(W), bot = new Float32Array(W), u = new Float32Array(W);
+    const face = new Float64Array(W), plane = new Float64Array(W);
+    for (let col = 0; col < W; col++) {
+      const off = (col + 0.5 - cx) / F;
+      const dx = R.fx + R.rx * off, dy = R.fy + R.ry * off;
+      let mx = Math.floor(cam.x), my = Math.floor(cam.y);
+      const ddx = dx === 0 ? 1e30 : Math.abs(1 / dx), ddy = dy === 0 ? 1e30 : Math.abs(1 / dy);
+      const sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1;
+      let sdx = (dx < 0 ? cam.x - mx : mx + 1 - cam.x) * ddx;
+      let sdy = (dy < 0 ? cam.y - my : my + 1 - cam.y) * ddy;
+      let side = 0, t = '#';
+      for (let i = 0; i < 64; i++) {
+        if (sdx < sdy) { sdx += ddx; mx += sx; side = 0; } else { sdy += ddy; my += sy; side = 1; }
+        t = R.tile(mx, my);
+        if (t === '#' || t === 'D') break;
+      }
+      // depth along the view (the ray's forward component is 1), and where along the face it struck
+      const dist = Math.max(0.02, side === 0 ? sdx - ddx : sdy - ddy);
+      const hit = side === 0 ? cam.y + dist * dy : cam.x + dist * dx;
+      let tu = hit - Math.floor(hit);
+      if ((side === 0 && dx < 0) || (side === 1 && dy > 0)) tu = 1 - tu; // read left to right
+      const yTop = cy - ((1 - eye) * F) / dist, yBot = cy + (eye * F) / dist;
+      const facing = side === 0 ? (dx > 0 ? 0 : 1) : (dy > 0 ? 2 : 3);
+      z[col] = dist; top[col] = yTop; bot[col] = yBot; u[col] = tu;
+      face[col] = ((mx + 2) * 1024 + (my + 2)) * 4 + facing;
+      plane[col] = ((side === 0 ? mx : my) + 2) * 4 + facing;
+      if (dist > FAR) continue;
+      const tex = wallTexture(T, t, mx, my);
       const tw = texW(tex), th = texH(tex);
-      const ua = (za - lz) * tw, ub = (zb - lz) * tw; // texture columns
-      // draw as a slanted quad: approximate with the larger height, clipped to the trapezoid
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(xa, ta); ctx.lineTo(xb, tb); ctx.lineTo(xb, bb); ctx.lineTo(xa, ba); ctx.closePath();
-      ctx.clip();
-      const top = Math.min(ta, tb), bottom = Math.max(ba, bb);
-      ctx.drawImage(tex, Math.min(ua, ub), 0, Math.max(1, Math.abs(ub - ua)), th, left, top, w, bottom - top);
-      ctx.fillStyle = `rgba(0,0,0,${Math.min(0.96, fog((za + zb) / 2) + 0.18)})`;
-      ctx.fillRect(left, top, w, bottom - top);
-      ctx.restore();
+      ctx.drawImage(tex, Math.min(tw - 1, Math.floor(tu * tw)), 0, 1, th, col, yTop, 1, yBot - yTop);
+      // walls seen side-on are darker, and everything fades into the dark with distance
+      const lit = side === 0 ? Math.abs(R.fx) : Math.abs(R.fy);
+      const shade = Math.min(0.96, fog(dist) + 0.2 * (1 - lit));
+      if (shade > 0.01) {
+        ctx.fillStyle = `rgba(0,0,0,${shade.toFixed(3)})`;
+        ctx.fillRect(col, yTop, 1, yBot - yTop);
+      }
+    }
+    return { z, top, bot, u, face, plane };
+  }
+
+  // Scratched bone-white lines along the top and foot of each wall, and up its corners.
+  function drawInk(ctx, R, w) {
+    const { W } = R;
+    const nearEdge = (col) => {
+      const tol = 0.03 + 0.012 * w.z[col];
+      return w.u[col] < tol || w.u[col] > 1 - tol;
+    };
+    let start = 0, lastVert = -10;
+    for (let col = 1; col <= W; col++) {
+      if (col < W && w.face[col] === w.face[start]) continue;
+      const a = start, b = col - 1;
+      start = col;
+      const zMid = (w.z[a] + w.z[b]) / 2;
+      const alpha = 0.75 - fog(zMid);
+      if (alpha <= 0.04) continue;
+      const r = rng(w.face[a]);
+      ctx.strokeStyle = `rgba(233,226,204,${alpha.toFixed(3)})`;
+      ctx.lineWidth = Math.max(1, 3.2 / Math.max(1, zMid));
+      scratch(ctx, [[a, w.top[a]], [b + 1, w.top[b]]], r, 2.5, 2);
+      scratch(ctx, [[a, w.bot[a]], [b + 1, w.bot[b]]], r, 2.5, 2);
+      // a corner, or the edge of a wall standing in front of another (not the seam between two blocks)
+      if (a > 0 && a - lastVert > 2 && w.plane[a - 1] !== w.plane[a] && nearEdge(a)) {
+        scratch(ctx, [[a, w.top[a]], [a, w.bot[a]]], r, 2, 1);
+        lastVert = a;
+      }
+      if (b < W - 1 && w.plane[b + 1] !== w.plane[b] && nearEdge(b)) {
+        scratch(ctx, [[b + 1, w.top[b]], [b + 1, w.bot[b]]], r, 2, 1);
+        lastVert = b + 1;
+      }
     }
   }
 
-  // A floor (y = -0.5) or ceiling (y = 0.5) tile, drawn as strips of constant depth.
-  function flatFace(ctx, P, tex, lx, z0, z1, lz, y) {
-    const strips = lz <= 1 ? 10 : lz <= 3 ? 6 : 3;
-    const tw = texW(tex), th = texH(tex);
-    for (let i = 0; i < strips; i++) {
-      const za = z0 + ((z1 - z0) * i) / strips, zb = z0 + ((z1 - z0) * (i + 1)) / strips;
-      const a0 = P(lx - 0.5, za, y), a1 = P(lx + 0.5, za, y), b1 = P(lx + 0.5, zb, y), b0 = P(lx - 0.5, zb, y);
-      const top = Math.min(a0[1], b0[1]), bottom = Math.max(a0[1], b0[1]);
-      if (bottom < -50 || top > 2000) continue;
-      const left = Math.min(a0[0], b0[0]), right = Math.max(a1[0], b1[0]);
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(b1[0], b1[1]); ctx.lineTo(b0[0], b0[1]); ctx.closePath();
-      ctx.clip();
-      const va = (1 - (za - lz)) * th, vb = (1 - (zb - lz)) * th;
-      ctx.drawImage(tex, 0, Math.min(va, vb), tw, Math.max(1, Math.abs(va - vb)), left, top - 0.5, right - left, bottom - top + 1);
-      ctx.fillStyle = `rgba(0,0,0,${Math.min(0.97, fog((za + zb) / 2) + (y > 0 ? 0.35 : 0.12))})`;
-      ctx.fillRect(left, top - 1, right - left, bottom - top + 2);
-      ctx.restore();
+  // Clip a polygon (closed) or a segment to the space in front of the camera.
+  function clipNear(pts, closed = true) {
+    const cut = (p, q) => {
+      const t = (NEAR - p[1]) / (q[1] - p[1]);
+      return [p[0] + (q[0] - p[0]) * t, NEAR, p[2] + (q[2] - p[2]) * t];
+    };
+    if (!closed) {
+      const [p, q] = pts;
+      if (p[1] < NEAR && q[1] < NEAR) return [];
+      return [p[1] < NEAR ? cut(p, q) : p, q[1] < NEAR ? cut(q, p) : q];
+    }
+    const out = [];
+    pts.forEach((p, i) => {
+      const q = pts[(i + 1) % pts.length];
+      if (p[1] >= NEAR) out.push(p);
+      if ((p[1] >= NEAR) !== (q[1] >= NEAR)) out.push(cut(p, q));
+    });
+    return out;
+  }
+
+  // Stairs on the floor: a black hole with steps going down, a patch of daylight going up.
+  function drawStairs(ctx, R) {
+    const x0 = Math.floor(R.cam.x), y0 = Math.floor(R.cam.y);
+    for (let gy = y0 - FAR; gy <= y0 + FAR; gy++) {
+      for (let gx = x0 - FAR; gx <= x0 + FAR; gx++) {
+        const t = R.grid[gy] && R.grid[gy][gx];
+        if (t !== '>' && t !== '<' && t !== 'G') continue;
+        const zc = R.toCam(gx + 0.5, gy + 0.5, 0)[1];
+        if (zc < -0.8 || zc > FAR) continue;
+        const down = t === '>';
+        const a = Math.max(0, 0.5 - fog(Math.max(zc, 0)));
+        const quad = [[0.12, 0.12], [0.88, 0.12], [0.88, 0.88], [0.12, 0.88]].map(([ox, oy]) => R.toCam(gx + ox, gy + oy, 0));
+        const pts = clipNear(quad).map(R.proj);
+        if (pts.length < 3) continue;
+        ctx.beginPath();
+        pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.closePath();
+        ctx.fillStyle = down ? '#000' : `rgba(255,225,26,${0.12 + a * 0.4})`;
+        ctx.fill();
+        const r = rng(gx + ':' + gy);
+        ctx.strokeStyle = down ? `rgba(233,226,204,${a + 0.15})` : `rgba(255,225,26,${a + 0.3})`;
+        ctx.lineWidth = 1.5;
+        for (let k = 1; k <= 4; k++) {
+          const wy = gy + 0.12 + (0.76 * k) / 5;
+          const seg = clipNear([R.toCam(gx + 0.14, wy, 0), R.toCam(gx + 0.86, wy, 0)], false);
+          if (seg.length === 2) scratch(ctx, seg.map(R.proj), r, 1.5, 1);
+        }
+      }
     }
   }
 
-  function floorMarks(ctx, P, lx, z0, z1, gx, gy, t) {
-    const r = rng(gx + ':' + gy);
-    const zm = (z0 + z1) / 2;
-    const a = Math.max(0, 0.5 - fog(zm));
-    // flagstone seams
-    ctx.strokeStyle = `rgba(141,134,115,${a * 0.55})`; ctx.lineWidth = 1;
-    const pts = [P(lx - 0.5, z1, -0.5), P(lx + 0.5, z1, -0.5)];
-    scratch(ctx, pts, r, 1.5, 1);
-    for (let k = 0; k < 2; k++) {
-      const x = lx - 0.4 + r() * 0.8, za = z0 + r() * (z1 - z0) * 0.5;
-      scratch(ctx, [P(x, Math.max(z0, za), -0.5), P(x + (r() - 0.5) * 0.2, Math.min(z1, za + 0.3), -0.5)], r, 1, 1);
-    }
-    if ((t === '>' || t === 'G' || t === '<') && z0 >= 0.5) {
-      const down = t === '>';
-      const c = P(lx, (z0 + z1) / 2, -0.5);
-      ctx.save();
-      // a black hole in the floor with steps, or a glow from above
-      const q = [P(lx - 0.38, z0 + 0.12, -0.5), P(lx + 0.38, z0 + 0.12, -0.5), P(lx + 0.38, z1 - 0.12, -0.5), P(lx - 0.38, z1 - 0.12, -0.5)];
-      ctx.beginPath(); q.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
-      ctx.fillStyle = down ? '#000' : `rgba(255,225,26,${0.12 + a * 0.4})`;
-      ctx.fill();
-      ctx.strokeStyle = down ? `rgba(233,226,204,${a + 0.15})` : `rgba(255,225,26,${a + 0.3})`;
-      ctx.lineWidth = 1.5;
-      for (let k = 1; k <= 4; k++) {
-        const z = z0 + 0.12 + ((z1 - z0 - 0.24) * k) / 5;
-        scratch(ctx, [P(lx - 0.36, z, -0.5), P(lx + 0.36, z, -0.5)], r, 1.5, 1);
+  // Monsters, things on the floor and shafts of daylight: billboards, far to near, hidden behind walls.
+  function drawSprites(ctx, R, zbuf, view) {
+    const { monsters, monsterPos, fx, now } = view;
+    const list = [];
+    const x0 = Math.floor(R.cam.x), y0 = Math.floor(R.cam.y);
+    for (let gy = y0 - FAR; gy <= y0 + FAR; gy++) {
+      for (let gx = x0 - FAR; gx <= x0 + FAR; gx++) {
+        const t = R.grid[gy] && R.grid[gy][gx];
+        if (!t) continue;
+        if ('LSFfR'.includes(t)) list.push({ type: 'item', t, x: gx + 0.5, y: gy + 0.5, seed: gx + ',' + gy });
+        else if (t === 'G' || t === '<') list.push({ type: 'shaft', x: gx + 0.5, y: gy + 0.5 });
       }
-      if (!down) {
-        // a shaft of light falling from above
-        const [tx, ty] = P(lx, (z0 + z1) / 2, 0.5);
-        const grad = ctx.createLinearGradient(tx, ty, c[0], c[1]);
-        grad.addColorStop(0, 'rgba(255,225,26,0)'); grad.addColorStop(1, `rgba(255,225,26,${0.1 + a * 0.3})`);
-        ctx.fillStyle = grad;
-        const [lx0] = P(lx - 0.3, (z0 + z1) / 2, 0.5), [lx1] = P(lx + 0.3, (z0 + z1) / 2, 0.5);
-        ctx.beginPath(); ctx.moveTo(lx0, ty); ctx.lineTo(lx1, ty); ctx.lineTo(q[2][0], q[2][1]); ctx.lineTo(q[3][0], q[3][1]); ctx.fill();
-      }
-      ctx.restore();
     }
+    for (const m of monsters) {
+      if (m.hp <= 0) continue;
+      const p = monsterPos(m);
+      list.push({ type: 'monster', m, x: p.x + 0.5, y: p.y + 0.5 });
+    }
+    for (const s of list) {
+      const c = R.toCam(s.x, s.y, 0);
+      s.xr = c[0]; s.z = c[1];
+    }
+    list.filter((s) => s.z > 0.7 && s.z < FAR).sort((a, b) => b.z - a.z)
+      .forEach((s) => drawSprite(ctx, R, zbuf, s, fx, now));
+  }
+
+  function drawSprite(ctx, R, zbuf, s, fx, now) {
+    const scale = R.F / s.z;
+    const sx = R.cx + (s.xr / s.z) * R.F;
+    const groundY = R.cy + (R.eye * R.F) / s.z;
+    const box = Math.ceil(scale * 1.4);
+    const left = Math.round(sx - box / 2);
+    if (left > R.W || left + box < 0) return;
+    // Draw it on its own layer, so the fog darkens only the sprite.
+    const layer = spriteLayer(box);
+    const g = layer.getContext('2d');
+    g.clearRect(0, 0, box, box);
+    if (s.type === 'item') drawItem(g, s.t, box / 2, box - 2, scale, s.seed);
+    else if (s.type === 'monster') drawMonster(g, s.m, box / 2, box - 2, scale, fx, now);
+    else drawShaft(g, box / 2, box - 2, scale);
+    const f = fog(s.z);
+    if (f > 0.02) {
+      g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = `rgba(0,0,0,${f * 0.92})`;
+      g.fillRect(0, 0, box, box);
+      g.globalCompositeOperation = 'source-over';
+    }
+    // things you are about to step over fade away beneath you
+    ctx.globalAlpha = Math.min(1, (s.z - 0.7) / 0.35);
+    // copy only the columns where it stands nearer than the wall
+    const topY = groundY - box + 2;
+    const end = Math.min(R.W, left + box);
+    let run = -1;
+    for (let col = Math.max(0, left); col <= end; col++) {
+      const vis = col < end && zbuf[col] > s.z;
+      if (vis && run < 0) run = col;
+      if (!vis && run >= 0) {
+        ctx.drawImage(layer, run - left, 0, col - run, box, run, topY, col - run, box);
+        run = -1;
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Daylight falling down the stair from the town above.
+  function drawShaft(ctx, x, y, s) {
+    const g = ctx.createLinearGradient(0, y - s, 0, y);
+    g.addColorStop(0, 'rgba(255,225,26,0.3)');
+    g.addColorStop(1, 'rgba(255,225,26,0.04)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - s * 0.2, y - s); ctx.lineTo(x + s * 0.2, y - s);
+    ctx.lineTo(x + s * 0.34, y); ctx.lineTo(x - s * 0.34, y);
+    ctx.fill();
   }
 
   // ---------- items on the floor ----------
@@ -767,7 +869,9 @@ var Q = window.Q || (window.Q = {});
 
   // ---------- the map ----------
   function drawMap(ctx, W, H, view) {
-    const { grid, explored, x, y, dir, monsters, mini } = view;
+    const { grid, explored, x, y, monsters, mini } = view;
+    const angle = view.a !== undefined ? view.a + Math.PI / 2 : (view.dir * Math.PI) / 2;
+    const where = view.monsterPos || ((m) => m);
     const rows = grid.length, cols = grid[0].length;
     const cs = Math.floor(Math.min(W / cols, H / rows));
     const ox = Math.floor((W - cs * cols) / 2), oy = Math.floor((H - cs * rows) / 2);
@@ -798,14 +902,15 @@ var Q = window.Q || (window.Q = {});
     }
     for (const m of monsters) {
       if (m.hp > 0 && m.seen && seen(m.x, m.y)) {
+        const p = where(m);
         ctx.fillStyle = PINK;
-        ctx.beginPath(); ctx.arc(ox + m.x * cs + cs / 2, oy + m.y * cs + cs / 2, cs * 0.28, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(ox + p.x * cs + cs / 2, oy + p.y * cs + cs / 2, cs * 0.28, 0, 7); ctx.fill();
       }
     }
     // the wretch: a yellow arrow
     ctx.save();
     ctx.translate(ox + x * cs + cs / 2, oy + y * cs + cs / 2);
-    ctx.rotate((dir * Math.PI) / 2);
+    ctx.rotate(angle);
     ctx.fillStyle = YELLOW; ctx.strokeStyle = INK; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(0, -cs * 0.42); ctx.lineTo(cs * 0.34, cs * 0.34); ctx.lineTo(0, cs * 0.16); ctx.lineTo(-cs * 0.34, cs * 0.34); ctx.closePath();
     ctx.fill(); ctx.stroke();

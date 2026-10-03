@@ -118,17 +118,19 @@ var Q = window.Q || (window.Q = {});
 
   // The wretch attacks: Strength test vs the foe's DR.
   // Natural 20 deals double damage. Natural 1 fumbles and the foe gets a free blow.
+  // Every die is reported (dmgRoll, armorRoll) so the dice on screen show what was really rolled.
   function attack(pc, foe) {
     const t = test(pc.strength, foe.dr);
     if (t.fumble) return { kind: 'fumble', ...t };
     if (!t.ok) return { kind: 'miss', ...t };
-    let dmg = pc.omenMax ? pc.weapon.die : d(pc.weapon.die);
     const maxed = pc.omenMax;
     pc.omenMax = false;
-    if (t.crit) dmg *= 2;
-    const absorbed = foe.armor ? Math.min(dmg, d(foe.armor)) : 0;
+    const dmgRoll = maxed ? pc.weapon.die : d(pc.weapon.die);
+    let dmg = dmgRoll * (t.crit ? 2 : 1);
+    const armorRoll = foe.armor ? d(foe.armor) : 0;
+    const absorbed = Math.min(dmg, armorRoll);
     dmg -= absorbed;
-    return { kind: t.crit ? 'crit' : 'hit', ...t, dmg, absorbed, maxed };
+    return { kind: t.crit ? 'crit' : 'hit', ...t, dmg, dmgRoll, armorRoll, absorbed, maxed };
   }
 
   // A foe attacks: the wretch tests Agility vs DR 12 (DR 14 in plate).
@@ -138,10 +140,13 @@ var Q = window.Q || (window.Q = {});
     const t = test(pc.agility, DR + (pc.armor.tier === 3 ? 2 : 0));
     if (t.crit) return { kind: 'riposte', ...t };
     if (t.ok) return { kind: 'dodge', ...t };
-    let dmg = d(foeDie) * (t.fumble ? 2 : 1);
+    const dmgRoll = d(foeDie);
+    let dmg = dmgRoll * (t.fumble ? 2 : 1);
     const armorDie = ARMOR_DIE[pc.armor.tier];
-    const absorbed = armorDie ? Math.min(dmg, d(armorDie)) : 0;
+    const armorRoll = armorDie ? d(armorDie) : 0;
+    const absorbed = Math.min(dmg, armorRoll);
     dmg -= absorbed;
+    const before = dmg;
     let brokeArmor = false;
     if (t.fumble && pc.armor.tier > 0) {
       pc.armor.tier -= 1;
@@ -154,38 +159,39 @@ var Q = window.Q || (window.Q = {});
       warded = true;
       dmg = 0;
     }
-    return { kind: t.fumble ? 'fumble' : 'wound', ...t, dmg, absorbed, brokeArmor, warded };
+    return { kind: t.fumble ? 'fumble' : 'wound', ...t, dmg, dmgRoll, armorDie, armorRoll, absorbed, before, brokeArmor, warded };
   }
 
   // At exactly 0 HP a wretch is Broken. Below 0 they are dead.
+  // r is the d4 rolled on the Broken table; title names the result.
   function broken(pc) {
     const r = d(4);
     if (r === 1) {
       pc.hp = d(4);
-      return { text: 'You black out in the filth, then wake with ' + pc.hp + ' HP.', dead: false, lostTurn: true };
+      return { r, title: 'Blacked out', text: 'You black out in the filth, then wake with ' + pc.hp + ' HP.', dead: false, lostTurn: true };
     }
     if (r === 2) {
       pc.hp = d(4);
       if (d(6) === 6) {
         pc.presence = Math.max(-3, pc.presence - 1);
         pc.lostEye = true;
-        return { text: 'An eye is gone. Presence ' + fmt(pc.presence) + '. You rise with ' + pc.hp + ' HP.', dead: false };
+        return { r, title: 'An eye is lost', text: 'An eye is gone. Presence ' + fmt(pc.presence) + '. You rise with ' + pc.hp + ' HP.', dead: false };
       }
       pc.agility = Math.max(-3, pc.agility - 1);
-      return { text: 'A bone snaps. Agility ' + fmt(pc.agility) + '. You rise with ' + pc.hp + ' HP.', dead: false };
+      return { r, title: 'A bone snaps', text: 'A bone snaps. Agility ' + fmt(pc.agility) + '. You rise with ' + pc.hp + ' HP.', dead: false };
     }
     if (r === 3) {
       pc.hp = d(4);
       pc.bleeding = true;
-      return { text: 'You haemorrhage. ' + pc.hp + ' HP, and bleeding until you are tended.', dead: false };
+      return { r, title: 'Haemorrhage', text: 'You haemorrhage. ' + pc.hp + ' HP, and bleeding until you are tended.', dead: false };
     }
-    return { text: 'Your heart gives up in the dark.', dead: true };
+    return { r, title: 'Dead', text: 'Your heart gives up in the dark.', dead: true };
   }
 
   // A monster's morale: 2d6 over its morale and it flees.
-  function moraleBreaks(morale) {
-    if (!morale) return false;
-    return roll(2, 6) > morale;
+  function morale(score) {
+    const a = d(6), b = d(6);
+    return { a, b, total: a + b, breaks: !!score && a + b > score };
   }
 
   // Getting Better: rolled after enough horrors survived.
@@ -216,6 +222,6 @@ var Q = window.Q || (window.Q = {});
 
   Object.assign(Q, {
     DR, d, roll, pick, fmt, abilityFromRoll, WEAPONS, ARMOR, ARMOR_DIE, SCROLLS,
-    rollWretch, healthWord, test, attack, defend, broken, moraleBreaks, gettingBetter,
+    rollWretch, healthWord, test, attack, defend, broken, morale, gettingBetter,
   });
 })();
