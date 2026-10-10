@@ -2,7 +2,7 @@
 // some filtered noise, run through a shared crypt reverb.
 //
 // Q.Sound.play(name, opts)    a one-shot effect (see FX below)
-// Q.Sound.ambience(where, ix) the bed under everything: 'crawl' (floor ix), 'town', or null for silence
+// Q.Sound.ambience(where, id) the bed under everything: 'crawl' (floor id), 'town', or null for silence
 // Q.Sound.duck(on)            quieten the ambience (battles, menus)
 // Q.Sound.toggle()            mute or unmute; remembered in the browser
 //
@@ -151,6 +151,22 @@ var Q = window.Q || (window.Q = {});
     skeleton(d, t) { for (let i = 0; i < 9; i++) noise(d, t + i * rnd(0.03, 0.07), { filter: 'highpass', f: rnd(2500, 4000), d: 0.02, gain: 0.25 }); },
     cultist(d, t) { [196, 233, 294].forEach((f, i) => tone(d, t + i * 0.05, { type: 'triangle', f: f * rnd(0.99, 1.01), d: 1.4, a: 0.35, gain: 0.07, vib: 4.5, vibDepth: 0.01 })); },
     abbess(d, t) { tone(d, t, { f: 640, f2: 420, glide: 1.8, d: 1.9, a: 0.25, gain: 0.16, vib: 6, vibDepth: 0.03 }); tone(d, t, { f: 1280, f2: 860, glide: 1.8, d: 1.7, a: 0.3, gain: 0.05, vib: 6.3, vibDepth: 0.03 }); },
+    // a ring of keys jangling, then a wet grunt
+    guard(d, t) {
+      for (let i = 0; i < 6; i++) bell(d, t + i * rnd(0.04, 0.09), rnd(2200, 3400), 0.18, 0.05);
+      tone(d, t + 0.35, { type: 'sawtooth', f: rnd(105, 120), f2: 80, d: 0.35, a: 0.03, gain: 0.16, lp: 700, q: 4 });
+    },
+    // a drowned throat trying to say a name
+    prisoner(d, t) {
+      tone(d, t, { type: 'sawtooth', f: rnd(150, 170), f2: rnd(110, 125), glide: 1.2, d: 1.4, a: 0.2, gain: 0.13, lp: 800, q: 9, vib: 7, vibDepth: 0.06 });
+      noise(d, t + 0.1, { filter: 'lowpass', f: 380, d: 0.9, a: 0.2, gain: 0.12, brown: true });
+    },
+    // a bellow from the bottom of a flooded hall, with a chain dragging
+    warden(d, t) {
+      tone(d, t, { type: 'sawtooth', f: 62, f2: 48, glide: 1.4, d: 1.7, a: 0.12, gain: 0.26, lp: 420, q: 5, vib: 3.5, vibDepth: 0.05 });
+      tone(d, t, { type: 'square', f: 93, f2: 72, glide: 1.4, d: 1.5, a: 0.15, gain: 0.05, lp: 600 });
+      for (let i = 0; i < 7; i++) bell(d, t + 0.6 + i * rnd(0.07, 0.12), rnd(900, 1500), 0.25, 0.04);
+    },
   };
 
   const FX = {
@@ -340,11 +356,14 @@ var Q = window.Q || (window.Q = {});
     if (where === 'crawl') {
       bed({ f: 140, gain: 0.1, brown: true, rate: 0.05 });
       hum([41.2, 41.9, 61.7], 0.01);
-      if (ix >= 1) {
-        // the Vault: wetter, and something like a choir far below
+      if (ix === 'gaol') {
+        // the Gaol: water everywhere, and somewhere a chain shifting in it
         bed({ filter: 'bandpass', f: 520, q: 6, gain: 0.02, rate: 0.03, wobble: 0.5 });
-        hum([220, 233.1, 329.6], 0.006);
         every(0.8, 3.5, () => FX.drip({ gain: 0.35 }));
+        every(11, 26, () => {
+          const d = out({ bus: ambBus, gain: 0.3, verb: 1, pan: rnd(-0.8, 0.8) }), t = now();
+          for (let i = 0; i < 5; i++) bell(d, t + i * rnd(0.08, 0.16), rnd(700, 1200), 0.3, 0.03);
+        });
       } else {
         every(2.5, 7, () => FX.drip({ gain: 0.25 }));
       }
@@ -366,7 +385,7 @@ var Q = window.Q || (window.Q = {});
       if (ctx.state === 'suspended') ctx.resume();
       try { FX[name](opts); } catch (e) { /* a sound must never break the game */ }
     },
-    ambience(where, ix = 0) {
+    ambience(where, ix = '') {
       if (ambState.where === where && ambState.ix === ix) return;
       ambState = { where, ix };
       if (ctx) { if (where) startAmbience(); else stopAmbience(); }

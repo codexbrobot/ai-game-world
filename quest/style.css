@@ -217,7 +217,7 @@ body.in-battle .hud-top, body.in-battle .hud-log, body.in-battle .hud-buttons, b
 }
 .foe-card img { flex: 1 1 auto; min-height: 0; max-height: 100%; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.9)); }
 .foe-card.kind-rats img { max-height: 42%; }
-.foe-card.kind-abbess img { max-height: 112%; }
+.foe-card.kind-abbess img, .foe-card.kind-warden img { max-height: 112%; }
 .foe-label { display: block; background: var(--yellow); color: var(--ink); padding: 2px 8px 3px; transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--pink); text-align: center; }
 .foe-label b { display: block; font-family: var(--display); font-weight: 900; font-size: clamp(14px, 3.6vw, 20px); line-height: 1.05; }
 .foe-label small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
@@ -439,16 +439,22 @@ body.in-battle .hands { opacity: 0; }
 .foe-card.kind-cultist img { animation: f-cultist 1.6s steps(1) infinite; }
 .foe-card.kind-rats img { animation: f-rats 0.5s steps(1) infinite; }
 .foe-card.kind-abbess:not(.phase2) img { animation: f-abbess 3.2s ease-in-out infinite; }
+.foe-card.kind-guard img { animation: f-guard 1.5s steps(1) infinite; }
+.foe-card.kind-prisoner img { animation: f-prisoner 1.7s steps(1) infinite; }
+.foe-card.kind-warden img { animation: f-warden 2.2s steps(1) infinite; }
 @keyframes f-zombie { 0% { transform: skewX(3deg) translateX(-2%); } 50% { transform: skewX(-3deg) translateX(2%) translateY(1%); } }
 @keyframes f-skeleton { 0% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(1%); } }
 @keyframes f-cultist { 0% { transform: skewX(2deg); } 50% { transform: skewX(-2deg); } }
 @keyframes f-rats { 0% { transform: scale(1.06, 0.92); } 50% { transform: scale(0.95, 1.06) translateY(-3%); } }
 @keyframes f-abbess { 50% { transform: translateY(-3%); } }
+@keyframes f-guard { 0% { transform: rotate(-0.8deg); } 50% { transform: rotate(0.8deg) translateY(0.5%); } }
+@keyframes f-prisoner { 0% { transform: skewX(4deg) rotate(-1deg); } 50% { transform: skewX(-2deg) translateX(2%) translateY(1.5%); } }
+@keyframes f-warden { 0% { transform: scale(1, 1); } 50% { transform: scale(1.02, 0.985) translateX(1%); } }
 .foe-card.hit img, .foe-card.lunge img, .foe-card.cast img, .foe-card.rise img { animation-iteration-count: 1; }
-.foe-card.kind-zombie.hit img, .foe-card.kind-skeleton.hit img, .foe-card.kind-cultist.hit img, .foe-card.kind-rats.hit img, .foe-card.kind-abbess.hit img { animation: hit 0.45s ease-out; }
-.foe-card.kind-zombie.lunge img, .foe-card.kind-skeleton.lunge img, .foe-card.kind-cultist.lunge img, .foe-card.kind-rats.lunge img, .foe-card.kind-abbess.lunge img { animation: lunge 0.4s ease-out; }
-.foe-card.kind-zombie.cast img, .foe-card.kind-skeleton.cast img, .foe-card.kind-cultist.cast img, .foe-card.kind-rats.cast img, .foe-card.kind-abbess.cast img { animation: cast 0.6s ease-out; }
-.foe-card.kind-zombie.rise img, .foe-card.kind-skeleton.rise img, .foe-card.kind-cultist.rise img, .foe-card.kind-rats.rise img { animation: rise 0.8s ease-out; }
+.foe-card.kind-zombie.hit img, .foe-card.kind-skeleton.hit img, .foe-card.kind-cultist.hit img, .foe-card.kind-rats.hit img, .foe-card.kind-abbess.hit img, .foe-card.kind-guard.hit img, .foe-card.kind-prisoner.hit img, .foe-card.kind-warden.hit img { animation: hit 0.45s ease-out; }
+.foe-card.kind-zombie.lunge img, .foe-card.kind-skeleton.lunge img, .foe-card.kind-cultist.lunge img, .foe-card.kind-rats.lunge img, .foe-card.kind-abbess.lunge img, .foe-card.kind-guard.lunge img, .foe-card.kind-prisoner.lunge img, .foe-card.kind-warden.lunge img { animation: lunge 0.4s ease-out; }
+.foe-card.kind-zombie.cast img, .foe-card.kind-skeleton.cast img, .foe-card.kind-cultist.cast img, .foe-card.kind-rats.cast img, .foe-card.kind-abbess.cast img, .foe-card.kind-guard.cast img, .foe-card.kind-prisoner.cast img, .foe-card.kind-warden.cast img { animation: cast 0.6s ease-out; }
+.foe-card.kind-zombie.rise img, .foe-card.kind-skeleton.rise img, .foe-card.kind-cultist.rise img, .foe-card.kind-rats.rise img, .foe-card.kind-guard.rise img, .foe-card.kind-prisoner.rise img, .foe-card.kind-warden.rise img { animation: rise 0.8s ease-out; }
 .foe-card.slain img, .foe-card.fled img { animation: none; }
 @media (min-aspect-ratio: 1/1) {
   .hud-buttons { flex-direction: row; width: auto; }

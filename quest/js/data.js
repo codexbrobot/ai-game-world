@@ -1,11 +1,12 @@
-// The Weeping Vault: maps, monsters and loot.
+// The Brine Gaol and the Undercroft: maps, monsters and loot.
 //
 // Each floor has three layers of the same size.
 // rows:     #  wall               .  floor              D  door (opens when you walk into it)
 //           G  stairs up to town  <  stairs up          >  stairs down
 //           L  remains to search  S  remains with a scroll
-//           F  black font         p  hidden pit         R  the Bell-Tongue (quest item)
-//           r z s c w  a band of monsters (see GROUPS)
+//           F  black font         p  hidden pit         @  where you wake (the Gaol)
+//           C  a locked cell door J  a locked gate       K  a niche in the wall
+//           other letters: a band of monsters (see the floor's groups)
 // heights:  .  level ground   1-9  raised a quarter unit each   a-h  sunk a quarter each   x  chasm
 //           (you can walk up two quarters at a time; falling into a chasm hurts)
 // ceil:     .  normal   H  a high vault   L  a low passage
@@ -17,7 +18,76 @@ var Q = window.Q || (window.Q = {});
 
   Q.FLOORS = [
     {
+      id: 'gaol',
+      name: 'The Brine Gaol',
+      // You wake in the cell at @. C: a cell door that won't open on its own; J: the Warden's hall, locked.
+      // G here is the sewer grate out into Skarnvik.
+      theme: {
+        walls: [['gaol-wall', 5], ['gaol-bars', 3], ['wall-stone', 1]],
+        riser: 'gaol-wall', floor: 'floor', ceiling: 'ceiling', door: 'gaol-door',
+        sky: 0x4f5250, ground: 0x080907, fog: 0x020303, ceilingTint: 0x6f6a60,
+        water: 0.4, waterTint: 0x070806,
+      },
+      groups: { r: ['r', 'r'], g: ['g', 'g'], P: ['P'], q: ['q', 'r'], W: ['W', 'g'] },
+      rows: [
+        '################',
+        '#.@#.L#.P#..#.r#',
+        '#C##D##D##C##D##',
+        '#..............#',
+        '##.#####D#####.#',
+        '#...#.....#..#.#',
+        '#...D..g..D.r#.#',
+        '#.S.#.....#..D.#',
+        '#.L.#####D###..#',
+        '#...D..........#',
+        '#...#..........#',
+        '#...#..q.......#',
+        '##D######J######',
+        '#...#.....W....#',
+        '#...#.........G#',
+        '################',
+      ],
+      heights: [
+        '................',
+        '1111111111111111',
+        '1111111111111111',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '.....bbbbbbbbbb.',
+        '.....bbbxxbbbbb.',
+        '.....bbbbbbbbbb.',
+        '................',
+        '..........11....',
+        '..........11....',
+        '................',
+      ],
+      ceil: [
+        '................',
+        'LLLLLLLLLLLLLLLL',
+        'LLLLLLLLLLLLLLLL',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+        '.....HHHHHHHHHH.',
+        '.....HHHHHHHHHH.',
+        '................',
+      ],
+    },
+    {
+      id: 'undercroft',
       name: 'The Undercroft',
+      groups: { r: ['r', 'r'], z: ['z'], s: ['s'], c: ['c', 'r'] },
       rows: [
         '################',
         '#G..#...c....L.#',
@@ -73,75 +143,27 @@ var Q = window.Q || (window.Q = {});
         '................',
       ],
     },
-    {
-      name: 'The Weeping Vault',
-      // its own pictures: weeping marble, burial niches, a weeping face, grave slabs, a ribbed vault, iron doors;
-      // and a colder, faintly violet dark
-      theme: {
-        walls: [['vault-wall', 5], ['vault-niches', 3], ['vault-face', 1]],
-        riser: 'vault-wall', floor: 'vault-floor', ceiling: 'vault-ceiling', door: 'vault-door',
-        sky: 0x4f4a5c, ground: 0x0a080d, fog: 0x050309, ceilingTint: 0x857d90, wallTint: 0xa49cab,
-        water: 0.45, waterTint: 0x09060d, // the Vault floods deeper
-      },
-      rows: [
-        '################',
-        '#<....#.......L#',
-        '#.###.#.##.###.#',
-        '#.#s..D.#..#c..#',
-        '#.#.###.#..#...#',
-        '#...#...#..#...#',
-        '###.#.###..#.###',
-        '#S..#...D..D...#',
-        '#.#####.#..#.#.#',
-        '#...z.#.#..#.#z#',
-        '#.###.#.#..#.#.#',
-        '#.#.....D..D...#',
-        '#.#.##########D#',
-        '#c#.D..........#',
-        '#...#....w..R..#',
-        '################',
-      ],
-      heights: [
-        '................',
-        '................',
-        '................',
-        '................',
-        '................',
-        '.........xx.....',
-        '.........xx.....',
-        '................',
-        '.........xx.....',
-        '.........xx.....',
-        '.........xx.....',
-        '................',
-        '................',
-        '........1111111.',
-        '........12221...',
-        '................',
-      ],
-      ceil: [
-        '................',
-        '................',
-        '................',
-        '................',
-        '................',
-        '........HHHH....',
-        '........HHHH....',
-        '........HHHH....',
-        '........HHHH....',
-        '........HHHH....',
-        '........HHHH....',
-        '........HHHH....',
-        '................',
-        '.....HHHHHHHHHH.',
-        '.....HHHHHHHHHH.',
-        '................',
-      ],
-    },
   ];
 
   // dr: the DR to hit it. armor: die it soaks with. morale: 2d6 over this and it flees (0 = never).
   Q.MONSTERS = {
+    // the Brine Gaol: the drowned dead, still at their posts and in their cells
+    g: {
+      kind: 'guard', name: 'Drowned Guard', hp: () => d(2) + 2, die: 6, dr: 12, armor: 2, morale: 0, sight: 6, speed: 2.0,
+      silver: () => d(6), desc: 'Still on duty. The shift ended months ago.',
+    },
+    q: {
+      kind: 'prisoner', name: 'Drowned Prisoner', hp: () => 4, die: 4, dr: 10, armor: 0, morale: 0, sight: 5, speed: 1.2,
+      silver: () => 0, desc: 'Chained, drowned, and not finished.',
+    },
+    P: {
+      kind: 'prisoner', name: 'The One You Knew', hp: () => 5, die: 6, dr: 10, armor: 0, morale: 0, sight: 4, speed: 1.3,
+      dormant: true, silver: () => d(4), desc: 'You knew this face. It doesn’t know yours any more.',
+    },
+    W: {
+      kind: 'warden', name: 'The Drowned Warden', hp: () => 8 + d(4), die: 8, dr: 13, armor: 2, morale: 0, sight: 6, speed: 1.4,
+      boss: true, silver: () => roll(3, 10), desc: 'He still makes his rounds. He still has the keys.',
+    },
     r: {
       kind: 'rats', name: 'Gutter Rats', plural: true, hp: () => d(2), die: 4, dr: 10, armor: 0, morale: 6, sight: 5, speed: 2.7,
       silver: () => 0, desc: 'A boiling knot of rats, fat on the dead.',
@@ -197,11 +219,6 @@ var Q = window.Q || (window.Q = {});
     }
   };
 
-  // Who you meet at each monster mark, floor by floor: the first is the one that leads the band.
-  Q.GROUPS = [
-    { r: ['r', 'r'], z: ['z'], s: ['s'], c: ['c', 'r'] },
-    { r: ['r', 'r', 'r'], z: ['z', 'r'], s: ['s', 's'], c: ['c', 'c'], w: ['w', 's'] },
-  ];
 
   // Searching remains, by floor depth.
   // A quarter of the time, something strange (js/items.js).

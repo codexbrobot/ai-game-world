@@ -28,7 +28,7 @@ function heightOf(c) {
 }
 
 // Monster billboards: height in world units.
-const SPRITE_HEIGHT = { rats: 0.62, zombie: 1.85, skeleton: 1.9, cultist: 1.9, abbess: 2.5 };
+const SPRITE_HEIGHT = { rats: 0.62, zombie: 1.85, skeleton: 1.9, cultist: 1.9, abbess: 2.5, guard: 1.95, prisoner: 1.8, warden: 2.4 };
 
 export function createWorld(container, hooks) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -224,7 +224,7 @@ export function createWorld(container, hooks) {
           if (nf > fy) vface('riser', e, x, y, fy, nf);
           if (nc < cy) vface('riser', e, x, y, nc, cy);
         }
-        if (t === 'D') buildDoor(x, y, fy, cy);
+        if (t === 'D' || t === 'C' || t === 'J') buildDoor(x, y, fy, cy, t !== 'D');
         if (t === 'G' || t === '<') buildDaylight(x, y, fy);
       }
     }
@@ -242,7 +242,8 @@ export function createWorld(container, hooks) {
     needRender = true;
   }
 
-  function buildDoor(x, y, fy, cy) {
+  // locked: a story door (C, a cell; J, the Warden's hall). Bumping it asks the game what happens.
+  function buildDoor(x, y, fy, cy, locked) {
     // the panel spans the passage: across x when the walls are to the east and west
     const acrossX = solid(x - 1, y) && solid(x + 1, y);
     const height = Math.min(cy - fy, 3.0);
@@ -251,7 +252,7 @@ export function createWorld(container, hooks) {
     mesh.position.set((x + 0.5) * CELL, fy + height / 2, (y + 0.5) * CELL);
     if (!acrossX) mesh.rotation.y = Math.PI / 2;
     level.root.add(mesh);
-    level.doors.set(x + ',' + y, { mesh, open: 0, opening: false, base: fy + height / 2, height });
+    level.doors.set(x + ',' + y, { mesh, open: 0, opening: false, base: fy + height / 2, height, locked: !!locked, tile: tile(x, y), asked: 0 });
   }
 
   // The stair down: steps falling away into the dark.
@@ -702,10 +703,15 @@ export function createWorld(container, hooks) {
     hooks.onStep && hooks.onStep(dep);
   }
 
-  // Bumping a closed door opens it.
+  // Bumping a closed door opens it; a locked one asks the game (no more than every couple of seconds).
   function touch(b) {
     if (!b.door) return;
     const d = doorAt(b.cx, b.cy);
+    if (d && d.locked && !d.opening) {
+      const now = performance.now();
+      if (now - d.asked > 1800) { d.asked = now; hooks.onLocked && hooks.onLocked(b.cx, b.cy, d.tile); }
+      return;
+    }
     if (d && !d.opening) {
       d.opening = true;
       hooks.onDoor && hooks.onDoor(b.cx, b.cy);
@@ -802,6 +808,7 @@ export function createWorld(container, hooks) {
       const def = g.def;
       const dist = Math.hypot(player.x - g.x, player.z - g.z);
       if (g.stunUntil && now < g.stunUntil) continue;
+      if (g.dormant) continue; // asleep until a scene wakes it
       const sees = dist < def.sight * CELL && lineOfSight(g.x, g.z, player.x, player.z);
       if (sees && !g.alert) hooks.onAlert && hooks.onAlert(def.kind, dist / CELL, panOf(g));
       if (sees) g.alert = true;
@@ -905,6 +912,10 @@ export function createWorld(container, hooks) {
   const POSES = {
     // lurching: leans into each step, dragging one foot then the other
     zombie: (u, v, s) => [s * 0.06 * v * v, v < 0.3 && (u - 0.5) * s > 0 ? 0.045 * (1 - v / 0.3) : -0.012 * v],
+    // a drowned prisoner drags its chained feet; a guard plods; the warden rolls his great weight
+    prisoner: (u, v, s) => [s * 0.07 * v * v, v < 0.25 && (u - 0.5) * s > 0 ? 0.03 * (1 - v / 0.25) : -0.015 * v],
+    guard: (u, v, s) => [s * 0.03 * v, v < 0.28 && (u - 0.5) * s > 0 ? 0.04 * (1 - v / 0.28) : 0],
+    warden: (u, v, s) => [s * 0.05 * v * v - s * 0.01, v < 0.3 && (u - 0.5) * s > 0 ? 0.03 * (1 - v / 0.3) : -0.01 * v],
     // rattling: small, quick, the skull ticking from side to side
     skeleton: (u, v, s) => [s * 0.025 * v + (v > 0.78 ? s * 0.025 : 0), v < 0.28 && (u - 0.5) * s > 0 ? 0.035 * (1 - v / 0.28) : 0],
     // the robe's hem swings; the body barely moves
@@ -912,7 +923,7 @@ export function createWorld(container, hooks) {
     // a scurry: stretched low, then bunched up
     rats: (u, v, s) => [(u - 0.5) * (s > 0 ? 0.12 : -0.08), (s > 0 ? -0.1 : 0.08) * v],
   };
-  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55 }; // walk units per frame
+  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55, prisoner: 1.7, guard: 1.2, warden: 1.9 }; // walk units per frame
   function shamble(entry, now) {
     const moving = entry.lastStep !== entry.step;
     entry.lastStep = entry.step;
@@ -1184,7 +1195,7 @@ export function createWorld(container, hooks) {
       build(floor);
       for (const key of floor.opened || []) {
         const dr = level.doors.get(key);
-        if (dr) { dr.open = 1; dr.opening = true; dr.mesh.position.y = dr.base + dr.height * 0.95; }
+        if (dr) { dr.open = 1; dr.opening = true; dr.locked = false; dr.mesh.position.y = dr.base + dr.height * 0.95; }
       }
       for (const g of floor.groups) {
         g.def = Q.MONSTERS[g.members[0].key];
@@ -1234,7 +1245,7 @@ export function createWorld(container, hooks) {
     resume() { paused = false; lastTime = performance.now(); },
     get paused() { return paused; },
     refreshTile(cx, cy) { placeItem(cx, cy); },
-    openDoor(cx, cy) { const d = doorAt(cx, cy); if (d) d.opening = true; },
+    openDoor(cx, cy) { const d = doorAt(cx, cy); if (d) { d.locked = false; d.opening = true; } },
     // After a fall: climb back out to the last firm ground.
     haulBack() {
       player.x = player.safe.x; player.z = player.safe.z; player.y = floorH(cellOf(player.x), cellOf(player.z)) + EYE; player.vy = 0; falling = false;

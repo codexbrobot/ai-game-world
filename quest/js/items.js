@@ -28,7 +28,7 @@ var Q = window.Q || (window.Q = {});
     saint: {
       kind: 'weapon', name: 'Saint’s Femur', die: 4, art: 'Femur', depth: 1, price: 30,
       flavor: 'A thighbone in a silver sleeve, stamped with a name rubbed away by kisses.',
-      text: 'Against the dead (zombies, skeletons, the Abbess) it strikes +d6. Against the living it is only a bone.',
+      text: 'Against the dead (the drowned, zombies, skeletons) it strikes +d6. Against the living it is only a bone.',
     },
     plank: {
       kind: 'weapon', name: 'Nail-Studded Plank', die: 4, art: 'Staff', depth: 1, price: 15,

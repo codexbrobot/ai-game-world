@@ -29,7 +29,8 @@ var Q = window.Q || (window.Q = {});
   Q.testText = testText;
   Q.damageText = damageText;
 
-  const the = (f, cap) => (/^The /.test(f.name) ? esc(f.name) : `${cap ? 'The' : 'the'} ${esc(f.name)}`);
+  // a named foe (someone you knew) gets no article
+  const the = (f, cap) => (/^The /.test(f.name) || f.proper ? esc(f.name) : `${cap ? 'The' : 'the'} ${esc(f.name)}`);
   const verb = (f, one, many) => (f.def.plural ? many : one);
   const short = (pc) => esc(pc.name.split(' ')[0]);
 
@@ -263,7 +264,7 @@ var Q = window.Q || (window.Q = {});
     // a unique weapon's quirks, when it's the weapon doing the work (not a Bite)
     const usesWeapon = !opts.die;
     const perk = usesWeapon ? pc.weapon.key : null;
-    const undead = ['zombie', 'skeleton', 'abbess'].includes(f.kind);
+    const undead = ['zombie', 'skeleton', 'abbess', 'guard', 'prisoner', 'warden'].includes(f.kind);
     if (perk === 'saint' && undead && !opts.bonusDie) opts = { ...opts, bonusDie: 6 };
     if (perk === 'plank' && !opts.bonusDie) opts = { ...opts, bonusDie: 4 };
     if (perk === 'gorgh') opts = { ...opts, ignoreArmor: true };
@@ -375,7 +376,7 @@ var Q = window.Q || (window.Q = {});
         B.log('The Weeping Sword weeps. <span class="pink">A day is lost.</span>', 'hurt');
         if (B.onDayLost) B.onDayLost();
       }
-      if (f.def.boss) B.log('The Abbess crumples. Her weeping stops.', 'hit');
+      if (f.def.boss) B.log(bossLines(f).dead, 'hit');
       renderFoes();
       return;
     }
@@ -599,6 +600,13 @@ var Q = window.Q || (window.Q = {});
     if (res.dmg) B.log(`${the(f, true)} ${verb(f, 'hits', 'hit')} ${short(pc)} for <b>${res.dmg}</b>${notes ? ` (${notes})` : ''}.`, 'hurt');
     else B.log(`${the(f, true)} ${verb(f, 'hits', 'hit')} ${short(pc)}, but it does no harm${notes ? ` (${notes})` : ''}.`, 'miss');
     if (res.dmg > 0) await hurt(pc, res.dmg, f.def.name);
+    if (res.dmg > 0 && f.kind === 'guard' && !pc.dead && d(3) === 1) {
+      // the truncheon rings your skull: Toughness DR 12 or lose your next turn
+      let t = Q.test(pc.toughness, Q.DR);
+      await throwDice({ dice: [D(20, t.r, 'yellow', 'Toughness')], verdict: t.ok ? 'Still standing' : 'Dazed', tone: t.ok ? 'good' : 'bad', text: `The truncheon rings ${short(pc)}’s skull · ${testText('Toughness', t, pc.toughness)}` });
+      t = await rescue(pc, t, pc.toughness, 'Toughness');
+      if (!t.ok) { pc.dazed = true; B.log(`The truncheon rings ${short(pc)}’s skull. <b>Dazed</b>: they lose their next turn.`, 'hurt'); }
+    }
     if (res.dmg > 0 && Q.has(pc, 'mirror') && d(3) === 1 && f.hp > 0) {
       B.log(`The Mirror Shard flashes: ${the(f)} ${verb(f, 'takes', 'take')} the same wound, <b>${res.dmg}</b>.`, 'hit');
       await damageFoe(f, res.dmg);
@@ -662,53 +670,77 @@ var Q = window.Q || (window.Q = {});
     flash(x.el, 'rise', 800);
   }
 
-  // The Abbess, before: a wail that freezes a wretch for a turn.
+  // What each boss says and does in its two phases. The pattern is the same: a cry that freezes one
+  // wretch, then at half HP it changes (no armor, a bigger die, two actions a round), its fallen
+  // stand up again, and it gets a blow that hits the whole party.
+  const BOSS_LINES = {
+    abbess: {
+      cry: 'Wail', crying: 'The Abbess wails at', shrug: (n) => `The Abbess wails. ${n} grits their teeth through it.`, froze: (n) => `The Abbess wails and ${n}’s limbs turn to lead.`,
+      wake: '<b>She wakes</b><small>The Abbess tears off her crown</small>', woke: '<b class="pink">The Abbess tears off her crown.</b> The Bell-Tongue begins to swing. She will act twice each round.',
+      call: (x) => `At her call, ${x} rises again.`,
+      blow: 'Toll', blowing: 'The Bell-Tongue tolls against her ribs.', blowAt: 'The toll rings through', blowHit: (n) => `The sound splits ${n}’s skull`, blowEsc: (n) => `${n} stops their ears in time.`, cause: 'the toll of the Bell-Tongue',
+      dead: 'The Abbess crumples. Her weeping stops.',
+    },
+    warden: {
+      cry: 'Bellow', crying: '“BACK IN YOUR CELL!” The Warden bellows at', shrug: (n) => `${n} has heard worse. They don’t go back.`, froze: (n) => `Years of that voice: ${n} freezes like a prisoner at roll-call.`,
+      wake: '<b>Lights out</b><small>The Warden tears off his mask</small>', woke: '<b class="pink">The Warden tears off his mask.</b> Under it, the sea has been at his face. He swings his great ring of keys, and will act twice each round.',
+      call: (x) => `“GUARDS!” And ${x} gets back up, still on duty.`,
+      blow: 'Keys', blowing: 'He whirls the great ring of keys, a pound of iron on a chain.', blowAt: 'The keys come round at', blowHit: (n) => `The keys catch ${n}`, blowEsc: (n) => `${n} ducks under the keys.`, cause: 'the Warden’s keys',
+      dead: 'The Warden goes down into the water like a felled bell. His ring of keys floats up beside him.',
+    },
+  };
+  const bossLines = (f) => BOSS_LINES[f.kind] || BOSS_LINES.abbess;
+
+  // A boss, before: a cry that freezes a wretch for a turn.
   async function wail(f) {
+    const L = bossLines(f);
     const pc = pickTarget(true);
     if (!pc) return;
     flash(f.el, 'cast', 600);
-    sfx('voice', { kind: 'abbess', dist: 0 });
-    if (await resist(pc, 'Wail', 'The Abbess wails at')) { B.log(`The Abbess wails. ${short(pc)} grits their teeth through it.`, 'dim'); return; }
+    sfx('voice', { kind: f.kind, dist: 0 });
+    if (await resist(pc, L.cry, L.crying)) { B.log(L.shrug(short(pc)), 'dim'); return; }
     pc.dazed = true;
-    B.log(`The Abbess wails and ${short(pc)}’s limbs turn to lead.`, 'hurt');
+    B.log(L.froze(short(pc)), 'hurt');
     renderParty();
   }
 
-  // The Abbess, after: the Bell-Tongue tolls, and every wretch hears it.
+  // A boss, after: a blow that reaches every wretch, and no armor helps.
   async function toll(f) {
+    const L = bossLines(f);
     flash(f.el, 'cast', 600);
     sfx('toll', { f: 147 });
-    B.log('The Bell-Tongue tolls against her ribs.', 'hurt');
+    B.log(L.blowing, 'hurt');
     for (const pc of B.party) {
       if (pc.dead) continue;
-      if (await resist(pc, 'Toll', 'The toll rings through')) { B.log(`${short(pc)} stops their ears in time.`, 'miss'); continue; }
+      if (await resist(pc, L.blow, L.blowAt)) { B.log(L.blowEsc(short(pc)), 'miss'); continue; }
       const dmg = d(4);
-      await throwDice({ dice: [D(4, dmg, 'pink', 'Toll')], verdict: `${short(pc)} −${dmg} HP`, tone: 'bad', text: 'The toll · d4, armor is no help' });
+      await throwDice({ dice: [D(4, dmg, 'pink', L.blow)], verdict: `${short(pc)} −${dmg} HP`, tone: 'bad', text: `${L.blow} · d4, armor is no help` });
       sfx('hurt');
-      B.log(`The sound splits ${short(pc)}’s skull: <b>${dmg}</b>.`, 'hurt');
-      await hurt(pc, dmg, 'the toll of the Bell-Tongue');
+      B.log(`${L.blowHit(short(pc))}: <b>${dmg}</b>.`, 'hurt');
+      await hurt(pc, dmg, L.cause);
     }
     renderParty();
   }
 
-  // Halfway dead, the Abbess tears off her crown: no more armor, a bigger die, two actions a round,
-  // and her fallen guards stand up again.
+  // Halfway dead, a boss changes: no more armor, a bigger die, two actions a round, and its fallen
+  // stand up again.
   async function abbessWakes(f) {
+    const L = bossLines(f);
     f.phase = 2;
     f.armor = 0;
     f.die = 10 + B.mods.dieAdd;
     renderFoes();
-    banner('<b>She wakes</b><small>The Abbess tears off her crown</small>', 'bad');
+    banner(L.wake, 'bad');
     sfx('toll', { f: 73 });
-    sfx('voice', { kind: 'abbess', dist: 0 });
-    B.log('<b class="pink">The Abbess tears off her crown.</b> The Bell-Tongue begins to swing. She will act twice each round.', 'hurt');
+    sfx('voice', { kind: f.kind, dist: 0 });
+    B.log(L.woke, 'hurt');
     await wait(1300);
     for (const x of B.foes.filter((y) => y.hp <= 0 && !y.fled && !y.raised && !y.def.boss)) {
       x.hp = Math.max(1, Math.ceil(x.maxHp / 2));
       x.raised = true;
       x.moraleChecked = true;
       B.slain = B.slain.filter((s) => s !== x);
-      B.log(`At her call, ${the(x)} ${verb(x, 'rises', 'rise')} again.`, 'hurt');
+      B.log(bossLines(f).call(the(x)), 'hurt');
       renderFoes();
       flash(x.el, 'rise', 800);
       await wait(500);
@@ -792,7 +824,7 @@ var Q = window.Q || (window.Q = {});
       const def = Q.MONSTERS[m.key];
       const hp = (m.hp !== undefined ? m.hp : def.hp()) + (def.kind === 'rats' ? mods.ratHp : 0);
       return {
-        key: m.key, def, kind: def.kind, name: def.name, hp, maxHp: m.maxHp || hp, moraleChecked: false,
+        key: m.key, def, kind: def.kind, name: m.name || def.name, proper: !!m.name, hp, maxHp: m.maxHp || hp, moraleChecked: false,
         dr: def.dr, armor: def.armor, die: def.die + mods.dieAdd, phase: 1,
       };
     });

@@ -92,7 +92,7 @@ It smells of rosewater and old pennies. It does not belong down here. <em>It mig
   Q.SCENES = [
     // ---------- the Undercroft ----------
     {
-      id: 'undercroft', floor: 0, arrive: true,
+      id: 'undercroft', floor: 'undercroft', arrive: true,
       async run(dm) {
         const pick = await dm.say('The Undercroft', `The crypt stair spits you out into a low hall. The air is wet and old, like breath held for a hundred years.
 
@@ -110,9 +110,9 @@ Somewhere ahead, claws click on stone. Under that, so faint you might be imagini
         }
       },
     },
-    { id: 'font', floor: 0, area: [1, 8, 3, 9], tile: 'F', run: (dm, first) => font(dm, first) },
+    { id: 'font', floor: 'undercroft', area: [1, 8, 3, 9], tile: 'F', run: (dm, first) => font(dm, first) },
     {
-      id: 'dais', floor: 0, area: [10, 3, 14, 7],
+      id: 'dais', floor: 'undercroft', area: [10, 3, 14, 7],
       async run(dm) {
         const pick = await dm.say('The rat-saint', `The ceiling goes up and up until your torchlight gives out. In the middle of the vault a dais of black stone rises in three steps, and every step is carved: rats, hundreds of them, gnawing their way up toward a saint who smiles as she is eaten.
 
@@ -132,7 +132,7 @@ There are words cut around her feet.`, [
       },
     },
     {
-      id: 'crypt', floor: 0, area: [7, 8, 8, 11],
+      id: 'crypt', floor: 'undercroft', area: [7, 8, 8, 11],
       async run(dm) {
         const pick = await dm.say('The drowned crypt', `Steps lead down into a crypt flooded with black water, ankle-deep and still. Coffin lids float in it like rafts.
 
@@ -159,96 +159,192 @@ Something under the water catches your torchlight and <em>winks</em>. Something 
       },
     },
     {
-      id: 'deepstair', floor: 0, area: [12, 13, 14, 14],
+      id: 'deepstair', floor: 'undercroft', area: [12, 13, 14, 14],
       async run(dm) {
-        await dm.say('The stair down', `Cold air rises from the stair, and with it a sound you will hear in your sleep for the rest of your short life: <em>a woman weeping</em>, patiently, as if she has been at it for a hundred years and has a hundred more to go.`, [{ label: 'Go on' }]);
+        dm.flag('deepStair', true);
+        await dm.say('The stair down', `The stair goes down into black water, and the water is <em>rising</em>: you watch it climb a step while you stand there. It isn’t rain and it isn’t a spring. It’s coming up from under the island.
+
+Somewhere below, under all that water, <em>a woman is weeping</em>, patiently, as if she has been at it for a hundred years.`, [{ label: 'Remember this' }]);
       },
     },
-    // ---------- the Weeping Vault ----------
+    // ---------- the Brine Gaol: where it starts ----------
     {
-      id: 'vault', floor: 1, arrive: true,
+      id: 'wake', floor: 'gaol', arrive: true,
       async run(dm) {
-        const pick = await dm.say('The Weeping Vault', `The walls sweat. Every drip lands with a little sob, and the sobs echo until the whole place seems to be grieving.
+        const [a, b] = dm.party;
+        await dm.say('The Brine Gaol', `Cold water in your mouth wakes you. It is up to your ankles, and it wasn’t yesterday. Or the day before. You stopped counting days a long time ago.
 
-Far below, a bell rings once. But the Bell-Tongue is down here, and <em>a bell without its tongue cannot ring.</em>`, [
-          { label: 'Listen to the echoes', note: 'Presence DR 12: learn where things move' },
-          { label: 'Go on' },
+${dm.name(a)}${b ? ` and ${dm.name(b)}` : ''}: two wretches in one cell, in the Brine Gaol of Skarnvik, where the Salt Lords put the people they want forgotten. Nobody has brought food in a long while. Nobody has come at all.
+
+In the corner is what’s left of your old cellmate. He isn’t using his legs any more.`, [{ label: 'Take his legs', note: 'a femur each (d4)' }]);
+        await dm.say('The Brine Gaol', `The bones come away easily. Not a sword, but they will crack a skull. <em>Your own things</em> — your weapons, your armor, your silver — the guards took when they brought you in. If they’re anywhere, they’re somewhere in here.
+
+The cell door is shut. Water is coming in under it.`, [{ label: 'Get up' }]);
+      },
+    },
+    {
+      id: 'celldoor', floor: 'gaol', door: [1, 2],
+      async run(dm) {
+        const choices = [
+          { label: 'Wrench the rusted hinge', note: 'Strength DR 12' },
+          { label: 'Pick the lock with a bone splinter', note: 'Agility DR 12' },
+          { label: 'Call for the jailer', note: 'Presence DR 12: someone might come' },
+          { label: 'Not yet' },
+        ];
+        const pick = await dm.say('Your cell door', 'Iron, rusted orange where the water reaches. The lock is old. The hinges are older.', choices);
+        if (pick === 3) return;
+        const ab = ['strength', 'agility', 'presence'][pick];
+        const pc = dm.best(ab);
+        const ok = await dm.test(pc, ab, 12, ['wrenches at the hinge', 'works a splinter into the lock', 'shouts down the corridor'][pick]);
+        if (ok) {
+          dm.openDoor(1, 2);
+          const text = [
+            `The hinge screams and gives. The door sags open into the corridor. <em>You are out of the cell.</em>`,
+            `Something in the lock clicks, and keeps clicking, and gives. <em>You are out of the cell.</em>`,
+            `A last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out — and sees the bone in ${dm.name(pc)}’s hand. He runs screaming into the dark. <em>You are out of the cell.</em>`,
+          ][pick];
+          await dm.say('Your cell door', text, [{ label: 'Out' }]);
+        } else {
+          if (pick === 0) await dm.hurt(pc, 1, 'a rusted hinge');
+          if (pick === 2) { dm.openDoor(8, 4); dm.alarm(); }
+          const text = [
+            `The hinge holds. The bar bites ${dm.name(pc)}’s palm. <em>1 damage.</em> Try again, or try something else.`,
+            'The splinter snaps off in the lock. There are more bones.',
+            'Nobody comes. But somewhere down the corridor a door bangs open, and <em>something heard you</em>. It is coming the slow way.',
+          ][pick];
+          await dm.say('Your cell door', text, [{ label: 'Again' }]);
+        }
+      },
+    },
+    {
+      id: 'knewher', floor: 'gaol', area: [7, 1, 8, 1],
+      async run(dm) {
+        const n = dm.flag('knownName');
+        const pick = await dm.say(`The cell of ${n}`, `You know this cell. You know who’s in it.
+
+<em>${n}.</em> Across the corridor from you for years. ${dm.flag('knownWhat')} ${dm.flag('knownShe') === 'he' ? 'He' : 'She'} drowned in ${dm.flag('knownShe') === 'he' ? 'his' : 'her'} chains, sitting up, as if waiting for a visitor.
+
+Nobody else is going to mourn ${n}.`, [
+          { label: 'Close the eyes and say goodbye' },
+          { label: 'Take the boots, and go' },
+          { label: 'Back away' },
+        ]);
+        if (pick === 2) {
+          await dm.say(`The cell of ${n}`, 'You back out into the corridor. The water closes over the footprints you made.', [{ label: 'Go on' }]);
+          return;
+        }
+        if (pick === 0) {
+          const pc = dm.party.slice().sort((a, b) => a.omens - b.omens)[0];
+          dm.omen(pc);
+          await dm.say(`The cell of ${n}`, `${dm.name(pc)} closes the eyes and says what there is to say. It’s the first time in years anyone has wept in here. Something in the dark takes note. <em>+1 Omen.</em>
+
+Then the eyes open again.`, [{ label: 'Fight' }]);
+        } else {
+          await dm.say(`The cell of ${n}`, `The boots come off the swollen feet with a sound you won’t forget. And then the feet move.
+
+<em>${n} opens ${dm.flag('knownShe') === 'he' ? 'his' : 'her'} eyes</em>, and they are full of seawater, and they don’t know you.`, [{ label: 'Fight' }]);
+        }
+        await dm.fight();
+      },
+    },
+    {
+      id: 'brann', floor: 'gaol', door: [10, 2],
+      async run(dm) {
+        if (dm.flag('freed')) return;
+        const name = dm.flag('livingName');
+        const pick = await dm.say('A voice from the cell', `“You’re out? You’re <em>OUT</em>. Let me out. Please. I’m ${name}. I can tell you things. I know where they put everything.”
+
+A hand comes through the grille, grey and shaking.`, [
+          { label: 'Break the lock', note: 'Strength DR 12' },
+          { label: 'Promise to come back' },
+          { label: 'Leave him' },
+        ]);
+        if (pick === 2) {
+          await dm.say('A voice from the cell', 'You walk away. His voice follows you down the corridor for a long time, cursing you by name, and then by the names of your mothers.', [{ label: 'Go on' }]);
+          return;
+        }
+        if (pick === 1) {
+          dm.flag('promised', true);
+          await dm.say('A voice from the cell', '“You’ll come back. You’ll come back. They all say that.” The hand withdraws.', [{ label: 'Go on' }]);
+          return;
+        }
+        const pc = dm.best('strength');
+        if (await dm.test(pc, 'strength', 12, 'heaves at the lock')) {
+          dm.openDoor(10, 2);
+          dm.flag('freed', name);
+          dm.flag('knowsEvidence', true);
+          await dm.say(name, `He falls out into the water and grabs ${dm.name(pc)}’s hand in both of his.
+
+“The guards kept everything in the <em>evidence room, through the infirmary</em>. Sacks with our names on them. The key to the Warden’s hall hangs in there too. And the Warden — he’s still down there. Still doing his rounds. <em>Don’t let him see you.</em>”
+
+Then he’s gone into the dark ahead of you, laughing or weeping. You may see him again, up in the city.`, [{ label: 'Go on' }]);
+        } else {
+          await dm.say('A voice from the cell', '“Again. Again! Please.” The lock holds. Your arms shake.', [{ label: 'Step back' }]);
+        }
+      },
+    },
+    {
+      id: 'guardroom', floor: 'gaol', area: [5, 5, 9, 7],
+      async run(dm) {
+        await dm.say('The guard room', `A table, a brazier long dead, and cards laid out for a game nobody finished. The guards are still here. They drowned at their posts, and they are <em>still on duty</em>, swollen with seawater, waiting for a shift that ended months ago to end.
+
+They look up.`, [{ label: 'Raise the femur' }]);
+      },
+    },
+    {
+      id: 'infirmary', floor: 'gaol', area: [1, 5, 3, 11],
+      async run(dm) {
+        const pick = await dm.say('The infirmary', `Cots under the water, straps on the cots. A desk on a dais of bricks, just above the flood, with a ledger on it, swollen shut.`, [
+          { label: 'Read the ledger' },
+          { label: 'Leave it' },
         ]);
         if (pick !== 0) return;
-        const pc = dm.best('presence');
-        if (await dm.test(pc, 'presence', 12, 'listens to the echoes')) {
-          dm.listen();
-          await dm.say('The Weeping Vault', `The sobbing has a shape, and ${dm.name(pc)} learns it. <em>Everything that moves on this floor is on your map.</em>`, [{ label: 'Go on' }]);
-        } else {
-          await dm.say('The Weeping Vault', 'The echoes fold over each other until you can’t tell near from far.', [{ label: 'Go on' }]);
-        }
+        dm.flag('ledger', true);
+        await dm.say('The Gaol ledger', `Most of it is names, and most of the names are crossed out. The last pages are different:
+
+<em>“Salt shipment from the Deep Mine. Lord Fennick says the prisoners who dug it are not to be released. Ever. Not to be named.”</em>
+
+<em>“The sea in the lower block again. The Salt Lords say the island isn’t sinking. The Salt Lords live on the hill.”</em>
+
+<em>“Comet in the sky three nights now. Half the guards gone. The Warden says no one leaves their post.”</em>
+
+<em>“Water to the knee. No one leaves.”</em>`, [{ label: 'Close it' }]);
       },
     },
     {
-      id: 'bridge', floor: 1, area: [9, 7, 10, 7],
+      id: 'lowerblock', floor: 'gaol', area: [5, 9, 14, 11],
       async run(dm) {
-        const pick = await dm.say('The bone bridge', `A bridge of fused bones spans the chasm. Below it there is no bottom, only a red glow, and a hum: one note, held forever.
+        await dm.say('The lower block', `The lower block is drowned to the waist. In the middle of it the floor has fallen in, and the sea comes and goes through the hole like breath: in, and the water rises around you; out, and something pulls at your legs.
 
-It is the same note as the bell.`, [
-          { label: 'Drop a silver coin and listen', note: '1s, Presence DR 12', disabled: dm.silverLeft < 1 },
-          { label: 'Cross' },
-        ]);
-        if (pick !== 0) return;
-        dm.silver(-1);
-        const pc = dm.best('presence');
-        if (await dm.test(pc, 'presence', 12, 'listens to the coin fall')) {
-          dm.flag('knowsTears', true);
-          await dm.say('The bone bridge', `The coin falls for a long time. When it strikes, it rings the bell’s note, and every wall in the Vault weeps harder.
-
-${dm.name(pc)} understands: <em>the Abbess drinks the Vault’s tears. Stop them, and she is only flesh.</em>`, [{ label: 'Cross' }]);
-        } else {
-          await dm.say('The bone bridge', 'The coin never lands. Or it lands somewhere that doesn’t make a sound.', [{ label: 'Cross' }]);
-        }
+<em>Don’t step in the hole.</em>`, [{ label: 'Wade on' }]);
       },
     },
     {
-      id: 'nave', floor: 1, area: [5, 13, 7, 14],
+      id: 'evidence', floor: 'gaol', area: [1, 13, 3, 14],
       async run(dm) {
-        let text = `A nave, tall as a church. Weeping statues line both walls, and from their stone eyes run black tears, down channels cut in the floor, all of them flowing to one place:
+        await dm.say('The evidence room', `Behind the infirmary, an iron cage, and in it sacks stacked to the ceiling, each with a name chalked on it. Most of the names are crossed out. <em>Yours aren’t.</em>
 
-a dais where a crowned woman in black kneels with her back to you, rocking. <em>The Pale Abbess.</em> The tears pool around her knees, and she is drinking them through her skin.`;
-        const used = new Set();
-        for (;;) {
-          const choices = [
-            ...(dm.flag('knowsTears') && !dm.flag('abbessWeak') ? [{ label: 'Plug the channels with grave-wax', note: 'quietly' }] : []),
-            ...(!dm.flag('abbessWeak') && !used.has('smash') ? [{ label: 'Smash the statues’ eyes', note: 'Strength DR 12, and loud' }] : []),
-            ...(!used.has('creep') ? [{ label: 'Creep up on her', note: 'Agility DR 14' }] : []),
-            { label: 'Step into the light' },
-          ];
-          const pick = choices[await dm.say('The nave', text, choices)].label;
-          if (pick === 'Step into the light') return;
-          if (pick.startsWith('Plug')) {
-            dm.flag('abbessWeak', true);
-            text = 'You work in silence, pressing wax into the channels one by one. The tears back up and spill across the floor. At the far end, <em>the Abbess stops rocking.</em> Without her tears, she is only flesh: no armor, and weaker.';
-          } else if (pick.startsWith('Smash')) {
-            used.add('smash');
-            const pc = dm.best('strength');
-            if (await dm.test(pc, 'strength', 12, 'smashes the statues’ eyes')) {
-              dm.flag('abbessWeak', true);
-              text = `${dm.name(pc)} goes down the line with a stone, eye after eye, and the tears stop. <em>The Abbess shrieks.</em> Without her tears she is only flesh: no armor, and weaker. But she knows you’re here.`;
-              dm.flag('abbessAlert', true);
-            } else {
-              dm.flag('abbessAlert', true);
-              text = 'The stone is harder than you are. The noise rolls down the nave, and slowly, slowly, <em>she turns her head.</em> She will strike first.';
-            }
-          } else {
-            used.add('creep');
-            const pc = dm.best('agility');
-            if (await dm.test(pc, 'agility', 14, 'creeps along the wall')) {
-              dm.flag('ambush', true);
-              dm.flag('abbessAlert', false);
-              text = `${dm.name(pc)} moves between the statues like another shadow. <em>You will strike first.</em>`;
-            } else {
-              dm.flag('abbessAlert', true);
-              text = 'A pebble skitters. The rocking stops. <em>She will strike first.</em>';
-            }
-          }
+On a hook by the cage hangs a key as long as your hand.`, [{ label: 'Open your sacks' }]);
+        const lines = dm.restoreGear();
+        dm.flag('hallKey', true);
+        await dm.say('Your things', `${lines.join('<br>')}
+
+You take the long key from its hook. <em>The Warden’s hall</em> is the only way out.`, [{ label: 'Get dressed' }]);
+      },
+    },
+    {
+      id: 'halldoor', floor: 'gaol', door: [9, 12],
+      async run(dm) {
+        if (!dm.flag('hallKey')) {
+          await dm.say('A locked door', `A door of black iron with a lock as big as your head. Beyond it, slow and heavy, something sloshes back and forth: footsteps, on their rounds.
+
+${dm.flag('knowsEvidence') ? 'The key hangs in the evidence room, through the infirmary.' : 'The key must be somewhere in the Gaol.'}`, [{ label: 'Step back' }]);
+          return;
         }
+        dm.openDoor(9, 12);
+        await dm.say('The Warden’s hall', `The long key turns. Beyond the door is the Warden’s hall, tall as a chapel, and at the far end, under a grate where grey light leaks down, is the way out.
+
+Between you and the light, keys ringing at every step, <em>the Warden is making his rounds.</em>`, [{ label: 'Go in' }]);
       },
     },
   ];

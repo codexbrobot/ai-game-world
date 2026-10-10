@@ -1,11 +1,11 @@
-// QUEST — a crawl through the Weeping Vault, in the dying world of Mörk Borg.
+// QUEST — out of the Brine Gaol and into sinking Skarnvik, in the dying world of Mörk Borg.
 // Two wretches roam a torch-lit 3D crypt (js/engine.js). Touch a monster and the fight turns into a
 // turn-based battle (js/battle.js). This file holds the run: the party, the town, the floors, saving.
 'use strict';
 
 (function () {
   const { d, fmt } = Q;
-  const SAVE_KEY = 'quest-borg-save-v2';
+  const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -21,6 +21,7 @@
 
   // ---------- small helpers ----------
   const floor = () => S.floors[S.floorIx];
+  const floorIndex = (id) => S.floors.findIndex((f) => f.id === id);
   const alive = () => S.party.filter((p) => !p.dead);
 
   function log(html, cls = '') {
@@ -37,12 +38,13 @@
       const grid = f.rows.map((row) => row.split(''));
       const groups = [];
       grid.forEach((row, y) => row.forEach((t, x) => {
-        const band = Q.GROUPS[ix][t];
+        const band = (f.groups || {})[t];
         if (!band) return;
-        groups.push({ id: `g${ix}-${id++}`, x: (x + 0.5) * CELL, z: (y + 0.5) * CELL, members: band.map((key) => ({ key })), alive: true, alert: false });
+        const dormant = band.some((key) => Q.MONSTERS[key].dormant);
+        groups.push({ id: `g${ix}-${id++}`, x: (x + 0.5) * CELL, z: (y + 0.5) * CELL, members: band.map((key) => ({ key })), alive: true, alert: false, ...(dormant ? { dormant: true } : {}) });
         row[x] = '.';
       }));
-      return { name: f.name, grid, groups, opened: [], explored: grid.map((row) => row.map(() => false)) };
+      return { id: f.id, name: f.name, grid, groups, opened: [], explored: grid.map((row) => row.map(() => false)) };
     });
   }
 
@@ -50,15 +52,41 @@
     const extra = party.reduce((n, p) => n + ((Q.classOf(p) || {}).poultices || 0), 0);
     S = {
       party, silver: party.reduce((s, p) => s + p.silver, 0), poultices: 3 + extra, scrolls: [], kills: 0, killsSinceBetter: 0,
-      floors: buildFloors(), floorIx: 0, pose: null, where: 'town', hasRelic: false, metStranger: false, log: [],
+      floors: buildFloors(), floorIx: 0, pose: null, where: 'town', metStranger: false, log: [],
       calendar: Q.calendarStart(), found: [], curios: [], deepest: 1, pendingMiseries: [],
       flags: {}, scenes: {},
     };
     setupFonts();
-    for (const p of party) { delete p.silver; delete p.poultices; delete p.scrolls; }
+    // the Gaol keeps your things until you find them: femurs and rags until then
+    for (const p of party) {
+      p.stash = { weapon: p.weapon, armor: p.armor, silver: p.silver };
+      p.weapon = { name: 'Femur', die: 4 };
+      p.armor = { name: 'Rags', tier: 0 };
+      delete p.silver; delete p.poultices; delete p.scrolls;
+    }
+    S.silver = 0;
+    S.poultices = 0;
+    nameTheGaol();
     Q.fixRows(S.party);
     Q.applyMiseries(0);
     rollCurios();
+  }
+
+  // Who the Gaol remembers: the prisoner you knew across the corridor, and the one still alive.
+  function nameTheGaol() {
+    const pick = (list) => list[Math.floor(Math.random() * list.length)];
+    const knew = pick([
+      ['Old Sigrun', 'she', 'She whistled every night so you would know she was still alive.'],
+      ['Matthis the Cook', 'he', 'He traded you half his bread for stories, and never once asked for the ending.'],
+      ['Little Ragna', 'she', 'She sang hymns backwards to annoy the guards, and it worked.'],
+      ['Grey Ottar', 'he', 'He scratched a calendar on the wall and lied to you about the date so you wouldn’t despair.'],
+    ]);
+    S.flags.knownName = knew[0];
+    S.flags.knownShe = knew[1];
+    S.flags.knownWhat = knew[2];
+    S.flags.livingName = pick(['Brann Two-Fingers', 'Osk the Weasel', 'Tobbe Saltlung', 'Jorl Nine-Lives']);
+    const gaol = S.floors.find((f) => f.id === 'gaol');
+    if (gaol) for (const g of gaol.groups) for (const m of g.members) if (m.key === 'P') m.name = knew[0];
   }
 
   // Each black font gets a hidden nature for this run (js/story.js).
@@ -116,6 +144,47 @@
         return new Promise((res) => offerItem(key, { title: 'Found', then: res }));
       },
       listen() { floor().heard = true; drawMini(); },
+      openDoor(x, y) {
+        floor().grid[y][x] = 'D';
+        if (!floor().opened.includes(x + ',' + y)) floor().opened.push(x + ',' + y);
+        world.openDoor(x, y);
+        sfx('door');
+      },
+      // wake whatever sleeps nearest and fight it, now
+      async fight() {
+        const p = world.pose();
+        const g = floor().groups.filter((x) => x.alive && x.dormant).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+        if (!g) return;
+        g.dormant = false;
+        g.alert = true;
+        await battle(g);
+      },
+      // everything awake on this floor comes looking for you
+      alarm() { for (const g of floor().groups) if (g.alive && !g.dormant) g.alert = true; },
+      // the evidence room: each wretch's own things, more or less
+      restoreGear() {
+        const lines = [];
+        for (const pc of living()) {
+          if (!pc.stash) continue;
+          const { weapon, armor, silver } = pc.stash;
+          delete pc.stash;
+          if (!pc.weapon.key) pc.weapon = weapon;
+          pc.armor = armor;
+          let got = silver;
+          const r = d(6);
+          let note = '';
+          if (r === 1 && silver > 0) { got = Math.floor(silver / 2); note = ` A guard helped himself: only <em>${got}s</em> left of ${silver}.`; }
+          S.silver += got;
+          lines.push(`<b>${esc(pc.name)}</b>: ${esc(weapon.name)} (d${weapon.die}), ${esc(armor.name)}, ${got}s.${note}`);
+          if (r === 6) S.pendingDrop = Q.rollItem(S, 1);
+        }
+        if (S.pendingDrop) lines.push('<br>And the sack beside yours, with a crossed-out name on it, was never collected. Something is still in it.');
+        S.poultices += 2;
+        lines.push('<br>Two black poultices in a guard’s satchel. <em>+2 poultices.</em>');
+        renderHud();
+        sfx('gain');
+        return lines;
+      },
       open(x, y, tile) {
         floor().grid[y][x] = tile;
         if (floor().explored[y]) floor().explored[y][x] = true;
@@ -127,7 +196,7 @@
         floor().grid.forEach((row, y) => row.forEach((t, x) => { if (t === 'F') { row[x] = 'f'; world.refreshTile(x, y); } }));
       },
       flag(name, value) {
-        if (value === undefined) return !!S.flags[name];
+        if (value === undefined) return S.flags[name];
         S.flags[name] = value;
         return value;
       },
@@ -139,8 +208,21 @@
   async function playScene(scene, first) {
     if (!alive().length) return;
     await scene.run(makeDM(), first);
+    // something a scene turned up (a sack in the evidence room)
+    if (S.pendingDrop && !S.over) {
+      const key = S.pendingDrop;
+      S.pendingDrop = null;
+      await new Promise((res) => offerItem(key, { title: 'The uncollected sack', intro: 'Under somebody else’s name:', then: res }));
+    }
     save();
     renderHud();
+  }
+
+  // A locked door in a story: its scene decides what happens.
+  async function lockedDoor(x, y) {
+    const scene = Q.SCENES.find((sc) => sc.floor === floor().id && sc.door && sc.door[0] === x && sc.door[1] === y);
+    if (scene) await playScene(scene, true);
+    else log('Locked.', 'dim');
   }
 
   // ---------- loot with personality (js/items.js) ----------
@@ -267,7 +349,7 @@
     if (S) S.where = screen;
     if (screen !== 'crawl' && world) world.pause();
     if (world) world.showHands(screen === 'crawl');
-    if (Q.Sound) Q.Sound.ambience(screen === 'crawl' ? 'crawl' : screen === 'town' ? 'town' : null, S ? S.floorIx : 0);
+    if (Q.Sound) Q.Sound.ambience(screen === 'crawl' ? 'crawl' : screen === 'town' ? 'town' : null, S && floor() ? floor().id : '');
     if (screen === 'town') renderTown();
   }
 
@@ -337,9 +419,9 @@
     Q.drawTown(ctx, W, H);
     $('townStatus').innerHTML = S.party.map((pc) => `<b>${esc(pc.name)}</b> ${pc.dead ? '<span class="pink">dead</span>' : `HP ${pc.hp}/${pc.maxHp}`}`).join(' · ') + ` · ${S.silver}s`
       + `<br><span class="pink">☄ ${calendarText()}</span>`;
-    $('townGoal').textContent = S.hasRelic
-      ? 'You carry the Bell-Tongue. The Stranger is waiting.'
-      : S.metStranger ? 'Bring the Bell-Tongue up from the Weeping Vault.' : 'A stranger in the square is asking for you.';
+    $('townGoal').textContent = S.flags.strangerTold ? 'Something is pulling the island down. (The story continues in the next update.)'
+      : S.flags.deepStair ? 'Tell the Stranger what the water is doing under the basilica.'
+        : S.metStranger ? 'Go down through the Undercroft, under the basilica, and see what the water is doing.' : 'A stranger in the shadow of the gallows is watching you.';
   }
 
   const HIRE = 20;
@@ -472,34 +554,52 @@
   }
 
   function visitStranger() {
-    if (S.hasRelic) {
-      sfx('victory');
-      S.won = true;
-      S.over = true;
-      clearSave();
-      const names = alive().map((p) => esc(p.name)).join(' and ');
-      modal('The Bell-Tongue', `${art('stranger')}
-        <p>The Stranger takes the clapper in both hands and laughs, a dry sound like pages tearing.</p>
-        <p>“Three hundred silver, as promised. And seats on the last cart.”</p>
-        <p>As the cart rolls out of Skarnvik you hear it: one note, rung on no bell at all. Above you the comet turns, slowly, toward the sound.</p>
-        <p class="yellow"><b>${names} survived the Weeping Vault.</b> ${S.kills} foes slain.</p>`, [
-        { label: 'Roll new wretches', action: () => startCreate() },
-      ], { closable: false });
+    if (S.flags.deepStair && !S.flags.strangerTold) {
+      S.flags.strangerTold = true;
+      S.silver += 40;
+      save();
+      renderTown();
+      modal('The Stranger', `${art('stranger')}
+        <p>“Rising, you say. From under. Not rain, not a spring.” The Stranger presses forty silver into your hand without counting it.</p>
+        <p>“Then it’s true. The island isn’t sinking. <b>Something is pulling it down.</b> And the Salt Lords are getting rich while it happens.”</p>
+        <p>“Get stronger. Get richer. When you’re ready to hear the rest, I’ll be here.” <span class="pink">(The story continues in the next update.)</span></p>`, [{ label: 'Take the silver' }]);
       return;
     }
+    if (S.flags.strangerTold) {
+      modal('The Stranger', `${art('stranger')}
+        <p>The Stranger hasn’t moved from the gallows’ shadow.</p>
+        <p>“Something is pulling the island down. Get stronger. When you’re ready to hear the rest, I’ll be here.”</p>
+        <p class="small">(The story continues in the next update.)</p>`, [{ label: 'Nod' }]);
+      return;
+    }
+    const first = !S.metStranger;
     S.metStranger = true;
     save();
     renderTown();
     modal('The Stranger', `${art('stranger')}
-      <p>A stranger with a sewn-shut eye takes your wrists in a cold grip, one each.</p>
-      <p>“Under the hill lies the Weeping Vault. At its bottom the Pale Abbess still wears the <b>Bell-Tongue</b>, the clapper of the last bell of Skarnvik. Bring it to me.”</p>
-      <p>“Three hundred silver, and seats on the last cart out before the gates are chained.”</p>
+      ${first ? '<p>A stranger with a sewn-shut eye takes your wrists in a cold grip, one each, and turns them over. Shackle-scars.</p><p>“Gaol-pale. You came up out of the Brine, didn’t you? Nobody comes up out of the Brine.”</p>' : '<p>The Stranger hasn’t moved from the gallows’ shadow.</p>'}
+      <p>“The island is sinking, and the Salt Lords say it isn’t. Ask yourself why they aren’t afraid.”</p>
+      <p>“Go under the basilica, into the <b>Undercroft</b>. Go all the way down. Tell me what the water is doing down there.”</p>
       <p class="small">The crypt stair is at the edge of the square. Rest at the Drowned Lamb, buy what you can at Thrumm’s, and hire a new wretch there if one of you falls.</p>`, [{ label: 'Nod' }]);
+  }
+
+  // Out through the grate: the city, at last. From here on, the dead are replaced, not the story.
+  async function escapeGaol() {
+    S.escaped = true;
+    for (const pc of alive()) if (pc.stash) { pc.weapon = pc.stash.weapon; pc.armor = pc.stash.armor; S.silver += pc.stash.silver; delete pc.stash; }
+    show('town');
+    save();
+    await say('Skarnvik', `You come up through a sewer grate in Gallows Square, an hour before dawn, and nobody looks twice. Why would they? Your faces are on posters on the gallows, so faded by rain you can barely tell they were ever faces.
+
+The city has changed while you were inside. There is a comet over the harbor. Half the old docks are under black water, and the fishermen are moving their boats up into the streets. The dead walk in the low graveyards. The Salt Lords’ men walk everywhere else.
+
+And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ label: 'Find a bed' }]);
+    renderTown();
   }
 
   function enterCrypt() {
     if (!alive().length) return;
-    enterFloor(0, 'G');
+    enterFloor(floorIndex('undercroft'), 'G');
     log(`You climb down into <b>${esc(floor().name)}</b>.`);
     if (!S.metStranger) log('You have no reason to be here yet, but here you are.', 'dim');
   }
@@ -514,11 +614,12 @@
         log('The door groans open.');
         sfx('door');
       },
-      onStep: (depth) => sfx('step', { wet: depth > 0 || (S && S.floorIx >= 1), splash: depth }),
+      onStep: (depth) => sfx('step', { wet: depth > 0, splash: depth }),
       onDrip: (pan, dist) => sfx('drip', { pan, gain: Math.max(0.08, 0.4 - dist * 0.05) }),
       onAlert: (kind, dist, pan) => sfx('alert', { kind, dist, pan }),
       onVoice: (kind, dist, pan) => sfx('voice', { kind, dist, pan }),
       onContact: (g) => run(() => battle(g)),
+      onLocked: (x, y) => run(() => lockedDoor(x, y)),
       onFall: () => run(fall),
       explored: () => (S && S.where === 'crawl' ? floor().explored : null),
       onTick: drawMini,
@@ -549,7 +650,7 @@
     drawMini();
     if (!modalOpen && !busy) w.resume();
     save();
-    const arrival = Q.SCENES.find((sc) => sc.arrive && sc.floor === ix && !S.scenes[sc.id]);
+    const arrival = Q.SCENES.find((sc) => sc.arrive && sc.floor === S.floors[ix].id && !S.scenes[sc.id]);
     if (arrival) {
       setTimeout(() => {
         if (busy || modalOpen || !S || S.scenes[arrival.id] || S.floorIx !== ix || S.where !== 'crawl') return;
@@ -578,14 +679,14 @@
   async function enterCell(x, y, t) {
     const g = floor().grid;
     // a place the DM has something to say about, the first time you walk in
-    const scene = Q.SCENES.find((sc) => sc.floor === S.floorIx && sc.area && !S.scenes[sc.id]
+    const scene = Q.SCENES.find((sc) => sc.floor === floor().id && sc.area && !S.scenes[sc.id]
       && x >= sc.area[0] && x <= sc.area[2] && y >= sc.area[1] && y <= sc.area[3]);
     if (scene) {
       S.scenes[scene.id] = true;
       await playScene(scene, true);
       if (scene.tile === t) return;
     } else {
-      const again = Q.SCENES.find((sc) => sc.floor === S.floorIx && sc.tile && sc.tile === t);
+      const again = Q.SCENES.find((sc) => sc.floor === floor().id && sc.tile && sc.tile === t);
       if (again) { await playScene(again, false); return; }
     }
     if (t === 'K') {
@@ -612,20 +713,19 @@
       g[y][x] = '.';
       world.refreshTile(x, y);
       await searchRemains(t === 'S');
+    } else if (t === 'G' && floor().id === 'gaol' && !S.flags.wardenDead) {
+      modal('The sewer grate', '<p>Above you, a grate, and through it grey light and the smell of rain and fish and smoke. It is chained shut, and the padlock is new.</p><p><b>The key will be on the Warden’s ring.</b></p>', [{ label: 'Step back' }]);
+    } else if (t === 'G' && floor().id === 'gaol') {
+      ask('The sewer grate', '<p>Above you, a grate, and through it grey light and the smell of rain and fish and smoke. <b>The city.</b></p>', 'Climb out', () => run(escapeGaol));
     } else if (t === 'G') {
       ask('The stair up', art('stair') + '<p>Grey daylight leaks down the steps. Skarnvik is above.</p>', 'Climb out', () => { show('town'); save(); });
+    } else if (t === '>' && !S.floors[S.floorIx + 1]) {
+      log('The stair down is drowned to the ceiling. Whatever is below, you can’t reach it. Yet.', 'dim');
     } else if (t === '>') {
       const next = S.floors[S.floorIx + 1];
       ask('Steps down', `<p>The stair descends into a cold that smells of candle wax and old water. <b>${esc(next.name)}</b>.</p>`, 'Descend', () => { enterFloor(S.floorIx + 1, '<'); log(`You descend into <b>${esc(floor().name)}</b>.`); });
     } else if (t === '<') {
       ask('Steps up', `<p>Back up to <b>${esc(S.floors[S.floorIx - 1].name)}</b>?</p>`, 'Climb', () => { enterFloor(S.floorIx - 1, '>'); log(`You climb back to <b>${esc(floor().name)}</b>.`); });
-    } else if (t === 'R') {
-      S.hasRelic = true;
-      g[y][x] = '.';
-      world.refreshTile(x, y);
-      log('You take the <b class="yellow">Bell-Tongue</b>. It is warm, and it hums.', 'hit');
-      sfx('toll', { f: 196 });
-      modal('The Bell-Tongue', art('relic', true) + '<p>The clapper of the last bell, black iron as long as your forearm. It is warm. It hums against your ribs.</p><p>Take it up to the Stranger in Skarnvik.</p>', [{ label: 'Go' }]);
     }
   }
 
@@ -728,12 +828,15 @@
       S.silver += result.silver;
       S.kills += result.slain;
       S.killsSinceBetter += result.slain;
-      if (g.members.some((m) => Q.MONSTERS[m.key].boss)) log('Beyond the Abbess, on a bone altar, something hums.', 'hit');
+      if (g.members.some((m) => Q.MONSTERS[m.key].kind === 'warden')) {
+        S.flags.wardenDead = true;
+        log('The Warden goes down into the water. On his ring, among a hundred keys, one is new and bright: <b>the key to the grate at the end of the hall.</b>', 'hit');
+      }
       // cultists carry relics; skeletons, strange weapons
       const kinds = g.members.map((m) => Q.MONSTERS[m.key].kind);
       let drop = null;
       if (kinds.includes('cultist') && d(2) === 1) drop = Q.rollItem(S, S.floorIx + 1, 'relic');
-      else if (kinds.includes('skeleton') && d(3) === 1) drop = Q.rollItem(S, S.floorIx + 1, 'weapon');
+      else if ((kinds.includes('skeleton') || kinds.includes('guard')) && d(3) === 1) drop = Q.rollItem(S, S.floorIx + 1, 'weapon');
       if (drop) S.pendingDrop = drop;
     } else if (result.outcome === 'fled') {
       g.stunUntil = performance.now() + 4500;
@@ -743,7 +846,7 @@
     if (Q.Sound) Q.Sound.duck(false);
     renderHud();
     drawMini();
-    if (result.outcome === 'lost' || !alive().length) return gameOver(S.party.map((p) => p.cause).find(Boolean) || 'the Vault');
+    if (result.outcome === 'lost' || !alive().length) return gameOver(S.party.map((p) => p.cause).find(Boolean) || 'the dark');
     if (result.outcome === 'fled') {
       const misery = tickCalendar();
       log(`☄ Running costs you a day. ${misery ? '' : calendarText() + '.'}`, 'dim');
@@ -754,7 +857,7 @@
     const after = () => {
       const key = S.pendingDrop;
       S.pendingDrop = null;
-      if (key && !S.over) offerItem(key, { title: 'Among the dead', intro: `Something falls from the ${esc(Q.ITEMS[key].kind === 'relic' ? 'cultist’s rags' : 'skeleton’s grip')}:` });
+      if (key && !S.over) offerItem(key, { title: 'Among the dead', intro: `Something falls from the ${esc(Q.ITEMS[key].kind === 'relic' ? 'cultist’s rags' : 'dead hand')}:` });
     };
     const miseries = S.pendingMiseries.splice(0);
     if (miseries.length && !S.over) showMiseries(miseries, after);
@@ -768,7 +871,7 @@
     clearSave();
     if (world) world.pause();
     modal('The Seventh Misery', `${art('grave')}<p class="misery-title">${esc(m.title)}</p><p>${esc(m.text)}</p>
-      <p>${S.party.map((pc) => esc(pc.name)).join(' and ')} ${S.hasRelic ? 'held the Bell-Tongue in their hands, too late' : 'never found the Bell-Tongue'}. ${S.kills} foe${S.kills === 1 ? '' : 's'} slain, for nothing.</p>
+      <p>${S.party.map((pc) => esc(pc.name)).join(' and ')} ${S.flags.deepStair ? 'came close to learning why Skarnvik sinks' : S.escaped ? 'never learned why Skarnvik sinks' : 'never saw daylight again'}. ${S.kills} foe${S.kills === 1 ? '' : 's'} slain, for nothing.</p>
       <p class="small">The Calendar of Nechrubel has run out. New wretches, in some other world, are already on the way.</p>`, [
       { label: 'Roll new wretches', action: () => startCreate() },
     ], { closable: false, dead: true });
@@ -777,13 +880,27 @@
   function gameOver(cause) {
     if (S.over) return;
     S.over = true;
-    clearSave();
     if (world) world.pause();
     sfx('toll', { f: 82 });
     const pcs = S.party.map((pc) => `<p class="epitaph">Here lies <b>${esc(pc.name)}</b>.<br>${esc(pc.trait)}</p>`).join('');
+    const where = esc(S.where === 'crawl' ? floor().name : 'Skarnvik');
+    if (S.escaped) {
+      // the story goes on without them: someone else in Skarnvik picks it up
+      S.awaitingWretches = true;
+      S.over = false;
+      save();
+      S.over = true;
+      modal('Dead', `${art('grave')}${pcs}
+        <p>Killed by ${esc(cause)} in ${where}, with ${S.kills} foe${S.kills === 1 ? '' : 's'} slain.</p>
+        <p class="small">Skarnvik is full of desperate people. Somebody else heard what you learned, and somebody else will finish it.</p>`, [
+        { label: 'New wretches in Skarnvik', action: () => startCreate(true) },
+      ], { closable: false, dead: true });
+      return;
+    }
+    clearSave();
     modal('Dead', `${art('grave')}${pcs}
-      <p>Killed by ${esc(cause)} in ${esc(S.where === 'crawl' ? floor().name : 'Skarnvik')}, with ${S.kills} foe${S.kills === 1 ? '' : 's'} slain and ${S.silver}s in a purse someone else will empty.</p>
-      <p class="small">The Weeping Vault keeps what it takes. New wretches are already on the way.</p>`, [
+      <p>Killed by ${esc(cause)} in ${where}, never having seen daylight again.</p>
+      <p class="small">The Brine Gaol keeps what it takes. New prisoners are already being thrown in.</p>`, [
       { label: 'Roll new wretches', action: () => startCreate() },
     ], { closable: false, dead: true });
   }
@@ -854,7 +971,8 @@
     }
     box.hidden = false;
     const first = row.querySelector('button:not(:disabled)');
-    if (first) first.focus();
+    if (first) first.focus({ preventScroll: true });
+    document.querySelector('#modal .card').scrollTop = 0;
   }
 
   function closeModal() {
@@ -953,7 +1071,9 @@
   }
 
   // ---------- flow ----------
-  function startCreate() {
+  let heirs = null; // a run whose wretches died after the escape: new ones carry it on
+  function startCreate(keep) {
+    heirs = keep && S ? S : null;
     S = null;
     if (world) world.pause();
     const keys = Object.keys(Q.CLASSES).sort(() => Math.random() - 0.5);
@@ -965,17 +1085,36 @@
   function acceptParty() {
     // the one who would rather stand in front does; otherwise the first
     if (rolled[0].row === rolled[1].row) { rolled[0].row = 'front'; rolled[1].row = 'back'; }
+    if (heirs) {
+      // new wretches from Skarnvik itself, with their own gear, carrying on the story
+      S = heirs;
+      heirs = null;
+      S.party = rolled;
+      S.silver = rolled.reduce((n, p) => n + p.silver, 0);
+      for (const p of rolled) { delete p.silver; delete p.poultices; delete p.scrolls; }
+      S.poultices = 3;
+      S.killsSinceBetter = 0;
+      S.over = false;
+      S.awaitingWretches = false;
+      S.floorIx = floorIndex('undercroft');
+      Q.fixRows(S.party);
+      log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> pick up where the dead left off.`);
+      show('town');
+      save();
+      say('Skarnvik', 'You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. <em>Somebody has to finish it.</em> It might as well be you.', [{ label: 'Go on' }]).then(renderTown);
+      return;
+    }
     newRun(rolled);
-    log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> crawl into Skarnvik under the comet.`);
-    show('town');
+    log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> wake in the Brine Gaol.`);
+    enterFloor(floorIndex('gaol'), '@');
     save();
-    visitStranger();
   }
 
   function continueRun() {
     const saved = loadSave();
     if (!saved) return;
     S = saved;
+    if (S.awaitingWretches) { startCreate(true); return; }
     setupFonts();
     Q.fixRows(S.party);
     Q.applyMiseries(S.calendar.misery);
@@ -1033,6 +1172,7 @@
   Q.debug = () => S;
   Q.debugWorld = () => world;
   Q.debugEnter = (ix, pose) => enterFloor(ix, null, pose);
+  Q.debugDie = (cause) => { for (const p of S.party) { p.hp = 0; p.dead = true; } gameOver(cause); };
 
   if (Q.Dice) Q.Dice.init($('dice'));
   bind();

@@ -57,6 +57,18 @@ ART = {
                    prompt=f'full body illustration of a tall undead abbess in a black veil and tattered nun habit, '
                           f'spiked iron crown, weeping black tears, glowing pink eyes, long bony hands, '
                           f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    # The Brine Gaol's dead, still at their posts and in their cells.
+    'guard': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                  prompt=f'full body illustration of a drowned undead prison guard, bloated grey skin, a dented iron helmet, '
+                         f'a rotten leather jerkin, a heavy wooden truncheon in one hand and a ring of keys at the belt, '
+                         f'seaweed hanging from him, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'prisoner': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                     prompt=f'full body illustration of a drowned emaciated prisoner in torn rags, iron manacles and a broken chain '
+                            f'on the wrists, hollow staring eyes, wet tangled hair, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'warden': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                   prompt=f'full body illustration of a huge bloated drowned prison warden in a long black coat with brass buttons, '
+                          f'an iron mask over his face, a great ring of iron keys and a lantern on his belt, barnacles and seaweed, '
+                          f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
     # --- things on the floor ---
     'remains': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
                     prompt=f'a pile of human bones and a skull with rotten rags lying on the ground, {ISOLATED}, {STYLE}'),
@@ -98,6 +110,14 @@ ART = {
                           prompt=f'close-up of a dark gothic vaulted ceiling of small black bricks with crossing stone ribs, {FLAT}'),
     'vault-door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='irondoor', strength=0.62,
                        prompt=f'close-up of a heavy black iron door with riveted bands and a skull knocker in a stone wall, {FLAT}'),
+    # The Brine Gaol: wet brick with shackles, barred cell fronts, cell doors. (Its floor is the Undercroft's
+    # flagstones: a drain on every square looked like a bathroom.)
+    'gaol-wall': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='shackles', strength=0.64,
+                      prompt=f'close-up of a damp prison wall of small dark bricks with an iron ring and a hanging chain, scratched tally marks, {FLAT}'),
+    'gaol-bars': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='bars', strength=0.6,
+                      prompt=f'close-up of a prison cell front of rusted vertical iron bars set in a stone frame, darkness behind the bars, {FLAT}'),
+    'gaol-door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='celldoor', strength=0.6,
+                      prompt=f'close-up of a heavy iron prison cell door with rivets and a small barred window, in a stone wall, {FLAT}'),
     # --- the wretches' hands, seen in first person like Doom's weapons ---
     # Asked for a hand, the model paints a whole figure; so each starts from a drawn arm and fist entering
     # from the bottom of the frame, gripping the thing (init 'held:...'). The torch is drawn unlit; the game
@@ -163,6 +183,7 @@ SEEDS = {
     'wall-stone': 1, 'wall-ossuary': 2, 'wall-relief': 2, 'door': 2, 'floor': 1, 'ceiling': 1,
     'town': 2, 'title': 1, 'inn': 1, 'stall': 1, 'stranger': 2, 'stair': 2, 'grave': 2,
     'vault-wall': 1, 'vault-niches': 2, 'vault-face': 2, 'vault-floor': 1, 'vault-ceiling': 2, 'vault-door': 2,
+    'guard': 2, 'prisoner': 1, 'warden': 3, 'gaol-wall': 3, 'gaol-bars': 2, 'gaol-door': 2,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
@@ -361,6 +382,45 @@ def layout(kind, size, seed_name):
         for _ in range(9):
             x, y = rnd.uniform(0, w), rnd.uniform(0, h)
             d.line([x, y, x + rnd.uniform(-40, 40), y + rnd.uniform(-12, 12)], fill=210, width=5)
+    elif kind == 'shackles':
+        _blocks(d, rnd, w, h, rows=9, tone=(70, 120))
+        cx, cy = w * 0.5, h * 0.38
+        d.ellipse([cx - 34, cy - 34, cx + 34, cy + 34], outline=185, width=11)
+        d.rectangle([cx - 14, cy - 60, cx + 14, cy - 30], fill=150)
+        for k in range(6):
+            yy = cy + 34 + k * 26
+            d.ellipse([cx - 11 + (k % 2) * 4, yy, cx + 11 + (k % 2) * 4, yy + 30], outline=170, width=7)
+        for k in range(4):  # tally marks
+            x = w * 0.12 + k * 14
+            d.line([x, h * 0.72, x + 3, h * 0.84], fill=215, width=4)
+        d.line([w * 0.1, h * 0.8, w * 0.12 + 56, h * 0.75], fill=215, width=4)
+    elif kind == 'bars':
+        _blocks(d, rnd, w, h, rows=6)
+        x0, x1, y0 = w * 0.1, w * 0.9, h * 0.08
+        d.rectangle([x0 - 12, y0 - 12, x1 + 12, h], fill=110)
+        d.rectangle([x0, y0, x1, h], fill=12)
+        for k in range(7):
+            x = x0 + 18 + k * (x1 - x0 - 36) / 6
+            d.rectangle([x - 8, y0, x + 8, h], fill=150)
+            d.line([x - 3, y0, x - 3, h], fill=200, width=3)
+        for yy in (h * 0.3, h * 0.72):
+            d.rectangle([x0, yy, x1, yy + 16], fill=135)
+    elif kind == 'celldoor':
+        _blocks(d, rnd, w, h, rows=6)
+        x0, x1, top = w * 0.16, w * 0.84, h * 0.08
+        d.rectangle([x0 - 12, top - 12, x1 + 12, h], fill=22)
+        d.rectangle([x0, top, x1, h], fill=85)
+        for k in range(5):
+            y = top + 20 + k * (h - top - 40) / 4
+            for j in range(7):
+                rx = x0 + 18 + j * (x1 - x0 - 36) / 6
+                d.ellipse([rx - 6, y - 6, rx + 6, y + 6], fill=175)
+        gx0, gx1, gy0, gy1 = w * 0.36, w * 0.64, h * 0.2, h * 0.36
+        d.rectangle([gx0, gy0, gx1, gy1], fill=10)
+        for k in range(4):
+            x = gx0 + 10 + k * (gx1 - gx0 - 20) / 3
+            d.rectangle([x - 4, gy0, x + 4, gy1], fill=160)
+        d.rectangle([w * 0.72, h * 0.55, w * 0.78, h * 0.65], fill=160)
     elif kind.startswith('held:'):
         _held(d, rnd, w, h, kind.split(':')[1])
     elif kind == 'weeping':
