@@ -821,7 +821,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       party: S.party, foes: g.members, inv: S, log, misery: S.calendar.misery,
       ...(g.members.some((m) => Q.MONSTERS[m.key].boss) ? { bossWeak: !!S.flags.abbessWeak, firstStrike: !!S.flags.ambush, foesFirst: !!S.flags.abbessAlert && !S.flags.ambush } : {}),
       onDayLost: () => { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); renderHud(); },
-      onChange: renderHud, onHurt: flashHurt,
+      onChange: renderHud, onHurt: flashHurt, say,
     });
     if (result.outcome === 'won') {
       g.alive = false;

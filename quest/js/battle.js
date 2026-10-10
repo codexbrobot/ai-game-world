@@ -30,7 +30,7 @@ var Q = window.Q || (window.Q = {});
   Q.damageText = damageText;
 
   // a named foe (someone you knew) gets no article
-  const the = (f, cap) => (/^The /.test(f.name) || f.proper ? esc(f.name) : `${cap ? 'The' : 'the'} ${esc(f.name)}`);
+  const the = (f, cap) => (f.proper ? esc(f.name) : `${cap ? 'The' : 'the'} ${esc(f.name.replace(/^The /, ''))}`);
   const verb = (f, one, many) => (f.def.plural ? many : one);
   const short = (pc) => esc(pc.name.split(' ')[0]);
 
@@ -381,7 +381,7 @@ var Q = window.Q || (window.Q = {});
       return;
     }
     if (f.def.boss && f.phase !== 2 && f.hp <= f.maxHp / 2) {
-      await abbessWakes(f);
+      await bossWakes(f);
       return;
     }
     const score = f.def.morale;
@@ -687,6 +687,15 @@ var Q = window.Q || (window.Q = {});
       call: (x) => `“GUARDS!” And ${x} gets back up, still on duty.`,
       blow: 'Keys', blowing: 'He whirls the great ring of keys, a pound of iron on a chain.', blowAt: 'The keys come round at', blowHit: (n) => `The keys catch ${n}`, blowEsc: (n) => `${n} ducks under the keys.`, cause: 'the Warden’s keys',
       dead: 'The Warden goes down into the water like a felled bell. His ring of keys floats up beside him.',
+      // the DM stops the fight to tell you what just happened (fallen: the dead about to stand up again)
+      title: 'No one leaves',
+      story: (fallen) => `The Warden goes down on one knee in the black water, and for a moment you think it’s over.
+
+Then he laughs, a wet, bubbling sound, and tears off his mask. Underneath it, the sea has been at his face for months. <em>“No one leaves,”</em> he says. <em>“No one ever leaves.”</em>
+
+${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${fallen.length > 1 ? 'the guards you put down stand' : 'the guard you put down stands'} back up in the water, still on duty.` : 'He bellows down the hall for his guards. Nothing answers but the water.'}
+
+<em>He has thrown off his armor. From now on he hits harder (d10) and acts twice each round.${fallen.length ? ` ${fallen.length > 1 ? 'The risen guards fight' : 'The risen guard fights'} on at half strength.` : ''}</em>`,
     },
   };
   const bossLines = (f) => BOSS_LINES[f.kind] || BOSS_LINES.abbess;
@@ -723,8 +732,8 @@ var Q = window.Q || (window.Q = {});
   }
 
   // Halfway dead, a boss changes: no more armor, a bigger die, two actions a round, and its fallen
-  // stand up again.
-  async function abbessWakes(f) {
+  // stand up again. The DM stops the fight to say so.
+  async function bossWakes(f) {
     const L = bossLines(f);
     f.phase = 2;
     f.armor = 0;
@@ -734,8 +743,10 @@ var Q = window.Q || (window.Q = {});
     sfx('toll', { f: 73 });
     sfx('voice', { kind: f.kind, dist: 0 });
     B.log(L.woke, 'hurt');
+    const fallen = B.foes.filter((y) => y.hp <= 0 && !y.fled && !y.raised && !y.def.boss);
     await wait(1300);
-    for (const x of B.foes.filter((y) => y.hp <= 0 && !y.fled && !y.raised && !y.def.boss)) {
+    if (B.say && L.story) await B.say(L.title, L.story(fallen), [{ label: 'Fight on' }]);
+    for (const x of fallen) {
       x.hp = Math.max(1, Math.ceil(x.maxHp / 2));
       x.raised = true;
       x.moraleChecked = true;
