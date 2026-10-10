@@ -51,11 +51,77 @@
     S = {
       party, silver: party.reduce((s, p) => s + p.silver, 0), poultices: 3 + extra, scrolls: [], kills: 0, killsSinceBetter: 0,
       floors: buildFloors(), floorIx: 0, pose: null, where: 'town', hasRelic: false, metStranger: false, log: [],
-      calendar: Q.calendarStart(),
+      calendar: Q.calendarStart(), found: [], curios: [], deepest: 1, pendingMiseries: [],
     };
     for (const p of party) { delete p.silver; delete p.poultices; delete p.scrolls; }
     Q.fixRows(S.party);
     Q.applyMiseries(0);
+    rollCurios();
+  }
+
+  // ---------- loot with personality (js/items.js) ----------
+  // Thrumm's curios: two strange things on the shelf, new ones after every night.
+  function rollCurios() {
+    S.found = S.found.filter((k) => !S.curios.includes(k)); // unsold ones go back into the world
+    S.curios = [];
+    for (let i = 0; i < 2; i++) {
+      const k = Q.rollItem(S, S.deepest || 1);
+      if (k) S.curios.push(k);
+    }
+  }
+
+  // Something found (or bought): which wretch takes it? opts: { price, source, then }
+  function offerItem(key, opts = {}) {
+    const it = Q.ITEMS[key];
+    const verbWord = it.kind === 'weapon' ? 'wields' : 'wears';
+    const buttons = alive().map((pc) => {
+      const stuck = it.kind === 'relic' && Q.cursedOn(pc);
+      const old = it.kind === 'relic' ? (pc.relic ? Q.ITEMS[pc.relic].name : null) : pc.weapon.name;
+      return {
+        label: `${pc.name.split(' ')[0]} ${verbWord} it${stuck ? ' (their cursed relic won’t come off)' : old ? ` (drops the ${old})` : ''}`,
+        disabled: stuck || (opts.price && S.silver < opts.price),
+        action: () => takeItem(pc, key, opts),
+      };
+    });
+    modal(opts.title || it.name, `${opts.intro ? `<p>${opts.intro}</p>` : ''}<p class="item-card">${Q.itemHtml(key, esc)}</p>${opts.price ? `<p class="small">Thrumm wants <b>${opts.price}s</b>. You have ${S.silver}s.</p>` : ''}`, [
+      ...buttons,
+      { label: opts.price ? 'Not today' : 'Leave it', ghost: true, action: () => { if (!opts.price) log(`You leave the ${esc(it.name)} where it lies.`, 'dim'); if (opts.then) opts.then(); } },
+    ]);
+  }
+
+  function takeItem(pc, key, opts) {
+    const it = Q.ITEMS[key];
+    if (opts.price) {
+      S.silver -= opts.price;
+      S.curios = S.curios.filter((k) => k !== key);
+    }
+    const fresh = it.kind === 'weapon' ? Q.wield(pc, key) : Q.wear(pc, key);
+    sfx(it.cursed ? 'toll' : 'gain', it.cursed ? { f: 110 } : undefined);
+    log(`${short(pc)} ${it.kind === 'weapon' ? 'takes up' : 'puts on'} the <b class="yellow">${esc(it.name)}</b>.${it.cursed ? ' <span class="pink">It will not come off.</span>' : ''}`, it.cursed ? 'hurt' : 'hit');
+    save();
+    renderHud();
+    if (S.where === 'town') renderTown();
+    modal(fresh ? 'Now you know' : it.name, `<p>${esc(pc.name)} ${it.kind === 'weapon' ? 'closes a hand around' : 'puts on'} the ${esc(it.name)}.</p>
+      <p class="item-card">${Q.itemHtml(key, esc)}</p>
+      ${it.cursed ? '<p class="pink"><b>Cursed.</b> It sinks into the flesh and will not come off. Thrumm knows a way, for silver.</p>' : ''}
+      ${fresh ? '<p class="small">Written in your Codex.</p>' : ''}`, [{ label: 'So be it', action: opts.then }]);
+  }
+
+  // Thrumm pries a cursed relic off.
+  const PRY = 25;
+  function pryOff(pc) {
+    S.silver -= PRY;
+    const name = Q.ITEMS[pc.relic].name;
+    Q.takeOff(pc);
+    log(`Thrumm pries the ${esc(name)} off ${short(pc)} with pliers and a prayer.`, 'hit');
+    save(); renderTown(); visitShop();
+  }
+
+  function showCodex() {
+    const rows = Object.entries(Q.ITEMS).map(([k, it]) => (Q.Codex.known(k)
+      ? `<li><b>${esc(it.name)}</b>${it.kind === 'weapon' ? ` (d${it.die})` : ''}${it.cursed ? ' <span class="pink">cursed</span>' : ''}<br><span class="small">${esc(it.text)}</span></li>`
+      : '<li class="dim">??? <span class="small">Not yet found.</span></li>')).join('');
+    modal(`The Codex (${Q.Codex.count()} of ${Object.keys(Q.ITEMS).length})`, `<p class="small">Every strange thing your wretches have worn or wielded, in any run.</p><ol class="codex">${rows}</ol>`, [{ label: 'Close' }], { wide: true });
   }
 
   // ---------- the Calendar of Nechrubel ----------
@@ -73,6 +139,10 @@
     c.days = Q.calendarNext();
     Q.applyMiseries(c.misery);
     return Q.MISERIES[c.misery - 1];
+  }
+  function showMiseries(list, then) {
+    if (!list.length) { if (then) then(); return; }
+    showMisery(list[0], () => showMiseries(list.slice(1), then));
   }
   function showMisery(m, then) {
     const n = S.calendar.misery;
@@ -98,6 +168,7 @@
       const raw = localStorage.getItem(SAVE_KEY);
       const saved = raw ? JSON.parse(raw) : null;
       if (saved && !saved.calendar) saved.calendar = Q.calendarStart(); // saves from before the Calendar
+      if (saved && !saved.found) Object.assign(saved, { found: [], curios: [], deepest: 1, pendingMiseries: [] }); // or before loot
       return saved;
     } catch (e) { return null; }
   }
@@ -117,6 +188,7 @@
 
   function renderTitle() {
     $('btnContinue').hidden = !loadSave();
+    $('btnCodex').textContent = `Codex (${Q.Codex.count()}/${Object.keys(Q.ITEMS).length})`;
   }
 
   // ---------- the party ----------
@@ -150,7 +222,8 @@
       <dl class="gear">
         <dt>HP</dt><dd>${Math.max(0, pc.hp)} / ${pc.maxHp}${pc.bleeding ? ' <em class="pink">bleeding</em>' : ''}</dd>
         <dt>Omens</dt><dd>${pc.omens}</dd>
-        <dt>Weapon</dt><dd>${esc(pc.weapon.name)} (d${pc.weapon.die})</dd>
+        <dt>Weapon</dt><dd>${esc(pc.weapon.name)} (d${pc.weapon.die})${pc.weapon.key ? `<br><small>${esc(Q.ITEMS[pc.weapon.key].text)}</small>` : ''}</dd>
+        ${pc.relic ? `<dt>Relic</dt><dd>${esc(Q.ITEMS[pc.relic].name)}${Q.ITEMS[pc.relic].cursed ? ' <em class="pink">cursed</em>' : ''}<br><small>${esc(Q.ITEMS[pc.relic].text)}</small></dd>` : ''}
         <dt>Armor</dt><dd>${esc(pc.armor.name)}${pc.armor.tier ? ` (−d${Q.ARMOR_DIE[pc.armor.tier]})` : ''}</dd>
         <dt>Powers</dt><dd>${pc.powers} use${pc.powers === 1 ? '' : 's'} a day</dd>
         ${cls ? `<dt>${esc(cls.ability.name)}</dt><dd>${esc(cls.ability.text)} Once per battle.</dd>` : ''}
@@ -236,12 +309,31 @@
       S.killsSinceBetter = 0;
       for (const pc of alive()) lines.push(`<b class="yellow">${esc(pc.name)} Gets Better</b>`, ...Q.gettingBetter(pc));
     }
-    const misery = tickCalendar();
-    lines.push(`<span class="pink">☄ A day is gone. ${misery ? 'Something is wrong with the sky.' : calendarText() + '.'}</span>`);
+    // what the relics take in the night
+    let days = 1;
+    for (const pc of alive()) {
+      if (Q.has(pc, 'crown')) {
+        pc.omens += 1;
+        days += 1;
+        lines.push(`The Comet Crown gives ${short(pc)} one more Omen, and <span class="pink">takes a day</span>.`);
+      }
+    }
+    if (Q.anyHas(S.party, 'coin')) {
+      const r = d(6);
+      if (r <= 2) { days += 1; lines.push(`<span class="pink">The drowned come for their coin in the night (d6: ${r}) and take a day.</span>`); }
+    }
+    if (Q.anyHas(S.party, 'ratking') && S.poultices > 0) {
+      S.poultices -= 1;
+      lines.push('Rats in the pack have eaten a poultice.');
+    }
+    const miseries = [];
+    for (let i = 0; i < days; i++) { const m = tickCalendar(); if (m) miseries.push(m); }
+    lines.push(`<span class="pink">☄ ${days === 1 ? 'A day is' : `${days} days are`} gone. ${miseries.length ? 'Something is wrong with the sky.' : calendarText() + '.'}</span>`);
+    rollCurios();
     save();
     renderTown();
     modal(bed ? 'Morning' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
-      { label: 'Get up', action: misery ? () => { showMisery(misery, () => { save(); renderTown(); }); } : null },
+      { label: 'Get up', action: miseries.length ? () => showMiseries(miseries, () => { save(); renderTown(); }) : null },
     ]);
   }
 
@@ -251,11 +343,25 @@
       return `<button class="shoprow" data-i="${i}" ${can ? '' : 'disabled'}>
         <span><b>${esc(item.name)}</b><small>${esc(item.note)}</small></span><span class="price">${price(item)}s</span></button>`;
     }).join('');
-    modal('Thrumm’s Stall', `${art('stall')}<p>Thrumm sells what the dead no longer need. You have <b>${S.silver}s</b>.</p><div class="shop">${rows}</div>`, [{ label: 'Leave', ghost: true }]);
-    document.querySelectorAll('.shoprow').forEach((b) => b.addEventListener('click', () => buy(Q.SHOP[+b.dataset.i])));
+    const curios = S.curios.map((k) => {
+      const it = Q.ITEMS[k];
+      const p = price(it);
+      return `<button class="shoprow curio" data-k="${k}" ${S.silver >= p ? '' : 'disabled'}>
+        <span><b>${esc(it.name)}</b><small>${esc(it.flavor)}${Q.Codex.known(k) ? '' : ' (Thrumm swears it’s lucky.)'}</small></span><span class="price">${p}s</span></button>`;
+    }).join('');
+    const pries = alive().filter((pc) => Q.cursedOn(pc)).map((pc) => `<button class="shoprow pry" data-n="${S.party.indexOf(pc)}" ${S.silver >= PRY ? '' : 'disabled'}>
+        <span><b>Pry off ${esc(pc.name.split(' ')[0])}’s ${esc(Q.ITEMS[pc.relic].name)}</b><small>Pliers, salt and a muttered prayer.</small></span><span class="price">${PRY}s</span></button>`).join('');
+    modal('Thrumm’s Stall', `${art('stall')}<p>Thrumm sells what the dead no longer need. You have <b>${S.silver}s</b>.</p><div class="shop">${rows}</div>
+      ${curios || pries ? `<p class="small"><b>Under the counter.</b> New curios after every night.</p><div class="shop">${curios}${pries}</div>` : ''}`, [{ label: 'Leave', ghost: true }]);
+    document.querySelectorAll('.shoprow:not(.curio):not(.pry)').forEach((b) => b.addEventListener('click', () => buy(Q.SHOP[+b.dataset.i])));
+    document.querySelectorAll('.shoprow.curio').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.k;
+      offerItem(k, { price: price(Q.ITEMS[k]), title: 'Under Thrumm’s counter', then: visitShop });
+    }));
+    document.querySelectorAll('.shoprow.pry').forEach((b) => b.addEventListener('click', () => pryOff(S.party[+b.dataset.n])));
   }
 
-  const price = (item) => Math.round(item.price * mods().price);
+  const price = (item) => Math.round(item.price * mods().price * (Q.anyHas(S.party, 'tongue') ? 0.6 : 1));
   function buy(item) {
     if (item.kind === 'poultice') {
       S.silver -= price(item);
@@ -337,6 +443,7 @@
   // Go below: onto floor ix, standing on the first `arriveOn` tile, or at a saved pose.
   function enterFloor(ix, arriveOn, pose) {
     S.floorIx = ix;
+    S.deepest = Math.max(S.deepest || 1, ix + 1);
     show('crawl');
     const w = ensureWorld();
     w.showHands(true);
@@ -425,6 +532,16 @@
       return;
     }
     const res = Q.searchRemains(S.floorIx + 1);
+    if (res.kind === 'item') {
+      const key = Q.rollItem(S, S.floorIx + 1);
+      if (key) {
+        sfx('gain');
+        log(`Something strange in the remains: <b class="yellow">${esc(Q.ITEMS[key].name)}</b>.`, 'hit');
+        offerItem(key, { title: 'In the remains', intro: 'Clutched in a dead hand, or hidden in the ribs:' });
+        return;
+      }
+      res.kind = 'omen';
+    }
     if (res.kind !== 'hand') sfx('gain');
     if (res.kind === 'silver') { S.silver += res.amount; log(`You pick the remains clean: <b>${res.amount}s</b>.`, 'hit'); }
     if (res.kind === 'poultice') { S.poultices += 1; log('A black poultice, still sticky. <b>+1 poultice</b>.', 'hit'); }
@@ -512,6 +629,7 @@
     v.classList.remove('shatter');
     const result = await Q.Battle.run({
       party: S.party, foes: g.members, inv: S, log, misery: S.calendar.misery,
+      onDayLost: () => { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); renderHud(); },
       onChange: renderHud, onHurt: flashHurt,
     });
     if (result.outcome === 'won') {
@@ -520,6 +638,12 @@
       S.kills += result.slain;
       S.killsSinceBetter += result.slain;
       if (g.members.some((m) => Q.MONSTERS[m.key].boss)) log('Beyond the Abbess, on a bone altar, something hums.', 'hit');
+      // cultists carry relics; skeletons, strange weapons
+      const kinds = g.members.map((m) => Q.MONSTERS[m.key].kind);
+      let drop = null;
+      if (kinds.includes('cultist') && d(2) === 1) drop = Q.rollItem(S, S.floorIx + 1, 'relic');
+      else if (kinds.includes('skeleton') && d(3) === 1) drop = Q.rollItem(S, S.floorIx + 1, 'weapon');
+      if (drop) S.pendingDrop = drop;
     } else if (result.outcome === 'fled') {
       g.stunUntil = performance.now() + 4500;
       world.stepBack(g);
@@ -533,8 +657,17 @@
       const misery = tickCalendar();
       log(`☄ Running costs you a day. ${misery ? '' : calendarText() + '.'}`, 'dim');
       renderHud();
-      if (misery) showMisery(misery);
+      if (misery) S.pendingMiseries.push(misery);
     }
+    // what the battle left: Miseries the Weeping Sword brought on, and anything the dead dropped
+    const after = () => {
+      const key = S.pendingDrop;
+      S.pendingDrop = null;
+      if (key && !S.over) offerItem(key, { title: 'Among the dead', intro: `Something falls from the ${esc(Q.ITEMS[key].kind === 'relic' ? 'cultist’s rags' : 'skeleton’s grip')}:` });
+    };
+    const miseries = S.pendingMiseries.splice(0);
+    if (miseries.length && !S.over) showMiseries(miseries, after);
+    else after();
   }
 
   function worldEnds(m) {
@@ -576,7 +709,7 @@
     if (world) {
       // the front wretch's weapon is the one in the right hand
       const front = alive().find((p) => p.row !== 'back') || alive()[0];
-      world.setWeapon(front ? front.weapon.name : null);
+      world.setWeapon(front ? front.weapon.art || front.weapon.name : null);
     }
     $('tPoultice').querySelector('small').textContent = S.poultices;
     $('tPoultice').disabled = S.poultices <= 0 || !alive().some((p) => p.hp < p.maxHp || p.bleeding);
@@ -598,7 +731,8 @@
 
   function mapView(mini) {
     const p = world.mapPose();
-    const groups = floor().groups.filter((g) => g.alive).map((g) => ({ hp: 1, seen: true, ...world.monsterPos(g) }));
+    const eye = Q.anyHas(S.party, 'eye');
+    const groups = floor().groups.filter((g) => g.alive).map((g) => ({ hp: 1, seen: true, always: eye, ...world.monsterPos(g) }));
     return { mini, grid: floor().grid, explored: floor().explored, x: p.x, y: p.y, a: p.a, monsters: groups };
   }
 
@@ -652,8 +786,9 @@
     const hurtOnes = alive().filter((p) => p.hp < p.maxHp || p.bleeding);
     const bind = (pc) => run(async () => {
       S.poultices -= 1;
-      const h = d(6);
-      await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: `${short(pc)}’s wounds bound · black poultice d6` });
+      const rolled = d(6);
+      const h = Q.has(pc, 'dirt') ? Math.ceil(rolled / 2) : rolled;
+      await throwDice({ dice: [D(6, rolled, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: `${short(pc)}’s wounds bound · black poultice d6${h !== rolled ? ', halved by the grave dirt' : ''}` });
       pc.hp = Math.min(pc.maxHp, pc.hp + h);
       pc.bleeding = false;
       sfx('heal');
@@ -708,6 +843,7 @@
       } else startCreate();
     });
     $('btnContinue').addEventListener('click', continueRun);
+    $('btnCodex').addEventListener('click', showCodex);
     $('btnAccept').addEventListener('click', acceptParty);
     $('goInn').addEventListener('click', visitInn);
     $('goShop').addEventListener('click', visitShop);

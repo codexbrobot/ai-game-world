@@ -455,3 +455,13 @@ body.in-battle .hands { opacity: 0; }
   .hand-left { left: 10%; }
   .hand-right { right: 9%; }
 }
+
+/* ---------- loot with personality ---------- */
+.item-card { background: rgba(255, 225, 26, 0.08); border-left: 4px solid var(--yellow); padding: 8px 10px; line-height: 1.4; }
+.item-card i { color: var(--dim); }
+.shoprow.curio b { color: var(--pink); }
+.codex { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; }
+.codex li.dim { color: var(--dim); }
+.title-small { gap: 8px; }
+.title-small button { margin-top: 10px; min-height: 36px; font-size: 13px; }
+#btnSound { margin-top: 10px; }

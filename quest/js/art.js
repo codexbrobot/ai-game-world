@@ -199,7 +199,7 @@ var Q = window.Q || (window.Q = {});
     }
     for (const m of monsters) {
       const p = where(m);
-      if (m.hp > 0 && m.seen && seen(Math.round(p.x), Math.round(p.y))) {
+      if (m.hp > 0 && m.seen && (m.always || seen(Math.round(p.x), Math.round(p.y)))) {
         ctx.fillStyle = PINK;
         ctx.beginPath(); ctx.arc(ox + p.x * cs + cs / 2, oy + p.y * cs + cs / 2, cs * 0.28, 0, 7); ctx.fill();
       }

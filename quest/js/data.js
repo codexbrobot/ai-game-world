@@ -203,7 +203,9 @@ var Q = window.Q || (window.Q = {});
   ];
 
   // Searching remains, by floor depth.
+  // A quarter of the time, something strange (js/items.js).
   Q.searchRemains = function (depth) {
+    if (d(4) === 1) return { kind: 'item' };
     const r = d(10);
     if (r <= 4) return { kind: 'silver', amount: roll(3, 6) * depth };
     if (r <= 6) return { kind: 'poultice' };

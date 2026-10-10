@@ -44,6 +44,34 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their
 - **The Undercroft** (floor 1) and **the Weeping Vault** (floor 2) hold remains to search, black fonts to drink from, hidden pits, two scrolls, and the Abbess.
 - If both wretches die, the save is gone.
 
+## Loot with personality
+
+Remains (a quarter of the time), dead cultists (relics) and skeletons (weapons) can leave something strange, and Thrumm keeps two curios under the counter, new after every night. Each wretch holds one weapon and wears one relic. You don't know what a thing does, or whether it's cursed, until somebody wields or wears it; then it goes in the **Codex** (on the title screen), which this browser keeps from run to run. A cursed relic won't come off, but Thrumm will pry it off for 25s.
+
+| Weapon | The good | The price |
+|---|---|---|
+| Gutting Hook (d6) | Each hit heals you 1 HP | Each miss tears you for 1 |
+| The Widow's Blade (d8) | A hit heals you half the damage | Your partner bleeds 1 HP per hit |
+| Saint's Femur (d4) | +d6 against zombies, skeletons and the Abbess | Only a bone against the living |
+| Nail-Studded Plank (d4) | Strikes d4 + d4 | A fumble snaps it into splinters (d2) |
+| Black Flail of Gorgh (d8) | Goes straight through armor | A fumble hits your own skull (d8) |
+| The Weeping Sword (d10) | The biggest die there is | Every kill costs a day on the Calendar |
+
+| Relic | The good | The price |
+|---|---|---|
+| Comet Crown (cursed) | One more Omen every night | Every night costs an extra day |
+| Eye in a Jar | Every monster shows on the map; you see foes' exact HP | Max HP −2 |
+| Bloodied Rosary | +1 HP at the start of every round | You can't read scrolls |
+| Liar's Tongue | Thrumm charges 40% less | Presence tests at DR +2 |
+| Hand of Glory | The party always acts first | Burns its bearer 1 HP each battle |
+| Pilgrim's Shroud | The first death leaves you at 1 HP instead | Then it falls to dust |
+| Mirror Shard | 1 in 3 wounds are dealt back to the foe | Defence at DR +1 |
+| Plague Mask | Curses, wails and tolls can't touch you | Agility −1 |
+| Heart of a Saint (cursed) | Max HP +4 | You can't lead a retreat |
+| Rat-King's Knot | Rats scatter before a fight starts | Rats eat a poultice every night |
+| Drowned Man's Coin (cursed) | d6 more silver for every kill | Each night, 1 in 3 the drowned take a day |
+| Pouch of Grave Dirt | A Dead result on the Broken table is rolled again | Poultices heal you only half |
+
 ## Classes
 
 Pick a class for each wretch on the creation screen, or let the dice choose. Each ability works once per battle.
@@ -84,6 +112,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | `js/engine.js` | `src/engine.js` bundled with three.js. Rebuild it with `npm run build:quest` from the repository root |
 | `js/battle.js` | The turn-based battle screen: initiative, commands, targeting, enemy turns, morale and fleeing |
 | `js/rules.js` | Dice, character generation, attacks, defence, Broken, morale, Getting Better |
+| `js/items.js` | Unique weapons and relics, wearing and wielding, the Codex |
 | `js/data.js` | The two floor maps (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
 | `js/art.js` | The town picture, the map, and the grain overlay |
 | `js/dice.js` | The dice thrown on screen for every roll in a battle |
