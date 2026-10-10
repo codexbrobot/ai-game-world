@@ -1210,6 +1210,9 @@ export function createWorld(container, hooks) {
   const pointers = new Map();
   const el = renderer.domElement;
   el.style.touchAction = 'none';
+  // Keep the phone's own gestures (scrolling, the long-press magnifier, swipes) from taking a held thumb
+  // away from the stick: the browser would cancel the touch and the stick would vanish.
+  for (const ev of ['touchstart', 'touchmove']) el.addEventListener(ev, (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
   el.addEventListener('pointerdown', (e) => {
     if (paused || mode === 'grid') return;
     el.setPointerCapture(e.pointerId);
@@ -1231,7 +1234,14 @@ export function createWorld(container, hooks) {
       const R = 46;
       let dx = e.clientX - p.x0, dy = e.clientY - p.y0;
       const len = Math.hypot(dx, dy);
-      if (len > R) { dx *= R / len; dy *= R / len; }
+      if (len > R) {
+        // past the rim, the stick follows the thumb: it never runs out, and pulling back turns you at once
+        dx *= R / len; dy *= R / len;
+        p.x0 = e.clientX - dx; p.y0 = e.clientY - dy;
+        const r = el.getBoundingClientRect();
+        knob.style.left = (p.x0 - r.left) + 'px';
+        knob.style.top = (p.y0 - r.top) + 'px';
+      }
       stick.x = Math.abs(dx) < 8 ? 0 : dx / R;
       stick.y = Math.abs(dy) < 8 ? 0 : -dy / R;
       knob.firstChild.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
