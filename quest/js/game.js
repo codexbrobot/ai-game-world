@@ -514,7 +514,8 @@
         log('The door groans open.');
         sfx('door');
       },
-      onStep: () => sfx('step', { wet: S && S.floorIx >= 1 }),
+      onStep: (depth) => sfx('step', { wet: depth > 0 || (S && S.floorIx >= 1), splash: depth }),
+      onDrip: (pan, dist) => sfx('drip', { pan, gain: Math.max(0.08, 0.4 - dist * 0.05) }),
       onAlert: (kind, dist, pan) => sfx('alert', { kind, dist, pan }),
       onVoice: (kind, dist, pan) => sfx('voice', { kind, dist, pan }),
       onContact: (g) => run(() => battle(g)),
@@ -901,23 +902,31 @@
     Q.prefs.omens = m === 'manual' ? 'manual' : 'auto';
     try { localStorage.setItem(OMEN_KEY, Q.prefs.omens); } catch (e) { /* ignore */ }
   };
+  // The flood (being tried out): water over the dungeon floors.
+  const FLOOD_KEY = 'quest-borg-flood';
+  Q.prefs.flood = true;
+  try { if (localStorage.getItem(FLOOD_KEY) === 'dry') Q.prefs.flood = false; } catch (e) { /* ignore */ }
   const MOVE_KEY = 'quest-borg-move';
   let moveMode = 'free';
   try { moveMode = localStorage.getItem(MOVE_KEY) === 'grid' ? 'grid' : 'free'; } catch (e) { /* storage may be unavailable */ }
   function applyMove() {
-    if (world) world.setMode(moveMode);
+    if (world) { world.setMode(moveMode); world.setWater(Q.prefs.flood); }
     $('hint').innerHTML = moveMode === 'grid'
       ? 'Step a square at a time: the arrow pad<br><span>Keyboard: W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn</span>'
       : 'Left thumb: walk · Right thumb: look<br><span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look</span>';
   }
   function showSettings() {
     const on = !Q.Sound || Q.Sound.on;
-    const current = { move: moveMode, sound: on ? 'on' : 'off', omens: Q.prefs.omens };
+    const current = { move: moveMode, sound: on ? 'on' : 'off', omens: Q.prefs.omens, flood: Q.prefs.flood ? 'on' : 'off' };
     const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${current[key] === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
     modal('Settings', `<div class="settings">
       <div class="opt"><b>Movement</b><div class="choices">
         ${opt('move', 'free', 'Free', 'walk anywhere, look around, like DOOM')}
         ${opt('move', 'grid', 'Steps', 'a square at a time, quarter turns, old school')}
+      </div></div>
+      <div class="opt"><b>Water (test)</b><div class="choices">
+        ${opt('flood', 'on', 'Flooded', 'black water over the dungeon floors')}
+        ${opt('flood', 'off', 'Dry', 'the old stone floors')}
       </div></div>
       <div class="opt"><b>Omens</b><div class="choices">
         ${opt('omens', 'auto', 'Auto', 'offered on the dice after a bad roll')}
@@ -926,7 +935,14 @@
       <div class="opt"><b>Sound</b><div class="choices">${opt('sound', 'on', 'On')}${opt('sound', 'off', 'Off')}</div></div>
       <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
-      if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
+      if (b.dataset.set === 'flood') {
+        Q.prefs.flood = b.dataset.val === 'on';
+        try { localStorage.setItem(FLOOD_KEY, Q.prefs.flood ? 'on' : 'dry'); } catch (e) { /* ignore */ }
+        if (world) {
+          world.setWater(Q.prefs.flood);
+          if (S && S.where === 'crawl') enterFloor(S.floorIx, null, world.pose());
+        }
+      } else if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
       else if (b.dataset.set === 'move') {
         moveMode = b.dataset.val;
         try { localStorage.setItem(MOVE_KEY, moveMode); } catch (e) { /* ignore */ }

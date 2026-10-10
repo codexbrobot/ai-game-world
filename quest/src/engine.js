@@ -4,6 +4,7 @@
 // with a living flame (the light in the world flickers with it) and the front wretch's weapon on the right.
 // Bundled to js/engine.js by `npm run build:quest`; the game drives it through Q.World.
 import * as THREE from 'three';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 
 const Q = window.Q || (window.Q = {});
 
@@ -86,8 +87,27 @@ export function createWorld(container, hooks) {
     pit: new THREE.MeshBasicMaterial({ color: 0x000000 }),
     abyss: new THREE.MeshBasicMaterial({ color: 0x2a0714, fog: false }), // the chasm floor, a faint wound-red
   };
+  // Every stone surface knows the waterline: just above it the stone is dark and wet, and right at it
+  // there is a thin pale line of scum where the water meets the wall.
+  const waterline = { value: -99 };
+  function wetStone(m) {
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.waterY = waterline;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying float vWorldY;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWorldY = (modelMatrix * vec4(transformed, 1.0)).y;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform float waterY;\nvarying float vWorldY;')
+        .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+          float above = vWorldY - waterY;
+          float wet = 1.0 - smoothstep(0.0, 0.32, above);
+          gl_FragColor.rgb *= 1.0 - 0.5 * wet * step(-0.02, above);
+          gl_FragColor.rgb += vec3(0.5, 0.47, 0.4) * exp(-pow(above / 0.018, 2.0)) * 0.35;`);
+    };
+    return m;
+  }
   function mat(name, extra) {
-    if (!matCache[name]) matCache[name] = lambert(texture(name, !/door/.test(name)), extra);
+    if (!matCache[name]) matCache[name] = wetStone(lambert(texture(name, !/door/.test(name)), extra));
     return matCache[name];
   }
   // The Undercroft's look, used by any floor that doesn't bring its own.
@@ -95,6 +115,7 @@ export function createWorld(container, hooks) {
     walls: [['wall-stone', 6], ['wall-ossuary', 3], ['wall-relief', 1]],
     riser: 'wall-stone', floor: 'floor', ceiling: 'ceiling', door: 'door',
     sky: 0x5a5346, ground: 0x0a0806, fog: 0x000000, ceilingTint: 0x8a8070,
+    water: 0.32, waterTint: 0x0b0906, // how high the flood stands, in world units above level ground
   };
   let theme = DEFAULT_THEME;
   const materials = new Proxy({}, {
@@ -143,6 +164,7 @@ export function createWorld(container, hooks) {
 
   function build(floor) {
     if (level) scene.remove(level.root);
+    if (water) { water.mesh.dispose(); water = null; }
     theme = { ...DEFAULT_THEME, ...(floor.theme || {}) };
     scene.fog.color.setHex(theme.fog);
     renderer.setClearColor(theme.fog);
@@ -216,6 +238,7 @@ export function createWorld(container, hooks) {
     }
     // things on the floor
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) placeItem(x, y);
+    buildWater();
     needRender = true;
   }
 
@@ -255,8 +278,207 @@ export function createWorld(container, hooks) {
     level.root.add(light);
     const glow = new THREE.Mesh(new THREE.CircleGeometry(CELL * 0.42, 24), new THREE.MeshBasicMaterial({ color: 0xffe11a, transparent: true, opacity: 0.18, depthWrite: false }));
     glow.rotation.x = -Math.PI / 2;
-    glow.position.set((x + 0.5) * CELL, fy + 0.02, (y + 0.5) * CELL);
+    glow.position.set((x + 0.5) * CELL, Math.max(fy, waterOn ? theme.water || 0 : -99) + 0.03, (y + 0.5) * CELL);
     level.root.add(glow);
+  }
+
+  // ---------- the flood ----------
+  // A sheet of black water at the theme's waterline over every cell whose floor is below it. It mirrors
+  // the crypt (a Reflector renders the scene upside down each frame, at half size), ripples with slow
+  // swells, small chop and rings where things step or water drips, catches the torch in hard bone-white
+  // glints, and lets the floor show through where it is shallow.
+  let waterOn = true;
+  let water = null; // { mesh, y }
+  const RIPPLES = 12;
+  const ripples = Array.from({ length: RIPPLES }, () => new THREE.Vector4(0, 0, -100, 0));
+  let rippleIx = 0;
+  const t0 = performance.now();
+  const clock = () => (performance.now() - t0) / 1000;
+  function addRipple(x, z, amp = 1) {
+    if (!water) return;
+    ripples[rippleIx++ % RIPPLES].set(x, z, clock(), amp);
+  }
+  const waterDepth = (cx, cy) => (water ? Math.max(0, water.y - floorH(cx, cy)) : 0);
+
+  const WaterShader = {
+    name: 'FloodShader',
+    uniforms: {
+      color: { value: null }, tDiffuse: { value: null }, textureMatrix: { value: null },
+      time: { value: 0 }, lightPos: { value: new THREE.Vector3() }, lightPower: { value: 1 },
+      fogColor: { value: new THREE.Color() }, fogNear: { value: 2 }, fogFar: { value: 16 },
+      tint: { value: new THREE.Color() }, ripples: { value: [] },
+    },
+    vertexShader: /* glsl */`
+      uniform mat4 textureMatrix;
+      attribute float depth;
+      varying vec4 vUv;
+      varying vec3 vWorld;
+      varying float vDepth;
+      #include <common>
+      #include <logdepthbuf_pars_vertex>
+      void main() {
+        vUv = textureMatrix * vec4(position, 1.0);
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        vWorld = w.xyz;
+        vDepth = depth;
+        gl_Position = projectionMatrix * viewMatrix * w;
+        #include <logdepthbuf_vertex>
+      }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 color;
+      uniform sampler2D tDiffuse;
+      uniform float time;
+      uniform vec3 lightPos;
+      uniform float lightPower;
+      uniform vec3 fogColor;
+      uniform float fogNear;
+      uniform float fogFar;
+      uniform vec3 tint;
+      uniform vec4 ripples[${RIPPLES}];
+      varying vec4 vUv;
+      varying vec3 vWorld;
+      varying float vDepth;
+      #include <logdepthbuf_pars_fragment>
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+      }
+      void main() {
+        #include <logdepthbuf_fragment>
+        vec2 p = vWorld.xz;
+        // the slope of the surface: three slow swells and a little chop
+        vec2 g = vec2(0.0);
+        g += vec2(0.8, 0.6) * cos(dot(p, vec2(0.8, 0.6)) * 2.1 + time * 0.9) * 0.022;
+        g += vec2(-0.5, 0.85) * cos(dot(p, vec2(-0.5, 0.85)) * 3.3 - time * 1.3) * 0.016;
+        g += vec2(0.95, -0.3) * cos(dot(p, vec2(0.95, -0.3)) * 5.7 + time * 1.7) * 0.01;
+        float e = 0.06;
+        vec2 q = p * 3.2 + vec2(time * 0.21, time * 0.17);
+        float n0 = noise(q);
+        g += vec2(noise(q + vec2(e, 0.0)) - n0, noise(q + vec2(0.0, e)) - n0) / e * 0.014;
+        // rings where something stepped or dripped
+        float ring = 0.0;
+        for (int i = 0; i < ${RIPPLES}; i++) {
+          vec4 r = ripples[i];
+          float age = time - r.z;
+          if (age < 0.0 || age > 3.5) continue;
+          vec2 d = p - r.xy;
+          float dist = length(d) + 1e-4;
+          float k = dist - age * 0.85;
+          float env = exp(-age * 1.4) * r.w * exp(-k * k * 14.0);
+          g += (d / dist) * cos(k * 26.0) * env * 0.45;
+          ring += env * max(0.0, sin(k * 26.0));
+        }
+        vec3 N = normalize(vec3(-g.x, 1.0, -g.y));
+        vec3 V = normalize(cameraPosition - vWorld);
+        float fres = pow(1.0 - max(dot(V, N), 0.0), 4.0);
+        // the mirrored crypt, bent by the ripples
+        vec4 uv = vUv;
+        uv.xy += N.xz * 0.35 * uv.w;
+        vec3 refl = texture2DProj(tDiffuse, uv).rgb;
+        vec3 col = mix(tint, refl, 0.7 + 0.3 * fres);
+        // the torch: hard glints, and a faint warm sheen nearby
+        vec3 L = lightPos - vWorld;
+        float ld = length(L);
+        L /= ld;
+        vec3 H = normalize(L + V);
+        float spec = pow(max(dot(N, H), 0.0), 140.0) * lightPower / (1.0 + ld * ld * 0.06);
+        col += vec3(0.95, 0.9, 0.78) * smoothstep(0.1, 0.32, spec);
+        col += vec3(1.0, 0.85, 0.6) * 0.06 * lightPower / (1.0 + ld * ld * 0.12);
+        col += vec3(0.92, 0.89, 0.82) * ring * 0.4;
+        // shallow water shows a ghost of the floor; deep water is ink
+        float alpha = clamp(0.74 + vDepth * 0.5, 0.74, 0.97);
+        float f = smoothstep(fogNear, fogFar, distance(cameraPosition, vWorld));
+        col = mix(col, fogColor, f);
+        alpha = mix(alpha, 1.0, f);
+        gl_FragColor = vec4(col, alpha);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  };
+
+  function buildWater() {
+    if (water) { water.mesh.dispose(); level.root.remove(water.mesh); water = null; }
+    waterline.value = -99;
+    const y = theme.water || 0;
+    if (!waterOn || y <= -10) return;
+    const { W, H, grid, h } = level;
+    const wet = (cx, cy) => grid[cy] && grid[cy][cx] && grid[cy][cx] !== '#' && h[cy][cx] < y;
+    // depth at each grid corner: the deepest wet cell touching it, so the ink deepens smoothly
+    const cornerDepth = (x, z) => {
+      let dep = 0;
+      for (const [cx, cy] of [[x - 1, z - 1], [x, z - 1], [x - 1, z], [x, z]]) if (wet(cx, cy)) dep = Math.max(dep, y - h[cy][cx]);
+      return dep;
+    };
+    const pos = [], dep = [], idx = [];
+    const corner = new Map();
+    const vert = (x, z) => {
+      const key = x + ',' + z;
+      if (!corner.has(key)) {
+        corner.set(key, pos.length / 3);
+        pos.push(x * CELL, -z * CELL, 0); // the plane's local XY; the mesh is laid flat below
+        dep.push(cornerDepth(x, z));
+      }
+      return corner.get(key);
+    };
+    for (let cy = 0; cy < H; cy++) {
+      for (let cx = 0; cx < W; cx++) {
+        if (!wet(cx, cy)) continue;
+        const a = vert(cx, cy), b = vert(cx + 1, cy), c = vert(cx + 1, cy + 1), d = vert(cx, cy + 1);
+        idx.push(a, d, b, b, d, c);
+      }
+    }
+    if (!idx.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('depth', new THREE.Float32BufferAttribute(dep, 1));
+    geo.setIndex(idx);
+    const size = new THREE.Vector2();
+    renderer.getDrawingBufferSize(size);
+    const mesh = new Reflector(geo, {
+      shader: WaterShader, clipBias: 0.003, multisample: 0,
+      textureWidth: Math.max(256, Math.round(size.x * 0.5)), textureHeight: Math.max(256, Math.round(size.y * 0.5)),
+    });
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.y = y;
+    waterline.value = y;
+    mesh.material.transparent = true;
+    mesh.material.depthWrite = false;
+    const u = mesh.material.uniforms;
+    u.ripples.value = ripples;
+    u.tint.value.setHex(theme.waterTint || 0x0b0906);
+    level.root.add(mesh);
+    water = { mesh, y };
+  }
+
+  let dripIn = 1;
+  const torchWorld = new THREE.Vector3();
+  function updateWater(dt) {
+    if (!water) return;
+    const u = water.mesh.material.uniforms;
+    u.time.value = clock();
+    torch.getWorldPosition(torchWorld);
+    u.lightPos.value.copy(torchWorld);
+    u.lightPower.value = torch.intensity / 13;
+    u.fogColor.value.copy(scene.fog.color);
+    u.fogNear.value = scene.fog.near;
+    u.fogFar.value = scene.fog.far;
+    // water drips from the ceiling somewhere near you
+    dripIn -= dt;
+    if (dripIn <= 0) {
+      dripIn = 0.7 + Math.random() * 2.2;
+      for (let k = 0; k < 6; k++) {
+        const x = player.x + (Math.random() - 0.5) * 9, z = player.z + (Math.random() - 0.5) * 9;
+        if (waterDepth(cellOf(x), cellOf(z)) > 0 && !solid(cellOf(x), cellOf(z))) {
+          addRipple(x, z, 0.55);
+          const dx = x - player.x, dz = z - player.z;
+          const dist = Math.hypot(dx, dz) || 1;
+          hooks.onDrip && hooks.onDrip((dx * -Math.sin(player.a) + dz * Math.cos(player.a)) / dist, dist / CELL);
+          break;
+        }
+      }
+    }
   }
 
   // ---------- sprites ----------
@@ -388,7 +610,7 @@ export function createWorld(container, hooks) {
       if (step.walk) {
         const before = Math.floor(player.phase / Math.PI);
         player.phase = step.phase0 + Math.PI * e;
-        if (Math.floor(player.phase / Math.PI) !== before) hooks.onStep && hooks.onStep();
+        if (Math.floor(player.phase / Math.PI) !== before) stepped();
       }
       player.moving = step.walk ? 1 : 0;
       turnRate = step.walk ? 0 : (step.a1 - step.a0) / step.dur;
@@ -400,7 +622,7 @@ export function createWorld(container, hooks) {
     const intent = queued.shift() || heldIntent();
     if (!intent) return;
     const begin = (x1, z1, a1, walk) => Object.assign(step, {
-      active: true, t: 0, dur: walk ? STEP_TIME : TURN_TIME, walk,
+      active: true, t: 0, dur: walk ? STEP_TIME * (waterDepth(cellOf(player.x), cellOf(player.z)) > 0.15 ? 1.2 : 1) : TURN_TIME, walk,
       x0: player.x, z0: player.z, a0: player.a, x1, z1, a1, phase0: Math.round(player.phase / Math.PI) * Math.PI + 0.01,
     });
     if (intent === 'tl' || intent === 'tr') {
@@ -458,7 +680,8 @@ export function createWorld(container, hooks) {
     if (len > 1) { fwd /= len; side /= len; }
     const fx = Math.cos(player.a), fz = Math.sin(player.a);
     const rx = -fz, rz = fx;
-    const vx = (fx * fwd + rx * side) * SPEED * dt, vz = (fz * fwd + rz * side) * SPEED * dt;
+    const wade = waterDepth(cellOf(player.x), cellOf(player.z)) > 0.15 ? 0.82 : 1;
+    const vx = (fx * fwd + rx * side) * SPEED * wade * dt, vz = (fz * fwd + rz * side) * SPEED * wade * dt;
     player.moving = Math.min(1, Math.hypot(fwd, side));
     if (vx === 0 && vz === 0) return;
     const here = floorH(cellOf(player.x), cellOf(player.z));
@@ -469,7 +692,14 @@ export function createWorld(container, hooks) {
     if (!bz) player.z += vz; else touch(bz);
     const before = Math.floor(player.phase / Math.PI);
     player.phase += Math.hypot(vx, vz) * 3.2;
-    if (Math.floor(player.phase / Math.PI) !== before) hooks.onStep && hooks.onStep();
+    if (Math.floor(player.phase / Math.PI) !== before) stepped();
+  }
+
+  // A footfall: a ring in the water if you're wading, and the sound of it.
+  function stepped() {
+    const dep = waterDepth(cellOf(player.x), cellOf(player.z));
+    if (dep > 0) addRipple(player.x + Math.cos(player.a) * 0.5, player.z + Math.sin(player.a) * 0.5, 0.9);
+    hooks.onStep && hooks.onStep(dep);
   }
 
   // Bumping a closed door opens it.
@@ -553,6 +783,8 @@ export function createWorld(container, hooks) {
     if (solid(cx, cz) || Math.abs(floorH(cx, cz) - here) > CLIMB) return true;
     g.x = nx; g.z = nz;
     entry.step += step * 2.6;
+    entry.wake = (entry.wake || 0) - step;
+    if (entry.wake <= 0 && waterDepth(cx, cz) > 0) { entry.wake = 0.8; addRipple(nx, nz, 0.8); }
     return dist - step < 0.05;
   }
 
@@ -619,6 +851,12 @@ export function createWorld(container, hooks) {
     camera.position.set(player.x, player.y + bob, player.z);
     camera.rotation.y = -(player.a + Math.PI / 2);
     camera.rotation.x = player.pitch;
+    const under = !!water && camera.position.y < water.y;
+    if (under !== wasUnder) {
+      wasUnder = under;
+      container.classList.toggle('underwater', under);
+      if (under) { addRipple(player.x, player.z, 2); scene.fog.near = 0.1; scene.fog.far = 3.5; } else { scene.fog.near = 2; scene.fog.far = 16; }
+    }
     const f = flicker(now);
     torch.intensity = 12.2 + f * 2.4;
     torch.position.x = 0.2 + (f - 0.5) * 0.08;
@@ -644,6 +882,8 @@ export function createWorld(container, hooks) {
       o.rotation.y = Math.atan2(camera.position.x - wp.x, camera.position.z - wp.z);
     });
   }
+
+  let wasUnder = false;
 
   // ---------- the torch's flicker ----------
   // A smoothed random walk under two slow waves: 0 (guttering) to 1 (flaring).
@@ -849,6 +1089,7 @@ export function createWorld(container, hooks) {
     }
     updateDoors(dt);
     placeCamera(now);
+    updateWater(dt);
     renderer.render(scene, camera);
   }
 
@@ -858,6 +1099,11 @@ export function createWorld(container, hooks) {
     if (w === lastW && hh === lastH) return;
     lastW = w; lastH = hh;
     renderer.setSize(w, hh, false);
+    if (water) {
+      const size = new THREE.Vector2();
+      renderer.getDrawingBufferSize(size);
+      water.mesh.getRenderTarget().setSize(Math.max(256, Math.round(size.x * 0.5)), Math.max(256, Math.round(size.y * 0.5)));
+    }
     camera.aspect = w / Math.max(1, hh);
     // keep the horizontal view wide on tall phone screens
     camera.fov = camera.aspect < 1 ? 82 : 68;
@@ -964,6 +1210,9 @@ export function createWorld(container, hooks) {
       if (mode === 'grid' && level) snapToGrid();
     },
     get mode() { return mode; },
+    // The flood (a test): on or off; the waterline comes from the floor's theme.
+    setWater(on) { waterOn = !!on; },
+    get water() { return waterOn; },
     // Where a cell's middle is, in world units, and which way faces out of it.
     cellPose(cx, cy) {
       let a = 0;

@@ -160,10 +160,16 @@ var Q = window.Q || (window.Q = {});
       noise(d, t, { f: rnd(380, 620), q: 1.4, d: 0.07, gain: 0.25 });
       tone(d, t, { f: rnd(70, 85), f2: 45, d: 0.09, gain: 0.35 });
       if (o.wet) noise(d, t + 0.02, { filter: 'highpass', f: 2800, d: 0.06, gain: 0.05 });
+      if (o.splash > 0) {
+        // wading: a slosh, deeper the deeper you are
+        const deep = Math.min(1, o.splash * 1.6);
+        noise(d, t, { f: rnd(700, 1100), f2: rnd(1800, 2600), q: 1.2, a: 0.02, d: 0.16 + deep * 0.1, gain: 0.22 + deep * 0.2 });
+        noise(d, t + 0.05, { filter: 'lowpass', f: 500, d: 0.12, gain: 0.12 + deep * 0.15 });
+      }
     },
     // a drop of water somewhere in the dark
     drip(o) {
-      const d = out({ gain: (o.gain || 0.3) * 3, verb: 0.9, pan: rnd(-0.9, 0.9) }), t = now();
+      const d = out({ gain: (o.gain || 0.3) * 3, verb: 0.9, pan: o.pan !== undefined ? o.pan : rnd(-0.9, 0.9) }), t = now();
       const f = rnd(700, 1300);
       tone(d, t, { f, f2: f * 2.1, glide: 0.03, d: 0.12, gain: 0.3 });
     },

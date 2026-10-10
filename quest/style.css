@@ -512,3 +512,9 @@ body.in-battle .step-pad { visibility: hidden; }
 @keyframes wordin { from { opacity: 0; filter: blur(2px); } }
 @media (prefers-reduced-motion: reduce) { .dm-text .w { animation: none; } }
 .settings .choices button.on .choice-note { color: var(--ink); opacity: 0.75; }
+
+/* ---------- under the flood ---------- */
+.viewport.underwater::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(40, 8, 30, 0.35), rgba(5, 2, 8, 0.85)); backdrop-filter: blur(2px);
+}

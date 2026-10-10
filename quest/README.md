@@ -20,7 +20,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 |---|---|---|
 | Walk and strafe (free movement) | drag the left half of the screen (a joystick appears) | W A S D |
 | Step a square, turn a quarter (step movement) | the arrow pad | W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn |
-| Settings (movement, sound) | ⚙ (or Settings on the title screen) | |
+| Settings (movement, water, Omens, sound) | ⚙ (or Settings on the title screen) | |
 | Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
 | Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–7 |
 | Spend an Omen when one is offered | tap the yellow button on the dice | O |
@@ -38,6 +38,7 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
 - **Two ways to move** (⚙ Settings): **Free**, walking anywhere and looking around like DOOM, or **Steps**, a square at a time with quarter turns, gliding between squares, like The Quest or Dungeon Master. Monsters move in real time either way.
 - **The DM**: walking into certain places for the first time, the game narrates them like a dungeon master and offers choices. Some are tests rolled on the dice (and an Omen can save them); what you choose can tell you what something is, find hidden things, open secret niches, or change how the boss fight goes. See *Story scenes* below.
+- **The flood (being tried out)**: black water stands over the dungeon floors, shin-deep in the Undercroft and deeper in the Vault, where the chasm is a black pool. It mirrors the crypt (walls, torchlight, monsters), ripples in rings where you and the monsters wade and where drops fall from the ceiling, catches the torch in hard glints, darkens the stone just above the waterline, and slows you down a little. Raised floors stay dry. Settings → Water switches it off to compare.
 - **What you see**: the torch in your left hand burns with a living flame, and the dungeon's light flickers with it. Your right hand holds the front wretch's weapon. Both swing as you walk and lag as you turn. Monsters shamble in two-frame steps, like Doom's sprites: zombies lurch, skeletons rattle, cultists' robes swing, rats scurry, and the Abbess drifts with her veil rippling.
 - **Each floor has its own look**: the Undercroft is rough stone, ossuary walls and carved saints. The Weeping Vault is pale marble running with black tar, burial niches, a stone face that weeps, grave slabs underfoot, a ribbed vault overhead, black iron doors, and a colder, violet dark.
 - **Sound**: footsteps (wet in the Vault), dripping water, a low drone and moaning air below, wind and a far bell in town. A monster that spots you gives a dissonant sting and its own cry (squeaks, a groan, a rattle, a chant, a wail), and keeps calling while it hunts you, from the side it's on. Battles crunch, whoosh, ring on a critical and toll for the dead, and the dice clatter. Everything is made on the spot with Web Audio; there are no sound files.
