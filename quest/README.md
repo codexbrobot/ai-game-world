@@ -27,7 +27,8 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 | Omens: auto or manual | the Omens button in the battle menu, or ⚙ Settings | |
 | Pick a target | tap the foe | ← / → and Enter |
 | Hurry the dice | tap the dice | Space or Enter |
-| Map, party | the buttons at the bottom (or tap the mini-map) | M, P |
+| Map | the Map button (or tap the mini-map) | M |
+| Character sheet | tap a wretch's portrait (in the dungeon or in battle), or Party | P |
 | Sound on or off | ♪ (or the Sound button on the title screen) | |
 | Use a poultice outside battle | the Poultice button | |
 
@@ -41,6 +42,7 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their
 
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
 - **Two ways to move** (⚙ Settings): **Free**, walking anywhere and looking around like DOOM, or **Steps**, a square at a time with quarter turns, gliding between squares, like The Quest or Dungeon Master. Monsters move in real time either way.
+- **Character sheets**: tap a wretch's portrait, in the dungeon or on their card in battle, or press Party, for everything about them: what each ability is for and their odds on a DR 12 test, their attack and dodge chances, what their weapon, armor, relic and class ability do in full, their Omens and Powers and row, and what the party carries (silver, poultices, scrolls in full). Swap rows from there. When the DM offers a test, the choice says who would roll it, with their score and odds: *Strength DR 12 · Pell +2, 55%*.
 - **The DM**: walking into certain places for the first time, the game narrates them like a dungeon master and offers choices. Some are tests rolled on the dice (and an Omen can save them); what you choose can tell you what something is, find hidden things, open secret niches, or change how the boss fight goes. See *Story scenes* below.
 - **The flood**: black water stands over the dungeon floors, ankle-deep in the cells, waist-deep in the Gaol's lower block, where the floor has fallen in to the sea, and shin-deep in the Undercroft. It mirrors the crypt (walls, torchlight, monsters), ripples in rings where you and the monsters wade and where drops fall from the ceiling, catches the torch in hard glints, darkens the stone just above the waterline, and slows you down a little. Raised floors stay dry. Settings → Water switches it off to compare.
 - **What you see**: the torch in your left hand burns with a real-looking fire, drawn by a shader on the GPU: turbulence rising through it, a white heart fading through yellow and orange to a dull red edge, tongues tearing loose at the top and sparks lifting off. It leaps when the dungeon's light flickers, which flickers with it, and it trails behind when you turn or swing the torch as you walk. Your right hand holds the front wretch's weapon. Both swing as you walk and lag as you turn. Monsters shamble in two-frame steps, like Doom's sprites: drowned guards plod, drowned prisoners stagger, the Warden lumbers, zombies lurch, skeletons rattle, cultists' robes swing and rats scurry.

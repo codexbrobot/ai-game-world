@@ -102,6 +102,17 @@
   // ---------- the DM (scenes in js/story.js) ----------
   const ABILITY = { strength: 'Strength', agility: 'Agility', presence: 'Presence', toughness: 'Toughness' };
 
+  // A test on a DM's choice ("Strength DR 12"): the scene has its best wretch at it roll, so say who, with
+  // their score and their odds.
+  function oddsNote(note) {
+    return note.replace(/\b(Strength|Agility|Presence|Toughness) DR (\d+)/, (m, Ab, dr) => {
+      const ab = Ab.toLowerCase();
+      const pc = alive().slice().sort((a, b) => b[ab] - a[ab])[0];
+      if (!pc) return m;
+      return `${m} · ${short(pc)} ${fmt(pc[ab])}, ${chance(pc[ab], testDR(pc, ab, +dr))}%`;
+    });
+  }
+
   // The DM speaks: words fade in one after another (a tap shows them all); choices wait below.
   function say(title, text, choices) {
     return new Promise((resolve) => {
@@ -109,7 +120,7 @@
       const words = (html) => html.split(/(<[^>]+>)/).map((part) => (part.startsWith('<') ? part
         : part.replace(/(\S+)/g, (w) => `<span class="w" style="animation-delay:${(i++ * 28)}ms">${w}</span>`))).join('');
       const body = text.split(/\n\s*\n/).map((p) => `<p>${words(p.trim())}</p>`).join('');
-      modal(title, `<div class="dm-text">${body}</div>`, choices.map((c, n) => ({ label: c.label, note: c.note, disabled: c.disabled, action: () => resolve(n) })), { closable: false });
+      modal(title, `<div class="dm-text">${body}</div>`, choices.map((c, n) => ({ label: c.label, note: c.note && oddsNote(c.note), disabled: c.disabled, action: () => resolve(n) })), { closable: false });
       const box = document.querySelector('#modalBody .dm-text');
       if (box) box.addEventListener('click', () => box.classList.add('all'));
     });
@@ -126,7 +137,7 @@
       d: (n) => d(n),
       best: (ab) => living().slice().sort((a, b) => b[ab] - a[ab])[0],
       async test(pc, ab, dr, what) {
-        let r = Q.test(pc[ab], dr);
+        let r = Q.test(pc[ab], testDR(pc, ab, dr));
         const Ab = ABILITY[ab];
         await throwDice({ dice: [D(20, r.r, 'yellow', Ab)], verdict: r.ok ? 'Success' : 'Failure', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} ${what} · ${Q.testText(Ab, r, pc[ab])}` });
         r = await Q.rescueTest(S.party, pc, r, pc[ab], Ab, { log, onChange: renderHud });
@@ -399,14 +410,84 @@
       </dl>`;
   }
 
+  // ---------- the character sheet ----------
+  // One wretch at a time, everything spelled out: what each ability is for and the odds on it, what the
+  // weapon, armor, relic and class ability do, and what the party carries between them. Tap a portrait
+  // (in the dungeon or in battle), or Party, to open it.
+  const USES = {
+    strength: 'Attacking with your weapon. Forcing doors, breaking locks, heaving stone.',
+    agility: 'Defence: dodging every blow aimed at you. Picking locks, leaping pits, reaching into dark water.',
+    presence: 'Reading scrolls and old words. Listening, noticing, talking your way past.',
+    toughness: 'Taking a blow to the head and staying on your feet. Your HP was rolled on it.',
+  };
+  // The odds on d20 + ability against a DR: a natural 1 always fails, a natural 20 always passes.
+  function chance(mod, dr) {
+    let n = 0;
+    for (let r = 2; r <= 20; r++) if (r === 20 || r + mod >= dr) n++;
+    return n * 5;
+  }
+  // A test outside battle: the Liar's Tongue makes Presence harder.
+  const testDR = (pc, ab, dr) => dr + (ab === 'presence' && Q.has(pc, 'tongue') ? 2 : 0);
+
+  function showSheet(i) {
+    if (!S) return;
+    const pc = S.party[i];
+    const cls = Q.classOf(pc);
+    const it = (k) => Q.ITEMS[k];
+    const abRow = (key) => {
+      const dr = testDR(pc, key, Q.DR);
+      return `<div class="ab-row"><div class="ab"><span>${ABILITY[key]}</span><b>${fmt(pc[key])}</b></div>
+        <p>${USES[key]}<small>A test at DR ${dr}: <b>${chance(pc[key], dr)}%</b>${dr !== Q.DR ? ' (the Liar’s Tongue)' : ''}</small></p></div>`;
+    };
+    const defDR = Q.DR + (pc.armor.tier === 3 ? 2 : 0) + (Q.has(pc, 'mirror') ? 1 : 0);
+    const armorDie = Q.ARMOR_DIE[pc.armor.tier];
+    const weapon = pc.weapon.key ? it(pc.weapon.key) : null;
+    const relic = pc.relic ? it(pc.relic) : null;
+    const status = [pc.dead ? '<b class="pink">Dead.</b>' : '', pc.bleeding ? '<b class="pink">Bleeding</b>: loses 1 HP every turn in battle until bound with a poultice.' : '',
+      pc.dazed ? '<b class="pink">Dazed</b>: loses their next turn.' : ''].filter(Boolean).join(' ');
+    const party = `<div class="carried"><h3>Carried by the party</h3>
+      <p><b>${S.silver}s</b> · <b>${S.poultices}</b> black poultice${S.poultices === 1 ? '' : 's'} (each heals d6 and stops bleeding)</p>
+      ${S.scrolls.length ? S.scrolls.map((k) => `<p><b>${esc(Q.SCROLLS[k].name)}</b>: ${esc(Q.SCROLLS[k].text)} <small>Read with Presence DR 12, using one of the reader’s Powers.</small></p>`).join('') : '<p class="dim">No scrolls.</p>'}
+      <p class="small">${S.kills} slain; ${Math.max(0, 5 - S.killsSinceBetter)} more before you can Get Better at the inn. <span class="pink">☄ ${calendarText()}.</span></p></div>`;
+    const html = `<div class="char">
+      <img class="face" src="${Q.portraitUrl(pc.name)}" alt="" onerror="this.remove()">
+      ${cls ? `<p class="cls"><b>${esc(cls.name)}</b><br>${esc(cls.blurb)}</p>` : ''}
+      <p class="trait">${esc(pc.trait)}</p>
+      <div class="vitals">
+        <span><small>HP</small><b>${Math.max(0, pc.hp)}/${pc.maxHp}</b></span>
+        <span><small>Omens</small><b>${pc.omens}</b></span>
+        <span><small>Powers</small><b>${pc.powers}</b></span>
+        <span><small>Row</small><b>${pc.row === 'back' ? 'Back' : 'Front'}</b></span>
+      </div>
+      ${status ? `<p class="status-line">${status}</p>` : ''}
+      <h3>Abilities</h3>
+      <div class="ab-list">${abRow('strength')}${abRow('agility')}${abRow('presence')}${abRow('toughness')}</div>
+      <p class="small">Every test is a d20 plus the ability against a DR, usually 12. A natural 1 always fails; a natural 20 always succeeds.</p>
+      <h3>In battle</h3>
+      <dl class="gear">
+        <dt>Weapon</dt><dd><b>${esc(pc.weapon.name)}</b> (d${pc.weapon.die} damage)${weapon ? `${weapon.cursed ? ' <span class="pink">cursed</span>' : ''}<br><i>${esc(weapon.flavor)}</i><br>${esc(weapon.text)}` : ''}
+          <small>Attack: d20 + Strength against the foe’s DR: <b>${chance(pc.strength, Q.DR)}%</b> against DR 12${pc.row === 'back' ? `, <b>${chance(pc.strength, Q.DR + 2)}%</b> from the back row (DR +2)` : ''}.</small></dd>
+        <dt>Defence</dt><dd>When a foe strikes at ${esc(pc.name.split(' ')[0])}: d20 + Agility against DR ${defDR}${defDR !== Q.DR ? ` (${[pc.armor.tier === 3 ? 'plate +2' : '', Q.has(pc, 'mirror') ? 'the Mirror Shard +1' : ''].filter(Boolean).join(', ')})` : ''} to dodge: <b>${chance(pc.agility, defDR)}%</b>.</dd>
+        <dt>Armor</dt><dd><b>${esc(pc.armor.name)}</b>${armorDie ? `: soaks d${armorDie} off every wound that gets through.` : ': no protection at all.'}${pc.armor.tier === 3 ? ' Heavy: Defence at DR +2.' : ''}${pc.armor.tier ? ' A natural 1 on Defence cracks it a tier.' : ''}</dd>
+        ${cls ? `<dt>Ability</dt><dd><b>${esc(cls.ability.name)}</b>: ${esc(cls.ability.text)} Once per battle.</dd>` : ''}
+        <dt>Omens</dt><dd>Spend one after a roll goes wrong: roll it again, lower its DR by 4, deal maximum damage, or soften a wound that would put you down. Sleep brings them back up to d2.</dd>
+        <dt>Powers</dt><dd>Scroll readings left today. Sleep brings back Presence + d4${cls && cls.powers ? ` + ${cls.powers}` : ''}.</dd>
+        <dt>Row</dt><dd>${pc.row === 'back' ? 'Behind. Foes reach you one time in four, but your weapon attacks are at DR +2.' : 'In front. Foes go for you three times in four.'}</dd>
+      </dl>
+      ${relic ? `<h3>Relic</h3><p><b>${esc(relic.name)}</b>${relic.cursed ? ' <span class="pink">cursed: it won’t come off</span>' : ''}<br><i>${esc(relic.flavor)}</i><br>${esc(relic.text)}</p>` : ''}
+      ${party}</div>`;
+    const others = S.party.map((p, j) => j).filter((j) => j !== i);
+    const canSwap = alive().length === 2 && !Q.Battle.active();
+    modal(pc.name, html, [
+      ...others.map((j) => ({ label: `${short(S.party[j])}’s sheet`, action: () => showSheet(j) })),
+      ...(canSwap ? [{ label: pc.row === 'back' ? 'Move to the front row' : 'Move to the back row', action: () => { const [a, b] = S.party; [a.row, b.row] = [b.row, a.row]; save(); renderHud(); showSheet(i); } }] : []),
+      { label: 'Close', ghost: true },
+    ]);
+  }
+  // The Party button: the front wretch's sheet first.
   function partySheet() {
-    const calendar = `<p class="small"><b class="pink">☄ The Calendar of Nechrubel:</b> ${calendarText()}.${S.calendar.misery ? ` So far: ${Q.MISERIES.slice(0, S.calendar.misery).map((m) => esc(m.title)).join('; ')}.` : ''}</p>`;
-    const extra = calendar + `<p class="small">The party carries <b>${S.silver}s</b>, <b>${S.poultices}</b> poultice${S.poultices === 1 ? '' : 's'}${S.scrolls.length ? ` and ${S.scrolls.map((k) => esc(Q.SCROLLS[k].name)).join(', ')}` : ''}. ${S.kills} slain; ${Math.max(0, 5 - S.killsSinceBetter)} more before you can Get Better at the inn.</p>`;
-    const both = alive().length === 2;
-    modal('The party', `<div class="sheets">${S.party.map((pc) => `<div class="sheet">${sheetHtml(pc, false)}</div>`).join('')}</div>${extra}<p class="small">In battle, foes go for the front wretch three times in four, and a melee attack from the back row is at DR +2.</p>`, [
-      ...(both ? [{ label: 'Swap front and back', action: () => { const [a, b] = S.party; [a.row, b.row] = [b.row, a.row]; save(); partySheet(); } }] : []),
-      { label: 'Close' },
-    ], { wide: true });
+    const front = S.party.findIndex((p) => !p.dead && p.row !== 'back');
+    showSheet(front >= 0 ? front : 0);
   }
 
   // ---------- the town ----------
@@ -821,7 +902,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       party: S.party, foes: g.members, inv: S, log, misery: S.calendar.misery,
       ...(g.members.some((m) => Q.MONSTERS[m.key].boss) ? { bossWeak: !!S.flags.abbessWeak, firstStrike: !!S.flags.ambush, foesFirst: !!S.flags.abbessAlert && !S.flags.ambush } : {}),
       onDayLost: () => { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); renderHud(); },
-      onChange: renderHud, onHurt: flashHurt, say,
+      onChange: renderHud, onHurt: flashHurt, say, sheet: showSheet,
     });
     if (result.outcome === 'won') {
       g.alive = false;
@@ -910,8 +991,8 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     if (!S) return;
     $('chips').innerHTML = S.party.map((pc) => {
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
-      return `<div class="chip${pc.dead ? ' dead' : ''}"><img src="${Q.portraitUrl(pc.name)}" alt="">
-        <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span></span></div>`;
+      return `<button type="button" class="chip${pc.dead ? ' dead' : ''}" data-sheet="${S.party.indexOf(pc)}" aria-label="${esc(pc.name)}’s character sheet"><img src="${Q.portraitUrl(pc.name)}" alt="">
+        <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span></span></button>`;
     }).join('') + `<div class="purse">${S.silver}s</div><div class="purse comet" title="Calendar of Nechrubel: ${calendarText()}">☄ ${S.calendar.days}</div>`;
     $('hudPlace').textContent = S.where === 'crawl' ? floor().name : '';
     if (world) {
@@ -1029,9 +1110,11 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   try { moveMode = localStorage.getItem(MOVE_KEY) === 'grid' ? 'grid' : 'free'; } catch (e) { /* storage may be unavailable */ }
   function applyMove() {
     if (world) { world.setMode(moveMode); world.setWater(Q.prefs.flood); }
-    $('hint').innerHTML = moveMode === 'grid'
-      ? 'Step a square at a time: the arrow pad<br><span>Keyboard: W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn</span>'
-      : 'Left thumb: walk · Right thumb: look<br><span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look</span>';
+    $('hint').innerHTML = (moveMode === 'grid'
+      ? 'Step a square at a time: the arrow pad<br>'
+      : 'Left thumb: walk · Right thumb: look<br>') + 'Tap a portrait for its character sheet<br>'
+      + (moveMode === 'grid' ? '<span>Keyboard: W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn, P for sheets</span>'
+        : '<span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look, P for sheets</span>');
   }
   function showSettings() {
     const on = !Q.Sound || Q.Sound.on;
@@ -1143,6 +1226,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     $('goSheet').addEventListener('click', partySheet);
     $('tMap').addEventListener('click', showMap);
     $('tParty').addEventListener('click', partySheet);
+    $('chips').addEventListener('click', (e) => { const c = e.target.closest('[data-sheet]'); if (c && !busy) showSheet(+c.dataset.sheet); });
     $('tPoultice').addEventListener('click', usePoultice);
     $('mini').addEventListener('click', showMap);
     $('btnSettings').addEventListener('click', showSettings);

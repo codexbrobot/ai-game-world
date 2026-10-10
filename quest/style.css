@@ -159,9 +159,12 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
   padding: 10px 12px; pointer-events: none;
 }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; min-width: 0; }
+.chips { pointer-events: auto; }
 .chip {
   display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 4px; background: rgba(10, 10, 8, 0.82);
   box-shadow: 0 0 0 2px var(--yellow); min-width: 0;
+  /* a button (tap for the character sheet), dressed as before */
+  min-height: 0; color: var(--bone); font-size: 13px; letter-spacing: 0; text-transform: none; text-align: left;
 }
 .chip img { width: 34px; height: 40px; object-fit: cover; flex: 0 0 auto; }
 .chip b { display: block; font-family: var(--display); font-weight: 900; font-size: 17px; line-height: 1; color: var(--yellow); }
@@ -524,3 +527,30 @@ body.in-battle .step-pad { visibility: hidden; }
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: radial-gradient(ellipse at center, rgba(40, 8, 30, 0.35), rgba(5, 2, 8, 0.85)); backdrop-filter: blur(2px);
 }
+
+/* ---------- the character sheet ---------- */
+.char { font-size: 15px; line-height: 1.4; }
+.char .face { float: right; width: 92px; height: 112px; object-fit: cover; margin: 0 0 8px 12px; box-shadow: 0 0 0 3px var(--yellow); transform: rotate(2deg); }
+.char .cls { margin: 0 0 6px; font-size: 14px; }
+.char .cls b { color: var(--yellow); text-transform: uppercase; letter-spacing: 0.06em; }
+.char .trait { font-style: italic; margin: 0 0 10px; color: var(--dim); }
+.char h3 { clear: both; margin: 16px 0 8px; font-family: var(--display); font-weight: 900; font-size: 24px; line-height: 1; color: var(--yellow); }
+.vitals { clear: both; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 4px; }
+.vitals span { background: var(--yellow); color: var(--ink); text-align: center; padding: 4px 2px 3px; }
+.vitals small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.vitals b { display: block; font-family: var(--display); font-weight: 900; font-size: 26px; line-height: 1; }
+.status-line { margin: 8px 0 0; }
+.ab-list { display: grid; gap: 8px; margin-bottom: 8px; }
+.ab-row { display: grid; grid-template-columns: 80px 1fr; gap: 10px; align-items: center; }
+.ab-row .ab { background: var(--yellow); color: var(--ink); }
+.ab-row .ab span { color: var(--ink); font-weight: 700; font-size: 10px; letter-spacing: 0.04em; }
+.ab-row p { margin: 0; font-size: 14px; line-height: 1.35; }
+.ab-row small, .char .gear small { display: block; margin-top: 2px; color: var(--yellow); font-size: 13px; }
+.char .gear { gap: 4px 12px; }
+.char .gear dt { color: var(--yellow); }
+.char .gear dd { margin-bottom: 8px; font-size: 14.5px; }
+.char .pink { color: var(--pink); }
+.carried { margin-top: 16px; padding: 2px 12px 4px; box-shadow: inset 0 0 0 2px rgba(255, 225, 26, 0.45); }
+.carried h3 { margin-top: 10px; font-size: 20px; }
+.carried p { margin: 0 0 8px; font-size: 14px; }
+.carried small { display: block; color: var(--dim); }

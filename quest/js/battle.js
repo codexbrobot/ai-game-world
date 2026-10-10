@@ -101,6 +101,8 @@ var Q = window.Q || (window.Q = {});
   let chooser = null;
   function pick(kind, value) {
     if (chooser && chooser.accepts.includes(kind)) chooser.resolve({ kind, value });
+    // a wretch's card while you choose what to do: their character sheet
+    else if (kind === 'pc' && chooser && B.sheet) B.sheet(value);
     else if (Q.Dice) Q.Dice.skip(); // a tap while dice roll hurries them
   }
 
@@ -959,7 +961,7 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
 
   // keyboard: arrows move between buttons, Enter/Space presses, Escape backs out
   window.addEventListener('keydown', (e) => {
-    if (!B || $('battle').hidden) return;
+    if (!B || $('battle').hidden || !$('modal').hidden) return;
     if (!chooser) {
       if (e.key.toLowerCase() === 'o' && Q.Dice) { e.preventDefault(); Q.Dice.accept(); return; }
       if ([' ', 'enter'].includes(e.key.toLowerCase()) && Q.Dice) { e.preventDefault(); Q.Dice.skip(); }
