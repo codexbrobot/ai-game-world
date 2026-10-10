@@ -24,6 +24,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 | Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
 | Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–7 |
 | Spend an Omen when one is offered | tap the yellow button on the dice | O |
+| Omens: auto or manual | the Omens button in the battle menu, or ⚙ Settings | |
 | Pick a target | tap the foe | ← / → and Enter |
 | Hurry the dice | tap the dice | Space or Enter |
 | Map, party | the buttons at the bottom (or tap the mini-map) | M, P |
@@ -117,7 +118,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | Armor | Soaks d2 / d4 / d6. Some foes have armor too |
 | Initiative | d6 when a battle starts: 1–3 and they strike first |
 | Morale | Rats and cultists roll 2d6 against their morale when badly hurt, and may flee |
-| Omens | Spent after you see the roll, as in the rulebook. When a roll goes wrong and someone has an Omen, a button sits on the dice for two seconds (tap anywhere else, or wait, to carry on): a failed attack, Defence or test is rolled again, or its DR lowered by 4 if that's enough to pass; a hit that maximum damage would turn into a kill can deal maximum damage; a wound that would drop you to 0 is lowered by d6; a Dead result on the Broken table, or losing initiative, is rolled again. The wretch who rolled pays if they can, otherwise their partner. Back to d2 after sleeping |
+| Omens | Spent after you see the roll, as in the rulebook. When a roll goes wrong and someone has an Omen, a button sits on the dice for two seconds (tap anywhere else, or wait, to carry on): a failed attack, Defence or test is rolled again, or its DR lowered by 4 if that's enough to pass; a hit that maximum damage would turn into a kill can deal maximum damage; a wound that would drop you to 0 is lowered by d6; a Dead result on the Broken table, or losing initiative, is rolled again. The wretch who rolled pays if they can, otherwise their partner. If you'd rather not be asked, switch Omens to **manual** (the Omens button in the battle menu, or ⚙ Settings): nothing pops up, and you spend them from the menu before you act, at no cost in time: maximum damage on your next hit, −d6 off your next wound, or DR −4 on your next attack or dodge. Back to d2 after sleeping |
 | Scrolls | Presence test DR 12, Presence + d4 uses a day. A failure leaves you unable to read more until you sleep |
 | 0 HP | Broken: d4 for blacking out, a broken bone or lost eye, haemorrhaging (bleeding), or death |
 | Below 0 HP | Dead. Hire a replacement at the inn; if both die, the save is gone |

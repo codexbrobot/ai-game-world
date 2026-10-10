@@ -63,7 +63,7 @@ var Q = window.Q || (window.Q = {});
       card.className = 'pc-card' + (pc.dead ? ' dead' : '') + (B.active === i ? ' active' : '') + (pc.row === 'back' ? ' row-back' : ' row-front');
       card.dataset.i = i;
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
-      const marks = `${pc.dazed ? '<i title="dazed">✶</i>' : ''}${pc.relic ? `<i title="${esc(Q.ITEMS[pc.relic].name)}">✠</i>` : ''}`;
+      const marks = `${pc.omenMax ? '<i title="Omen: next hit at maximum">▲</i>' : ''}${pc.omenWard ? '<i title="Omen: next wound −d6">◆</i>' : ''}${pc.omenDR ? '<i title="Omen: next attack or dodge at DR −4">▼</i>' : ''}${pc.dazed ? '<i title="dazed">✶</i>' : ''}${pc.relic ? `<i title="${esc(Q.ITEMS[pc.relic].name)}">✠</i>` : ''}`;
       card.innerHTML = `<img src="${Q.portraitUrl(pc.name)}" alt="">
         <span class="pc-info"><span class="row-tag">${pc.row === 'back' ? 'Back' : 'Front'}${Q.classOf(pc) ? ` · ${esc(Q.classOf(pc).name)}` : ''}</span><b>${esc(pc.name)}</b>
         <span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span>
@@ -141,6 +141,9 @@ var Q = window.Q || (window.Q = {});
         Q.has(pc, 'rosary') ? { label: 'Scroll', value: 'scroll', disabled: true, note: 'the rosary forbids it' }
           : { label: 'Scroll', value: 'scroll', disabled: !B.inv.scrolls.length || pc.powers <= 0, note: B.inv.scrolls.length ? `${pc.powers} left` : 'none' },
         { label: 'Poultice', value: 'poultice', disabled: B.inv.poultices <= 0, note: `${B.inv.poultices}` },
+        manualOmens()
+          ? { label: 'Omen', value: 'omen', note: `manual · ${pc.omens} left` }
+          : { label: 'Omens: auto', value: 'omenmode', note: 'offered after a bad roll · tap for manual' },
         { label: pc.row === 'back' ? 'Step forward' : 'Fall back', value: 'swap', disabled: !partner, note: partner ? `swap with ${short(partner)}` : 'alone' },
         Q.has(pc, 'heart') ? { label: 'Flee', value: 'flee', ghost: true, disabled: true, note: 'the heart won’t run' } : { label: 'Flee', value: 'flee', ghost: true },
       ], `${short(pc)}’s turn`);
@@ -174,6 +177,30 @@ var Q = window.Q || (window.Q = {});
       } else if (c.value === 'poultice') {
         const ally = await chooseAlly('Bind whose wounds?');
         if (ally) return { kind: 'poultice', ally };
+      } else if (c.value === 'omenmode') {
+        if (Q.setOmenMode) Q.setOmenMode('manual');
+        B.log('<b class="yellow">Omens: manual.</b> No more offers on the dice; spend them from the menu before you act.', 'dim');
+      } else if (c.value === 'omen') {
+        menu([
+          { label: 'Next hit: maximum damage', value: 'max', disabled: pc.omens <= 0 || pc.omenMax },
+          { label: 'Next wound: −d6', value: 'ward', disabled: pc.omens <= 0 || pc.omenWard },
+          { label: 'Next attack or dodge: DR −4', value: 'dr', disabled: pc.omens <= 0 || pc.omenDR },
+          { label: 'Omens: auto', value: 'auto', note: 'offer them on the dice again' },
+          { label: 'Back', value: 'back', ghost: true },
+        ], `Spend an Omen (${pc.omens} left). It costs no time.`);
+        const o = await choose(['cmd']);
+        hideMenu();
+        if (o.value === 'auto') {
+          if (Q.setOmenMode) Q.setOmenMode('auto');
+          B.log('<b class="yellow">Omens: auto.</b> They’ll be offered on the dice after a bad roll.', 'dim');
+        } else if (o.value !== 'back') {
+          pc.omens -= 1;
+          if (o.value === 'max') { pc.omenMax = true; B.log(`<b class="yellow">Omen:</b> ${short(pc)}’s next hit will land with full force.`); }
+          if (o.value === 'ward') { pc.omenWard = true; B.log(`<b class="yellow">Omen:</b> ${short(pc)}’s next wound will be lessened by d6.`); }
+          if (o.value === 'dr') { pc.omenDR = true; B.log(`<b class="yellow">Omen:</b> ${short(pc)}’s next attack or dodge is at DR −4.`); }
+          sfx('cast');
+        }
+        renderParty();
       } else if (c.value === 'flee') {
         return { kind: 'flee' };
       }
@@ -199,12 +226,15 @@ var Q = window.Q || (window.Q = {});
     return c.kind === 'pc' ? B.party[c.value] : null;
   }
 
+  const manualOmens = () => !!(Q.prefs && Q.prefs.omens === 'manual');
+
   // ---------- Omens, spent after the dice ----------
   // As in the rulebook, an Omen is spent once you see the roll: reroll any die, lower a test's DR by 4,
   // deal maximum damage, or lower a wound by d6. The game offers one only when a roll has gone wrong
   // and someone still has an Omen; the button sits on the dice for a moment and a tap anywhere else
   // turns it down. The wretch who rolled pays if they can, otherwise their partner.
   async function omen(pc, label) {
+    if (Q.prefs && Q.prefs.omens === 'manual') return null; // manual Omens: spent from the menu instead
     const payer = pc && !pc.dead && pc.omens > 0 ? pc : B.party.find((p) => !p.dead && p.omens > 0);
     if (!payer || !Q.Dice) return null;
     const pick = await Q.Dice.offer([{ label: `${label}<small>${esc(payer.name.split(' ')[0])}’s Omen · ${payer.omens} left</small>` }]);
@@ -240,7 +270,10 @@ var Q = window.Q || (window.Q = {});
     const ability = opts.ability || 'strength';
     const Ab = ability[0].toUpperCase() + ability.slice(1);
     const behind = pc.row === 'back' && !riposte && !opts.anyRow && B.party.some((p) => p !== pc && !p.dead);
-    let res = Q.attack(pc, f, { ...opts, drAdd: behind ? 2 : 0 });
+    // manual Omen: DR −4 on this attack
+    const omenDR = !riposte && pc.omenDR ? 4 : 0;
+    if (omenDR) pc.omenDR = false;
+    let res = Q.attack(pc, f, { ...opts, drAdd: (behind ? 2 : 0) - omenDR });
     const label = opts.label || pc.weapon.name;
     const verdictOf = (k) => ({ crit: 'Critical!', hit: 'Hit!', miss: 'Miss', fumble: 'Fumble!' }[k]);
     const toneOf = (k) => (k === 'hit' || k === 'crit' ? 'good' : 'bad');
@@ -532,7 +565,9 @@ var Q = window.Q || (window.Q = {});
     if (!pc) return;
     flash(f.el, 'lunge', 400);
     sfx('voice', { kind: f.kind, dist: 1 });
-    const defDR = drAdd + (Q.has(pc, 'mirror') ? 1 : 0);
+    const omenDR = pc.omenDR ? 4 : 0; // manual Omen: DR −4 on this dodge
+    if (omenDR) pc.omenDR = false;
+    const defDR = drAdd + (Q.has(pc, 'mirror') ? 1 : 0) - omenDR;
     let res = Q.defend(pc, f.die, defDR);
     const verdictOf = (k) => ({ riposte: 'Riposte!', dodge: 'Dodged', wound: 'Hit', fumble: 'Fumble!' }[k]);
     const toneOf = (k) => (k === 'riposte' || k === 'dodge' ? 'good' : 'bad');
@@ -556,9 +591,10 @@ var Q = window.Q || (window.Q = {});
     if (res.kind === 'dodge') { B.log(`${the(f, true)} ${verb(f, 'misses', 'miss')} ${short(pc)}.`, 'miss'); sfx('miss'); return; }
     const dice = [D(f.die, res.dmgRoll, 'pink', 'Wound')];
     if (res.armorDie) dice.push(D(res.armorDie, res.armorRoll, 'dim', 'Armor'));
-    const sum = damageText(res.dmgRoll, res.kind === 'fumble', res.absorbed, res.before) + (res.warded ? ', but an Omen turns it aside' : '');
+    if (res.warded) dice.push(D(6, res.wardRoll, 'yellow', 'Omen'));
+    const sum = damageText(res.dmgRoll, res.kind === 'fumble', res.absorbed, res.before) + (res.warded ? `, an Omen takes ${res.wardRoll} off: ${res.dmg}` : '');
     await throwDice({ dice, verdict: res.dmg ? `${short(pc)} −${res.dmg} HP` : 'No harm done', tone: res.dmg ? 'bad' : 'good', text: `${esc(f.def.name)} d${f.die}${res.kind === 'fumble' ? ', doubled' : ''} · ${sum}` });
-    const notes = [res.brokeArmor ? `${short(pc)}’s armor cracks` : '', res.warded ? 'an Omen turns it aside' : ''].filter(Boolean).join(', ');
+    const notes = [res.brokeArmor ? `${short(pc)}’s armor cracks` : '', res.warded ? `an Omen takes ${res.wardRoll} off` : ''].filter(Boolean).join(', ');
     sfx(res.dmg ? 'hurt' : 'land');
     if (res.dmg) B.log(`${the(f, true)} ${verb(f, 'hits', 'hit')} ${short(pc)} for <b>${res.dmg}</b>${notes ? ` (${notes})` : ''}.`, 'hurt');
     else B.log(`${the(f, true)} ${verb(f, 'hits', 'hit')} ${short(pc)}, but it does no harm${notes ? ` (${notes})` : ''}.`, 'miss');

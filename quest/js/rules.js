@@ -197,13 +197,15 @@ var Q = window.Q || (window.Q = {});
       pc.armor.name = ARMOR[pc.armor.tier].name;
       brokeArmor = true;
     }
-    let warded = false;
+    // an Omen spent in advance (manual Omens): the wound is lowered by d6, as in the rulebook
+    let warded = false, wardRoll = 0;
     if (pc.omenWard && dmg > 0) {
       pc.omenWard = false;
       warded = true;
-      dmg = 0;
+      wardRoll = d(6);
+      dmg = Math.max(0, dmg - wardRoll);
     }
-    return { kind: t.fumble ? 'fumble' : 'wound', ...t, dmg, dmgRoll, armorDie, armorRoll, absorbed, before, brokeArmor, warded };
+    return { kind: t.fumble ? 'fumble' : 'wound', ...t, dmg, dmgRoll, armorDie, armorRoll, absorbed, before, brokeArmor, warded, wardRoll };
   }
 
   // At exactly 0 HP a wretch is Broken. Below 0 they are dead.

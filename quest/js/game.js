@@ -893,6 +893,14 @@
   }
 
   // ---------- settings ----------
+  // Omens: 'auto' offers one on the dice after a bad roll; 'manual' spends them from the battle menu.
+  const OMEN_KEY = 'quest-borg-omens';
+  Q.prefs = { omens: 'auto' };
+  try { if (localStorage.getItem(OMEN_KEY) === 'manual') Q.prefs.omens = 'manual'; } catch (e) { /* storage may be unavailable */ }
+  Q.setOmenMode = (m) => {
+    Q.prefs.omens = m === 'manual' ? 'manual' : 'auto';
+    try { localStorage.setItem(OMEN_KEY, Q.prefs.omens); } catch (e) { /* ignore */ }
+  };
   const MOVE_KEY = 'quest-borg-move';
   let moveMode = 'free';
   try { moveMode = localStorage.getItem(MOVE_KEY) === 'grid' ? 'grid' : 'free'; } catch (e) { /* storage may be unavailable */ }
@@ -904,16 +912,22 @@
   }
   function showSettings() {
     const on = !Q.Sound || Q.Sound.on;
-    const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${(key === 'move' ? moveMode : on ? 'on' : 'off') === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
+    const current = { move: moveMode, sound: on ? 'on' : 'off', omens: Q.prefs.omens };
+    const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${current[key] === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
     modal('Settings', `<div class="settings">
       <div class="opt"><b>Movement</b><div class="choices">
         ${opt('move', 'free', 'Free', 'walk anywhere, look around, like DOOM')}
         ${opt('move', 'grid', 'Steps', 'a square at a time, quarter turns, old school')}
       </div></div>
+      <div class="opt"><b>Omens</b><div class="choices">
+        ${opt('omens', 'auto', 'Auto', 'offered on the dice after a bad roll')}
+        ${opt('omens', 'manual', 'Manual', 'spend from the battle menu before you act')}
+      </div></div>
       <div class="opt"><b>Sound</b><div class="choices">${opt('sound', 'on', 'On')}${opt('sound', 'off', 'Off')}</div></div>
       <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
-      if (b.dataset.set === 'move') {
+      if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
+      else if (b.dataset.set === 'move') {
         moveMode = b.dataset.val;
         try { localStorage.setItem(MOVE_KEY, moveMode); } catch (e) { /* ignore */ }
         applyMove();
