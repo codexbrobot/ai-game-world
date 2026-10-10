@@ -1,5 +1,7 @@
 // The 3D dungeon: three.js geometry built from the floor maps, a torch-lit first-person camera,
-// free movement with stairs and ledges, roaming monsters, and Doom-style billboard sprites.
+// free movement with stairs and ledges, roaming monsters, and Doom-style billboard sprites that shamble
+// in two-frame steps. The wretches' hands are drawn over the view like Doom's weapon: a torch on the left
+// with a living flame (the light in the world flickers with it) and the front wretch's weapon on the right.
 // Bundled to js/engine.js by `npm run build:quest`; the game drives it through Q.World.
 import * as THREE from 'three';
 
@@ -40,7 +42,8 @@ export function createWorld(container, hooks) {
   const camera = new THREE.PerspectiveCamera(70, 4 / 3, 0.05, 60);
   camera.rotation.order = 'YXZ';
   scene.add(camera);
-  scene.add(new THREE.HemisphereLight(0x5a5346, 0x0a0806, 0.5));
+  const hemi = new THREE.HemisphereLight(0x5a5346, 0x0a0806, 0.5);
+  scene.add(hemi);
   // the torch you carry: warm bone-white, flickering
   const torch = new THREE.PointLight(0xffe7c2, 13, 18, 1.15);
   torch.position.set(0.2, 0.25, 0.9); // carried a little behind, so walls you face up close don't burn white
@@ -78,16 +81,32 @@ export function createWorld(container, hooks) {
     return t;
   }
   const lambert = (map, extra = {}) => new THREE.MeshLambertMaterial({ map, ...extra });
-  const materials = {
-    'wall-stone': lambert(texture('wall-stone')),
-    'wall-ossuary': lambert(texture('wall-ossuary')),
-    'wall-relief': lambert(texture('wall-relief')),
-    floor: lambert(texture('floor')),
-    ceiling: lambert(texture('ceiling'), { color: 0x8a8070 }),
-    door: lambert(texture('door', false)),
+  // Surfaces are named by picture; each floor's theme says which pictures it uses.
+  const matCache = {
     pit: new THREE.MeshBasicMaterial({ color: 0x000000 }),
     abyss: new THREE.MeshBasicMaterial({ color: 0x2a0714, fog: false }), // the chasm floor, a faint wound-red
   };
+  function mat(name, extra) {
+    if (!matCache[name]) matCache[name] = lambert(texture(name, !/door/.test(name)), extra);
+    return matCache[name];
+  }
+  // The Undercroft's look, used by any floor that doesn't bring its own.
+  const DEFAULT_THEME = {
+    walls: [['wall-stone', 6], ['wall-ossuary', 3], ['wall-relief', 1]],
+    riser: 'wall-stone', floor: 'floor', ceiling: 'ceiling', door: 'door',
+    sky: 0x5a5346, ground: 0x0a0806, fog: 0x000000, ceilingTint: 0x8a8070,
+  };
+  let theme = DEFAULT_THEME;
+  const materials = new Proxy({}, {
+    get(_, key) {
+      if (key in matCache) return matCache[key];
+      if (key === 'floor') return mat(theme.floor);
+      if (key === 'ceiling') return mat(theme.ceiling, { color: theme.ceilingTint });
+      if (key === 'door') return mat(theme.door);
+      if (key === 'riser') return mat(theme.riser, theme.wallTint ? { color: theme.wallTint } : undefined);
+      return mat(key, theme.wallTint ? { color: theme.wallTint } : undefined);
+    },
+  });
 
   // ---------- state ----------
   let level = null; // { grid, h, c, W, H, root, doors, items, groups }
@@ -111,13 +130,24 @@ export function createWorld(container, hooks) {
   }
 
   // ---------- building a floor ----------
+  // Walls pick a picture by a fixed hash of their cell, weighted by the theme.
   function wallMaterialFor(cx, cy) {
-    const k = (((cx * 7 + cy * 13) % 10) + 10) % 10;
-    return k <= 5 ? 'wall-stone' : k <= 8 ? 'wall-ossuary' : 'wall-relief';
+    const total = theme.walls.reduce((n, [, w]) => n + w, 0);
+    let k = (((cx * 7 + cy * 13) % total) + total) % total;
+    for (const [name, w] of theme.walls) {
+      if (k < w) return name;
+      k -= w;
+    }
+    return theme.walls[0][0];
   }
 
   function build(floor) {
     if (level) scene.remove(level.root);
+    theme = { ...DEFAULT_THEME, ...(floor.theme || {}) };
+    scene.fog.color.setHex(theme.fog);
+    renderer.setClearColor(theme.fog);
+    hemi.color.setHex(theme.sky);
+    hemi.groundColor.setHex(theme.ground);
     const grid = floor.grid;
     const H = grid.length, W = grid[0].length;
     const h = floor.heights.map((row) => [...row].map(heightOf));
@@ -169,8 +199,8 @@ export function createWorld(container, hooks) {
           }
           // a step down to the neighbour shows its riser from this side; a lower ceiling next door shows a lintel
           const nf = h[ny][nx], nc = c[ny][nx];
-          if (nf > fy) vface('wall-stone', e, x, y, fy, nf);
-          if (nc < cy) vface('wall-stone', e, x, y, nc, cy);
+          if (nf > fy) vface('riser', e, x, y, fy, nf);
+          if (nc < cy) vface('riser', e, x, y, nc, cy);
         }
         if (t === 'D') buildDoor(x, y, fy, cy);
         if (t === 'G' || t === '<') buildDaylight(x, y, fy);
@@ -207,7 +237,7 @@ export function createWorld(container, hooks) {
     const steps = 6;
     for (let i = 0; i < steps; i++) {
       const depth = CELL / steps;
-      const box = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.8, 0.22, depth), materials['wall-stone']);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.8, 0.22, depth), materials.riser);
       box.position.set((x + 0.5) * CELL, fy - 0.11 - i * 0.28, y * CELL + depth * (i + 0.5));
       g.add(box);
     }
@@ -230,9 +260,11 @@ export function createWorld(container, hooks) {
   }
 
   // ---------- sprites ----------
-  function billboard(map, width, height) {
-    const geo = new THREE.PlaneGeometry(width, height);
+  // segs > 1 makes a grid the shamble can bend (see shamble()).
+  function billboard(map, width, height, segs = 1) {
+    const geo = new THREE.PlaneGeometry(width, height, segs, segs > 1 ? 6 : 1);
     geo.translate(0, height / 2, 0);
+    if (segs > 1) geo.userData.base = geo.attributes.position.array.slice();
     const mat = new THREE.MeshLambertMaterial({ map, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide, emissive: 0x6e6658, emissiveMap: map });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.userData.billboard = true;
@@ -290,19 +322,22 @@ export function createWorld(container, hooks) {
       const hh = SPRITE_HEIGHT[kind] || 1.9;
       const tex = texture(kind, false);
       const aspect = kind === 'rats' ? 4 / 3 : 2 / 3;
-      const mesh = billboard(tex, hh * aspect, hh);
+      const mesh = billboard(tex, hh * aspect, hh, 4);
       mesh.userData.slot = i;
+      mesh.userData.kind = kind;
+      mesh.userData.size = [hh * aspect, hh];
       g.add(mesh);
     });
     g.position.set(group.x, 0, group.z);
     level.root.add(g);
-    level.groups.push({ group, mesh: g, wander: null, path: null, think: 0, step: Math.random() * 6 });
+    level.groups.push({ group, mesh: g, wander: null, path: null, think: 0, step: Math.random() * 6, idle: Math.random() * 2, frame: -1, voice: 2 + Math.random() * 3 });
   }
 
   // ---------- movement ----------
   const keys = new Set();
   const stick = { x: 0, y: 0 }; // virtual joystick: x strafe, y forward
-  const look = { dx: 0, dy: 0 };
+  const look = { dx: 0, dy: 0, dxLast: 0 };
+  let turnRate = 0; // radians a second, for the hands' sway
 
   function blockedAt(px, pz, fromH) {
     // every cell the wretch's circle touches must be walkable from the floor they stand on
@@ -327,6 +362,8 @@ export function createWorld(container, hooks) {
     if (keys.has('arrowleft') || keys.has('q')) turn -= 1;
     if (keys.has('arrowright') || keys.has('e')) turn += 1;
     player.a += turn * TURN * dt + look.dx;
+    look.dxLast = dt > 0 ? look.dx / dt : 0;
+    turnRate = turn * TURN + look.dxLast;
     player.pitch = Math.max(-0.55, Math.min(0.55, player.pitch - look.dy));
     look.dx = 0; look.dy = 0;
     const len = Math.hypot(fwd, side);
@@ -342,7 +379,9 @@ export function createWorld(container, hooks) {
     if (!bx) player.x += vx; else touch(bx);
     const bz = blockedAt(player.x, player.z + vz, here);
     if (!bz) player.z += vz; else touch(bz);
+    const before = Math.floor(player.phase / Math.PI);
     player.phase += Math.hypot(vx, vz) * 3.2;
+    if (Math.floor(player.phase / Math.PI) !== before) hooks.onStep && hooks.onStep();
   }
 
   // Bumping a closed door opens it.
@@ -429,6 +468,13 @@ export function createWorld(container, hooks) {
     return dist - step < 0.05;
   }
 
+  // -1 (on your left) to 1 (on your right)
+  function panOf(g) {
+    const dx = g.x - player.x, dz = g.z - player.z;
+    const d = Math.hypot(dx, dz) || 1;
+    return Math.max(-1, Math.min(1, (dx * -Math.sin(player.a) + dz * Math.cos(player.a)) / d));
+  }
+
   function updateMonsters(dt, now) {
     for (const entry of level.groups) {
       const g = entry.group;
@@ -437,7 +483,14 @@ export function createWorld(container, hooks) {
       const dist = Math.hypot(player.x - g.x, player.z - g.z);
       if (g.stunUntil && now < g.stunUntil) continue;
       const sees = dist < def.sight * CELL && lineOfSight(g.x, g.z, player.x, player.z);
+      if (sees && !g.alert) hooks.onAlert && hooks.onAlert(def.kind, dist / CELL, panOf(g));
       if (sees) g.alert = true;
+      // the hunters make themselves heard now and then
+      entry.voice -= dt;
+      if (g.alert && entry.voice <= 0 && dist < 7 * CELL) {
+        entry.voice = 2.5 + Math.random() * 3.5;
+        hooks.onVoice && hooks.onVoice(def.kind, dist / CELL, panOf(g));
+      }
       else if (dist > def.sight * CELL * 2) g.alert = false;
       if (dist < CONTACT && Math.abs(floorH(cellOf(g.x), cellOf(g.z)) - floorH(cellOf(player.x), cellOf(player.z))) < 1.2) {
         hooks.onContact && hooks.onContact(g);
@@ -478,7 +531,10 @@ export function createWorld(container, hooks) {
     camera.position.set(player.x, player.y + bob, player.z);
     camera.rotation.y = -(player.a + Math.PI / 2);
     camera.rotation.x = player.pitch;
-    torch.intensity = 13 + Math.sin(now * 0.011) * 0.9 + Math.sin(now * 0.037) * 0.6;
+    const f = flicker(now);
+    torch.intensity = 12.2 + f * 2.4;
+    torch.position.x = 0.2 + (f - 0.5) * 0.08;
+    drawHands(now, f);
     // billboards turn to face you; groups spread out across your view
     const right = new THREE.Vector3(-Math.sin(player.a), 0, Math.cos(player.a));
     for (const entry of level.groups) {
@@ -490,14 +546,182 @@ export function createWorld(container, hooks) {
       entry.mesh.children.forEach((m, i) => {
         const off = (i - (n - 1) / 2) * 0.75;
         const back = i === Math.floor((n - 1) / 2) && n > 1 ? -0.25 : 0.15 * Math.abs(i - (n - 1) / 2);
-        m.position.set(right.x * off - Math.cos(player.a) * back, Math.abs(Math.sin(entry.step + i)) * 0.06, right.z * off - Math.sin(player.a) * back);
+        m.position.set(right.x * off - Math.cos(player.a) * back, 0, right.z * off - Math.sin(player.a) * back);
       });
+      shamble(entry, now);
     }
     level.root.traverse((o) => {
       if (!o.userData.billboard) return;
       const wp = o.getWorldPosition(new THREE.Vector3());
       o.rotation.y = Math.atan2(camera.position.x - wp.x, camera.position.z - wp.z);
     });
+  }
+
+  // ---------- the torch's flicker ----------
+  // A smoothed random walk under two slow waves: 0 (guttering) to 1 (flaring).
+  let flick = 0.5, flickTarget = 0.5, flickNext = 0;
+  function flicker(now) {
+    if (now > flickNext) {
+      flickTarget = 0.25 + Math.random() * 0.75;
+      flickNext = now + 50 + Math.random() * 110;
+    }
+    flick += (flickTarget - flick) * 0.35;
+    const v = flick * 0.6 + (0.5 + 0.5 * Math.sin(now * 0.0063)) * 0.25 + (0.5 + 0.5 * Math.sin(now * 0.0171)) * 0.15;
+    return Math.max(0, Math.min(1, v));
+  }
+
+  // ---------- shambling ----------
+  // Each monster has two poses, A and B, and steps between them like a Doom sprite: on the beat of its
+  // walk while it moves, slowly while it stands. A pose bends the billboard's grid: (u, v) run 0..1 across
+  // and up the picture, and a pose returns the shift as fractions of the picture's width and height.
+  const POSES = {
+    // lurching: leans into each step, dragging one foot then the other
+    zombie: (u, v, s) => [s * 0.06 * v * v, v < 0.3 && (u - 0.5) * s > 0 ? 0.045 * (1 - v / 0.3) : -0.012 * v],
+    // rattling: small, quick, the skull ticking from side to side
+    skeleton: (u, v, s) => [s * 0.025 * v + (v > 0.78 ? s * 0.025 : 0), v < 0.28 && (u - 0.5) * s > 0 ? 0.035 * (1 - v / 0.28) : 0],
+    // the robe's hem swings; the body barely moves
+    cultist: (u, v, s) => [v < 0.42 ? s * 0.045 * (1 - v / 0.42) : -s * 0.012 * v, s > 0 ? -0.01 * v : 0],
+    // a scurry: stretched low, then bunched up
+    rats: (u, v, s) => [(u - 0.5) * (s > 0 ? 0.12 : -0.08), (s > 0 ? -0.1 : 0.08) * v],
+  };
+  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55 }; // walk units per frame
+  function shamble(entry, now) {
+    const moving = entry.lastStep !== entry.step;
+    entry.lastStep = entry.step;
+    if (!moving) entry.idle += 1 / 60;
+    for (const m of entry.mesh.children) {
+      const geo = m.geometry, base = geo.userData.base;
+      if (!base) continue;
+      const kind = m.userData.kind;
+      const [w, h] = m.userData.size;
+      const pos = geo.attributes.position.array;
+      if (kind === 'abbess') {
+        // she does not walk: she drifts, and the hem of her veil ripples
+        const t = now / 1000 + m.userData.slot;
+        for (let i = 0; i < pos.length; i += 3) {
+          const u = base[i] / w + 0.5, v = base[i + 1] / h;
+          pos[i] = base[i] + (v < 0.35 ? Math.sin(t * 2.6 + u * 7) * 0.035 * (1 - v / 0.35) * w : 0);
+          pos[i + 1] = base[i + 1] + (0.06 + Math.sin(t * 1.4) * 0.05) * h * 0.4;
+        }
+        geo.attributes.position.needsUpdate = true;
+        continue;
+      }
+      const pose = POSES[kind];
+      if (!pose) continue;
+      // which frame: by distance walked while moving, by the clock while standing
+      const beat = moving ? entry.step / (CADENCE[kind] || 1.2) : entry.idle / 0.75;
+      const frame = (Math.floor(beat) + m.userData.slot) % 2;
+      const amp = moving ? 1 : 0.35;
+      const key = frame * 2 + (moving ? 1 : 0);
+      if (m.userData.frameKey === key) continue;
+      m.userData.frameKey = key;
+      const s = (frame ? 1 : -1) * amp;
+      for (let i = 0; i < pos.length; i += 3) {
+        const u = base[i] / w + 0.5, v = base[i + 1] / h;
+        const [dx, dy] = pose(u, v, s);
+        pos[i] = base[i] + dx * w;
+        pos[i + 1] = base[i + 1] + dy * h;
+      }
+      geo.attributes.position.needsUpdate = true;
+    }
+  }
+
+  // ---------- the hands ----------
+  // DOM over the canvas, under the HUD: the torch in the left hand, the front wretch's weapon in the right.
+  const hands = document.createElement('div');
+  hands.className = 'hands';
+  hands.innerHTML = '<div class="hand hand-left"><span class="torch-glow"></span><img alt="" draggable="false"><canvas class="flame" width="96" height="160"></canvas></div>'
+    + '<div class="hand hand-right"><img alt="" draggable="false"></div>';
+  renderer.domElement.after(hands);
+  const leftHand = hands.querySelector('.hand-left'), rightHand = hands.querySelector('.hand-right');
+  const torchImg = leftHand.querySelector('img'), weaponImg = rightHand.querySelector('img');
+  const flameCanvas = leftHand.querySelector('.flame'), flameCtx = flameCanvas.getContext('2d');
+  const glow = leftHand.querySelector('.torch-glow');
+  // where the torch's tip is in its picture, found from the picture's alpha once it loads
+  let tip = { x: 0.5, y: 0.08 };
+  torchImg.addEventListener('load', () => {
+    try {
+      const c = document.createElement('canvas');
+      c.width = 96; c.height = 128;
+      const g = c.getContext('2d');
+      g.drawImage(torchImg, 0, 0, c.width, c.height);
+      const a = g.getImageData(0, 0, c.width, c.height).data;
+      for (let y = 0; y < c.height; y++) {
+        let sum = 0, n = 0;
+        for (let x = 0; x < c.width; x++) if (a[(y * c.width + x) * 4 + 3] > 140) { sum += x; n++; }
+        // a little below the very top, so the live flame covers any flame painted on the picture
+        if (n >= 3) { tip = { x: sum / n / c.width, y: Math.min(0.5, (y + 3) / c.height + 0.07) }; break; }
+      }
+    } catch (e) { /* a tainted canvas keeps the default */ }
+    flameCanvas.style.left = (tip.x * 100) + '%';
+    flameCanvas.style.top = (tip.y * 100) + '%';
+    glow.style.left = (tip.x * 100) + '%';
+    glow.style.top = (tip.y * 100) + '%';
+  });
+  torchImg.onerror = () => { leftHand.classList.add('no-art'); };
+  weaponImg.onerror = () => { rightHand.classList.add('no-art'); };
+  torchImg.src = Q.assetUrl('held-torch');
+  let sway = 0;
+  const embers = [];
+  function drawHands(now, f) {
+    if (paused && !hands.classList.contains('shown')) return;
+    // the walk swings the hands in a figure of eight; turning drags them behind
+    const m = player.moving;
+    sway += (Math.max(-3, Math.min(3, turnRate)) - sway) * 0.12;
+    const bx = Math.sin(player.phase * 0.5) * 14 * m, by = Math.abs(Math.cos(player.phase * 0.5)) * 12 * m;
+    leftHand.style.transform = `translate(${(bx - sway * 10).toFixed(1)}px, ${(by + 4).toFixed(1)}px) rotate(${(-4 + sway * 1.2).toFixed(2)}deg)`;
+    rightHand.style.transform = `translate(${(bx * 0.9 - sway * 14).toFixed(1)}px, ${(12 - by * 0.9).toFixed(1)}px) rotate(${(5 + sway * 1.5).toFixed(2)}deg)`;
+    glow.style.opacity = (0.45 + f * 0.45).toFixed(2);
+    drawFlame(now, f);
+  }
+  // The flame: a few licking tongues in the zine's colours (acid yellow inked in black, bone-white hearts),
+  // with pink embers rising. Each tongue's sides wave, and its tip whips with the flicker and your turning.
+  const TONGUES = [
+    { x: 0, w: 0.34, h: 1, speed: 1, phase: 0 },
+    { x: -0.17, w: 0.2, h: 0.6, speed: 1.3, phase: 2.1 },
+    { x: 0.16, w: 0.19, h: 0.66, speed: 1.15, phase: 4.2 },
+  ];
+  function drawFlame(now, f) {
+    const g = flameCtx, W = flameCanvas.width, H = flameCanvas.height;
+    g.clearRect(0, 0, W, H);
+    const t = now / 1000;
+    const base = H - 8;
+    const path = (tg, scale) => {
+      const h = H * 0.86 * tg.h * scale * (0.72 + f * 0.36);
+      const w = W * tg.w * scale;
+      const cx = W / 2 + tg.x * W;
+      const whip = Math.sin(t * 6.1 * tg.speed + tg.phase) * 7 + Math.sin(t * 11.3 * tg.speed + tg.phase) * 3 - sway * 6;
+      const n = 12;
+      const side = (dir) => {
+        const pts = [];
+        for (let i = 0; i <= n; i++) {
+          const k = i / n;
+          // wide at the root, bellying out a little, then drawn to a point
+          const width = w * Math.sin(Math.PI * (0.5 + k * 0.5)) * (1 + 0.25 * Math.sin(k * Math.PI));
+          const wave = Math.sin(k * 7 - t * 9 * tg.speed + tg.phase + dir) * 3.5 * k;
+          pts.push([cx + dir * width + whip * k * k + wave, base - h * k]);
+        }
+        return pts;
+      };
+      const left = side(-1), right = side(1).reverse();
+      g.beginPath();
+      g.moveTo(left[0][0], left[0][1]);
+      for (const [x, y] of left) g.lineTo(x, y);
+      for (const [x, y] of right) g.lineTo(x, y);
+      g.closePath();
+    };
+    g.lineJoin = 'round';
+    for (const tg of TONGUES) { path(tg, 1); g.fillStyle = '#ffe11a'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#0a0a08'; g.stroke(); }
+    for (const tg of TONGUES) { path(tg, 0.55); g.fillStyle = '#ebe4d0'; g.fill(); }
+    path(TONGUES[0], 0.28); g.fillStyle = '#fffaf0'; g.fill();
+    if (Math.random() < 0.3) embers.push({ x: W / 2 + (Math.random() - 0.5) * 24, y: H * 0.45, vy: 35 + Math.random() * 45, life: 1 });
+    for (let i = embers.length - 1; i >= 0; i--) {
+      const e = embers[i];
+      e.y -= e.vy / 60; e.x += Math.sin(t * 9 + i) * 0.9 - sway * 0.6; e.life -= 0.028;
+      if (e.life <= 0 || e.y < 0) { embers.splice(i, 1); continue; }
+      g.fillStyle = `rgba(255,61,139,${e.life.toFixed(2)})`;
+      g.fillRect(e.x, e.y, 3, 3);
+    }
   }
 
   function updateDoors(dt) {
@@ -651,7 +875,7 @@ export function createWorld(container, hooks) {
     pose: () => ({ x: player.x, z: player.z, a: player.a }),
     // The wretches' place on the map, in cells, and their facing.
     mapPose: () => ({ x: player.x / CELL - 0.5, y: player.z / CELL - 0.5, a: player.a }),
-    pause() { paused = true; keys.clear(); stick.x = 0; stick.y = 0; knob.hidden = true; pointers.clear(); },
+    pause() { paused = true; keys.clear(); stick.x = 0; stick.y = 0; knob.hidden = true; pointers.clear(); player.moving = 0; turnRate = 0; },
     resume() { paused = false; lastTime = performance.now(); },
     get paused() { return paused; },
     refreshTile(cx, cy) { placeItem(cx, cy); },
@@ -668,6 +892,17 @@ export function createWorld(container, hooks) {
       }
     },
     monsterPos: (g) => ({ x: g.x / CELL - 0.5, y: g.z / CELL - 0.5 }),
+    // The weapon drawn in the right hand, by its name in the rules ('Zweihänder' -> held-zweihander).
+    setWeapon(name) {
+      const slug = String(name || '').normalize('NFD').replace(/[^A-Za-z]/g, '').toLowerCase();
+      rightHand.classList.toggle('no-art', !slug);
+      if (slug && weaponImg.dataset.slug !== slug) {
+        weaponImg.dataset.slug = slug;
+        rightHand.classList.remove('no-art');
+        weaponImg.src = Q.assetUrl('held-' + slug);
+      }
+    },
+    showHands(on) { hands.classList.toggle('shown', !!on); },
     cellSize: CELL,
     render() { placeCamera(performance.now()); renderer.render(scene, camera); },
   };

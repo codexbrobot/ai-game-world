@@ -75,6 +75,13 @@ var Q = window.Q || (window.Q = {});
     },
     {
       name: 'The Weeping Vault',
+      // its own pictures: weeping marble, burial niches, a weeping face, grave slabs, a ribbed vault, iron doors;
+      // and a colder, faintly violet dark
+      theme: {
+        walls: [['vault-wall', 5], ['vault-niches', 3], ['vault-face', 1]],
+        riser: 'vault-wall', floor: 'vault-floor', ceiling: 'vault-ceiling', door: 'vault-door',
+        sky: 0x4f4a5c, ground: 0x0a080d, fog: 0x050309, ceilingTint: 0x857d90, wallTint: 0xa49cab,
+      },
       rows: [
         '################',
         '#<....#.......L#',

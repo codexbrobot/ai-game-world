@@ -8,6 +8,7 @@ Raw renders are cached in RAW_DIR, so re-grading never re-generates.
 """
 import argparse
 import hashlib
+import math
 import os
 import sys
 from pathlib import Path
@@ -82,6 +83,28 @@ ART = {
                   prompt=f'close-up of cracked grey flagstones with dirt between them, {FLAT}'),
     'ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='roots', strength=0.66,
                     prompt=f'close-up of rough dark stone blocks with hanging roots and cobwebs, {FLAT}'),
+    # The Weeping Vault (floor 2) has its own surfaces: marble streaked with black tears, burial niches,
+    # a carved face that weeps, grave slabs underfoot, a ribbed vault overhead and iron doors.
+    'vault-wall': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='weeping', strength=0.66, drips=8,
+                       prompt=f'close-up of an old wall of pale marble blocks streaked with black dripping stains like tears, cracked, {FLAT}'),
+    'vault-niches': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='niches', strength=0.66,
+                         prompt=f'close-up of a catacomb wall with rectangular burial niches holding corpses wrapped in shrouds, {FLAT}'),
+    'vault-face': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='face', strength=0.64,
+                       tears=[(0.383, 0.455), (0.617, 0.455)],  # under the eyes of seed 2
+                       prompt=f'close-up of a stone wall with a huge carved stone face of a saint weeping black tears, {FLAT}'),
+    'vault-floor': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='slabs', strength=0.64,
+                        prompt=f'close-up of worn stone tomb slabs set in a floor, carved crosses and worn inscriptions, {FLAT}'),
+    'vault-ceiling': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='ribs', strength=0.62,
+                          prompt=f'close-up of a dark gothic vaulted ceiling of small black bricks with crossing stone ribs, {FLAT}'),
+    'vault-door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='irondoor', strength=0.62,
+                       prompt=f'close-up of a heavy black iron door with riveted bands and a skull knocker in a stone wall, {FLAT}'),
+    # --- the wretches' hands, seen in first person like Doom's weapons ---
+    # Asked for a hand, the model paints a whole figure; so each starts from a drawn arm and fist entering
+    # from the bottom of the frame, gripping the thing (init 'held:...'). The torch is drawn unlit; the game
+    # paints a living flame on its tip.
+    'held-torch': dict(kind='sprite', size=(384, 512), out=(384, 512), seed=None, init='held:torch', strength=0.62,
+                       prompt=f'a dirty bony hand and forearm in a ragged sleeve gripping a wooden torch wrapped in black oily rags, '
+                              f'{ISOLATED}, black ink illustration, heavy crosshatching, rough woodcut, high contrast, gritty zine art'),
     # --- scenes ---
     'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None, light=YELLOW, crop=0.97,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
@@ -100,6 +123,22 @@ ART = {
     'grave': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None,
                   prompt=f'a fresh grave with a crooked wooden cross and a crow, black sky, {STYLE}'),
 }
+
+# The weapon in the front wretch's hand, one per weapon in the rules.
+WEAPON_ART = {
+    'femur': 'a long bare white human leg bone with big knobby joints at both ends, used as a club',
+    'knife': 'a crude rusty knife',
+    'staff': 'a gnarled wooden walking staff',
+    'shortsword': 'a plain short rusty iron sword with a simple crossguard, its blade pointing up to a sharp tip',
+    'warhammer': 'a heavy iron war hammer',
+    'sword': 'a plain long straight iron sword with a simple crossguard, its notched blade pointing up to a sharp tip',
+    'flail': 'a spiked iron flail on a chain',
+    'zweihander': 'a huge plain two-handed iron greatsword with a wide crossguard, its long blade pointing up to a sharp tip',
+}
+for key, what in WEAPON_ART.items():
+    ART[f'held-{key}'] = dict(kind='sprite', size=(384, 512), out=(384, 512), seed=None, init=f'held:{key}', strength=0.62,
+                              prompt=f'a dirty bony hand and forearm in a ragged sleeve gripping {what}, {ISOLATED}, '
+                                     f'black ink illustration, heavy crosshatching, rough woodcut, high contrast, gritty zine art')
 
 # Eight wretch portraits, picked by name.
 FACES = [
@@ -123,6 +162,9 @@ SEEDS = {
     'remains': 2, 'remains-scroll': 1, 'font': 3, 'relic': 2,
     'wall-stone': 1, 'wall-ossuary': 2, 'wall-relief': 2, 'door': 2, 'floor': 1, 'ceiling': 1,
     'town': 2, 'title': 1, 'inn': 1, 'stall': 1, 'stranger': 2, 'stair': 2, 'grave': 2,
+    'vault-wall': 1, 'vault-niches': 2, 'vault-face': 2, 'vault-floor': 1, 'vault-ceiling': 2, 'vault-door': 2,
+    'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
+    'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
 }
 
@@ -148,6 +190,92 @@ def _blocks(d, rnd, w, h, rows, tone=(95, 150), mortar=28, x0=0, y0=0):
             x += bw
         d.line([0, y + rh, w, y + rh], fill=mortar, width=7)
         y += rh
+
+
+def _held(d, rnd, w, h, what):
+    """An arm from the bottom of the frame, a fist, and the thing it grips, along a tilted axis.
+    The torch is held in the left hand (arm from the lower left), weapons in the right."""
+    d.rectangle([0, 0, w, h], fill=242)
+    left = what == 'torch'
+    sx = -1 if left else 1
+    # the axis of the held thing: from the pommel (p0) up to its tip (p1)
+    reach = {'knife': 0.5, 'shortsword': 0.72, 'torch': 0.78, 'zweihander': 0.98}.get(what, 0.9)
+    p0 = (w * (0.5 + 0.06 * sx), h * 0.8)
+    p1 = (w * (0.5 - 0.18 * sx), h * (0.8 - 0.78 * reach))
+    ax, ay = p1[0] - p0[0], p1[1] - p0[1]
+    ln = math.hypot(ax, ay)
+    ux, uy = ax / ln, ay / ln
+    px, py = -uy, ux  # perpendicular
+    at = lambda t, off=0: (p0[0] + ax * t + px * off, p0[1] + ay * t + py * off)
+    def seg(t0, t1, hw0, fill, hw1=None):
+        hw1 = hw0 if hw1 is None else hw1
+        d.polygon([at(t0, -hw0), at(t0, hw0), at(t1, hw1), at(t1, -hw1)], fill=fill)
+    def blob(t, r, fill, off=0):
+        x, y = at(t, off)
+        d.ellipse([x - r, y - r, x + r, y + r], fill=fill)
+    # the forearm and its ragged sleeve, coming up from the bottom edge to the fist
+    fist = at(0.16)
+    elbow = (w * (0.5 + 0.42 * sx), h * 1.02)
+    d.polygon([(elbow[0] - 70, elbow[1]), (elbow[0] + 70, elbow[1]), (fist[0] + 38, fist[1] + 20), (fist[0] - 38, fist[1] + 20)], fill=125)
+    rag = [(elbow[0] - 95, h), (elbow[0] + 95, h)]
+    for k in range(9):
+        tx = elbow[0] + 95 - k * 190 / 8
+        rag.append((tx, h * (0.86 + 0.05 * (k % 2)) + rnd.uniform(-8, 8)))
+    d.polygon(rag, fill=55)
+    # the thing held
+    if what == 'torch':
+        seg(0, 0.78, 11, 120)
+        seg(0.7, 1.0, 26, 45, 20)
+        for t in (0.76, 0.84, 0.92):
+            d.line([at(t, -27), at(t, 27)], fill=25, width=5)
+    elif what in ('sword', 'shortsword', 'knife', 'zweihander'):
+        big = what == 'zweihander'
+        seg(-0.04, 0.24, 9 if not big else 11, 70)
+        blob(-0.05, 14 if not big else 18, 90)
+        guard = {'knife': 0.3, 'shortsword': 0.27, 'sword': 0.25, 'zweihander': 0.25}[what]
+        seg(guard - 0.02, guard + 0.01, 30 if what == 'knife' else 46 if not big else 66, 95)
+        hw = {'knife': 13, 'shortsword': 15, 'sword': 17, 'zweihander': 24}[what]
+        seg(guard + 0.01, 0.9, hw, 205, hw * 0.75)
+        d.polygon([at(0.9, -hw * 0.75), at(0.9, hw * 0.75), at(1.0, 0)], fill=205)
+        d.line([at(guard + 0.03), at(0.92)], fill=150, width=3)  # the fuller
+    elif what == 'warhammer':
+        seg(-0.04, 0.86, 9, 95)
+        seg(0.78, 0.94, 50, 75)
+        d.polygon([at(0.82, -50), at(0.9, -50), at(0.86, -82)], fill=75)  # the back spike
+    elif what == 'flail':
+        seg(-0.04, 0.42, 10, 95)
+        blob(0.44, 12, 80)
+        x, y = at(0.44)
+        for k in range(1, 7):
+            cx, cy = x + sx * -k * 13, y - k * 9 + k * k * 1.6
+            d.ellipse([cx - 8, cy - 8, cx + 8, cy + 8], outline=70, width=5)
+        bx, by = x + sx * -100, y - 20
+        d.ellipse([bx - 40, by - 40, bx + 40, by + 40], fill=70)
+        for k in range(10):
+            a = k * math.pi / 5
+            d.polygon([(bx + math.cos(a) * 36, by + math.sin(a) * 36), (bx + math.cos(a + 0.2) * 36, by + math.sin(a + 0.2) * 36),
+                       (bx + math.cos(a + 0.1) * 62, by + math.sin(a + 0.1) * 62)], fill=70)
+    elif what == 'femur':
+        for t, r in ((-0.04, 22), (0.92, 26)):
+            blob(t, r, 110, -12)
+            blob(t, r, 110, 12)
+        seg(-0.02, 0.9, 16, 110, 18)
+        for t, r in ((-0.04, 18), (0.92, 22)):
+            blob(t, r, 185, -12)
+            blob(t, r, 185, 12)
+        seg(-0.02, 0.9, 12, 185, 14)
+    elif what == 'staff':
+        pts = [at(t, math.sin(t * 9) * 6) for t in [k / 12 for k in range(-1, 13)]]
+        d.line(pts, fill=100, width=20)
+        blob(1.0, 18, 100)
+    # the fist closes over the grip: four knuckles across the axis
+    fx, fy = fist
+    d.ellipse([fx - 46, fy - 40, fx + 46, fy + 42], fill=150)
+    for k in range(4):
+        kx, ky = at(0.11 + k * 0.035, 20 * sx)
+        d.ellipse([kx - 16, ky - 13, kx + 16, ky + 13], fill=160, outline=95, width=3)
+    tx, ty = at(0.2, -26 * sx)
+    d.ellipse([tx - 18, ty - 14, tx + 18, ty + 14], fill=140, outline=95, width=3)  # the thumb
 
 
 def layout(kind, size, seed_name):
@@ -233,6 +361,91 @@ def layout(kind, size, seed_name):
         for _ in range(9):
             x, y = rnd.uniform(0, w), rnd.uniform(0, h)
             d.line([x, y, x + rnd.uniform(-40, 40), y + rnd.uniform(-12, 12)], fill=210, width=5)
+    elif kind.startswith('held:'):
+        _held(d, rnd, w, h, kind.split(':')[1])
+    elif kind == 'weeping':
+        _blocks(d, rnd, w, h, rows=5, tone=(130, 185))
+        for _ in range(16):
+            x, y = rnd.uniform(0, w), rnd.uniform(0, h * 0.7)
+            length = rnd.uniform(h * 0.2, h * 0.7)
+            width = rnd.uniform(5, 14)
+            pts, yy = [], y
+            while yy < y + length:
+                pts.append((x, yy))
+                x += rnd.uniform(-3, 3)
+                yy += 10
+            for i in range(len(pts) - 1):
+                d.line([pts[i], pts[i + 1]], fill=12, width=max(1, int(width * (1 - i / len(pts)))))
+            d.ellipse([pts[0][0] - width, pts[0][1] - width / 2, pts[0][0] + width, pts[0][1] + width / 2], fill=12)
+    elif kind == 'niches':
+        _blocks(d, rnd, w, h, rows=4, tone=(80, 120))
+        for r in range(3):
+            for k in range(2):
+                x0, y0 = w * (0.06 + k * 0.48), h * (0.05 + r * 0.32)
+                x1, y1 = x0 + w * 0.42, y0 + h * 0.24
+                d.rectangle([x0 - 8, y0 - 8, x1 + 8, y1 + 8], fill=150)
+                d.rectangle([x0, y0, x1, y1], fill=14)
+                # a shrouded body lying in it, head to one side
+                hx = x0 + 28 if (r + k) % 2 else x1 - 28
+                d.ellipse([x0 + 12, y0 + h * 0.08, x1 - 12, y1 - 6], fill=165)
+                d.ellipse([hx - 22, y0 + h * 0.07, hx + 22, y0 + h * 0.07 + 40], fill=190)
+                for j in range(5):
+                    lx = x0 + 40 + j * (x1 - x0 - 80) / 4
+                    d.line([lx, y0 + h * 0.09, lx + 10, y1 - 10], fill=120, width=3)
+    elif kind == 'face':
+        _blocks(d, rnd, w, h, rows=6)
+        d.ellipse([w * 0.2, h * 0.08, w * 0.8, h * 0.95], fill=150)
+        for ex in (0.37, 0.63):
+            d.ellipse([w * (ex - 0.08), h * 0.36, w * (ex + 0.08), h * 0.46], fill=20)
+            # tears run from each eye to the bottom of the stone
+            x = w * ex
+            for yy in range(int(h * 0.44), h, 8):
+                d.line([x, yy, x + rnd.uniform(-2, 2), yy + 8], fill=10, width=9)
+                x += rnd.uniform(-2, 2)
+        d.polygon([(w * 0.5, h * 0.48), (w * 0.45, h * 0.62), (w * 0.55, h * 0.62)], fill=110)
+        d.ellipse([w * 0.4, h * 0.7, w * 0.6, h * 0.8], fill=25)
+        d.arc([w * 0.25, h * 0.1, w * 0.75, h * 0.5], 200, 340, fill=200, width=6)
+    elif kind == 'slabs':
+        d.rectangle([0, 0, w, h], fill=25)
+        for r in range(2):
+            for k in range(2):
+                x0, y0 = k * w / 2 + 6, r * h / 2 + 6
+                x1, y1 = x0 + w / 2 - 12, y0 + h / 2 - 12
+                d.rectangle([x0, y0, x1, y1], fill=rnd.randint(105, 140))
+                cx = (x0 + x1) / 2
+                d.line([cx, y0 + 30, cx, y0 + 140], fill=40, width=9)
+                d.line([cx - 40, y0 + 65, cx + 40, y0 + 65], fill=40, width=9)
+                for j in range(3):
+                    yy = y0 + 165 + j * 22
+                    xx = x0 + 30
+                    while xx < x1 - 40:
+                        ln = rnd.uniform(10, 30)
+                        d.line([xx, yy, xx + ln, yy], fill=55, width=5)
+                        xx += ln + rnd.uniform(6, 14)
+                for _ in range(2):
+                    sx, sy = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
+                    d.line([sx, sy, sx + rnd.uniform(-50, 50), sy + rnd.uniform(-30, 30)], fill=30, width=3)
+    elif kind == 'ribs':
+        _blocks(d, rnd, w, h, rows=10, tone=(40, 75), mortar=15)
+        for a, b in (((0, 0), (w, h)), ((w, 0), (0, h))):
+            d.line([a, b], fill=20, width=46)
+            d.line([a, b], fill=150, width=32)
+        d.ellipse([w / 2 - 34, h / 2 - 34, w / 2 + 34, h / 2 + 34], fill=170)
+    elif kind == 'irondoor':
+        _blocks(d, rnd, w, h, rows=6)
+        x0, x1, top = w * 0.18, w * 0.82, h * 0.1
+        d.rectangle([x0 - 10, top - 10, x1 + 10, h], fill=20)
+        d.rectangle([x0, top, x1, h], fill=55)
+        for y in (h * 0.22, h * 0.5, h * 0.78):
+            d.rectangle([x0, y, x1, y + 26], fill=100)
+            for k in range(8):
+                rx = x0 + 14 + k * (x1 - x0 - 28) / 7
+                d.ellipse([rx - 6, y + 7, rx + 6, y + 19], fill=190)
+        cx, cy = w * 0.5, h * 0.62
+        d.ellipse([cx - 30, cy - 34, cx + 30, cy + 20], fill=195)
+        for ex in (-12, 12):
+            d.ellipse([cx + ex - 8, cy - 18, cx + ex + 8, cy - 2], fill=20)
+        d.ellipse([cx - 26, cy + 14, cx + 26, cy + 62], outline=180, width=6)
     elif kind == 'roots':
         _blocks(d, rnd, w, h, rows=5, tone=(55, 95), mortar=18)
         for _ in range(7):
@@ -245,6 +458,12 @@ def layout(kind, size, seed_name):
             d.line(pts, fill=15, width=rnd.randint(4, 9))
     # stone grain: noise at a few scales, so there is texture for the model to ink over
     rng = np.random.default_rng(len(seed_name))
+    if kind.startswith('held:'):
+        # a cut-out: grain on the subject only, the background left plain for the model and the cutter
+        arr = np.asarray(img, np.float32)
+        noise = rng.normal(0, 9, (h, w)).astype(np.float32)
+        arr = np.where(arr < 236, np.clip(arr + noise, 0, 255), arr).astype(np.uint8)
+        return Image.fromarray(arr).filter(ImageFilter.GaussianBlur(1.0)).convert('RGB')
     grain = np.zeros((h, w), np.float32)
     for scale, amp in ((64, 22), (16, 16), (4, 10), (1, 8)):
         small = rng.normal(0, 1, (max(1, h // scale), max(1, w // scale))).astype(np.float32)
@@ -353,6 +572,55 @@ def _accents(rgb, out, strength=1.0):
     return out
 
 
+def _drips(out, spec, seed):
+    """Paint black, wet drips over a graded surface: `drips` random ones, and `tears` that run from given
+    points (fractions of the picture) to the bottom. Each has a bone-white glint down one side."""
+    import random
+    from PIL import ImageDraw
+    h, w = out.shape[:2]
+    rnd = random.Random(seed)
+    starts = [(x * w, y * h, True) for x, y in spec.get('tears', [])]
+    starts += [(rnd.uniform(0, w), rnd.uniform(0, h * 0.55), False) for _ in range(spec.get('drips', 0))]
+    ink = Image.new('L', (w, h), 0)
+    glint = Image.new('L', (w, h), 0)
+    di, dg = ImageDraw.Draw(ink), ImageDraw.Draw(glint)
+    for x, y, tear in starts:
+        width = rnd.uniform(16, 22) if tear else rnd.uniform(12, 24)
+        end = h * rnd.uniform(0.93, 0.99) if tear else min(h * 0.97, y + h * rnd.uniform(0.25, 0.55))
+        pts = [(x, y)]
+        drift = rnd.uniform(-0.25, 0.25)
+        while pts[-1][1] < end:
+            px, py = pts[-1]
+            pts.append((px + drift + rnd.uniform(-0.6, 0.6), py + 4))
+        n = len(pts)
+        for i in range(n - 1):
+            k = i / n
+            # thick where it starts, thinning as it runs, swelling a little here and there
+            wd = width * (1 - (0.6 if tear else 0.72) * k) * (1 + 0.16 * math.sin(i * 0.23 + x))
+            (x0, y0), (x1, y1) = pts[i], pts[i + 1]
+            di.polygon([(x0 - wd / 2, y0), (x0 + wd / 2, y0), (x1 + wd / 2, y1 + 1), (x1 - wd / 2, y1 + 1)], fill=255)
+            if wd > 5 and (tear or k < 0.45):
+                gx0, gx1 = x0 - wd * 0.22, x1 - wd * 0.22
+                dg.line([(gx0, y0), (gx1, y1 + 1)], fill=200, width=max(2, int(wd * 0.14)))
+        # a heavy bead where the drip has stopped, and a smear where it began
+        ex, ey = pts[-1]
+        r = width * 0.4 + 3
+        di.ellipse([ex - r, ey - r * 1.1, ex + r, ey + r * 1.3], fill=255)
+        if tear:
+            di.ellipse([x - width * 0.9, y - width * 0.35, x + width * 0.9, y + width * 0.35], fill=255)
+        else:
+            # a wall drip seeps out of a crack: a ragged stain where it starts
+            for _ in range(5):
+                sx, sy = x + rnd.uniform(-width, width), y + rnd.uniform(-width * 0.3, width * 0.6)
+                sr = rnd.uniform(width * 0.25, width * 0.55)
+                di.ellipse([sx - sr, sy - sr * 0.6, sx + sr, sy + sr * 0.6], fill=255)
+    m = np.asarray(ink.filter(ImageFilter.GaussianBlur(0.8)), np.float32)[..., None] / 255
+    g = np.asarray(glint.filter(ImageFilter.GaussianBlur(0.6)), np.float32)[..., None] / 255 * m
+    inkc, bone = np.array(INK, np.float32) / 255, np.array(BONE, np.float32) / 255
+    out = out * (1 - m) + inkc * m
+    return out * (1 - g * 0.7) + bone * g * 0.7
+
+
 def _grain(out, amount=0.06, seed=0):
     rnd = np.random.default_rng(seed)
     noise = rnd.normal(0, amount, out.shape[:2])[..., None]
@@ -416,6 +684,8 @@ def grade(name, img):
         t = _contrast(lum, k=6.5, mid=0.55, gamma=1.15)
         out = _duotone(t, INK, STONE)
         out = _accents(rgb, out, 0.8)
+        if spec.get('drips') or spec.get('tears'):
+            out = _drips(out, spec, seed)
         out = _grain(out, 0.07, seed)
     else:  # scene, portrait
         t = _contrast(lum, k=7.0, mid=0.5)

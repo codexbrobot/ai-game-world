@@ -176,9 +176,11 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 .place { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--pink); text-shadow: 0 1px 3px #000; font-weight: 700; }
 #mini { width: 92px; height: 92px; opacity: 0.9; box-shadow: 0 0 0 2px var(--ink); cursor: pointer; }
 
+.hud-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1; }
+/* messages at the top, like Doom's: the bottom of the screen belongs to the hands */
 .hud-log {
-  position: absolute; left: 12px; right: 12px; bottom: 66px; margin: 0 auto; padding: 0; list-style: none; max-width: 36rem;
-  font-size: 14px; line-height: 1.3; text-shadow: 0 1px 3px #000, 0 0 6px #000; pointer-events: none;
+  margin: 0; padding: 0; list-style: none; max-width: 30rem;
+  font-size: 13.5px; line-height: 1.3; text-shadow: 0 1px 3px #000, 0 0 6px #000; pointer-events: none;
 }
 .hud-log li { opacity: 0.6; }
 .hud-log li:last-child { opacity: 1; }
@@ -186,8 +188,8 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 .hud-log .hurt { color: var(--pink); }
 .hud-log .miss { color: var(--blue); }
 .hud-log .dim { color: var(--dim); }
-.hud-buttons { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 8px; }
-.hud-buttons button { min-height: 42px; padding: 6px 12px; font-size: 13px; background: rgba(10, 10, 8, 0.7); }
+.hud-buttons { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 4px; width: 92px; }
+.hud-buttons button { min-height: 38px; padding: 4px 8px; font-size: 12.5px; background: rgba(10, 10, 8, 0.72); }
 .hud-buttons small { font-size: 12px; opacity: 0.8; margin-left: 2px; }
 .hint {
   position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); margin: 0; padding: 8px 14px; text-align: center;
@@ -408,3 +410,48 @@ body.in-battle .dice-layer { align-items: center; padding: 0 10px 18vh; }
 @keyframes tremble { 50% { transform: translateX(2px); } }
 .purse.comet { color: var(--pink); }
 .misery-title { font-family: var(--fraktur); font-size: clamp(28px, 7vw, 42px); line-height: 1.05; margin: 4px 0 10px; color: var(--pink); }
+
+/* ---------- the wretches' hands, over the 3D view and under the HUD ---------- */
+.hands { position: absolute; inset: 0; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity 0.4s; }
+.hands.shown { opacity: 1; }
+body.in-battle .hands { opacity: 0; }
+.hand { position: absolute; bottom: -18px; height: min(46vh, 60vw); will-change: transform; }
+.hand img { display: block; height: 100%; width: auto; filter: brightness(1.05) drop-shadow(0 0 14px rgba(0, 0, 0, 0.85)); user-select: none; }
+.hand-left img { filter: brightness(1.12) sepia(0.25) drop-shadow(0 0 14px rgba(0, 0, 0, 0.85)); } /* lit warm by its own flame */
+.hand-left { left: 2%; }
+.hand-right { right: 0; bottom: -26px; height: min(50vh, 66vw); }
+.hand.no-art { display: none; }
+.hand .flame { position: absolute; width: 38%; height: auto; aspect-ratio: 96 / 160; transform: translate(-50%, -86%); mix-blend-mode: normal; }
+.hand .torch-glow {
+  position: absolute; width: 260%; aspect-ratio: 1; transform: translate(-50%, -60%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 225, 26, 0.32), rgba(255, 61, 139, 0.12) 35%, transparent 65%);
+}
+.viewport.hurt .hands { animation: handsjolt 0.35s ease-out; }
+@keyframes handsjolt { 30% { transform: translate(-8px, 14px); } 60% { transform: translate(6px, 6px); } }
+/* the HUD's text sits over the hands: give it a dark shoulder */
+.hud-log { text-shadow: 0 1px 0 #000, 0 0 6px #000, 0 0 12px #000; }
+.hands::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 14%; background: linear-gradient(transparent, rgba(5, 5, 4, 0.45)); }
+.sound-toggle.off { opacity: 0.55; }
+#btnSound { margin-top: 10px; min-height: 36px; font-size: 13px; }
+/* monsters in battle shamble too: two frames, stepped */
+.foe-card.kind-zombie img { animation: f-zombie 1.3s steps(1) infinite; }
+.foe-card.kind-skeleton img { animation: f-skeleton 0.9s steps(1) infinite; }
+.foe-card.kind-cultist img { animation: f-cultist 1.6s steps(1) infinite; }
+.foe-card.kind-rats img { animation: f-rats 0.5s steps(1) infinite; }
+.foe-card.kind-abbess:not(.phase2) img { animation: f-abbess 3.2s ease-in-out infinite; }
+@keyframes f-zombie { 0% { transform: skewX(3deg) translateX(-2%); } 50% { transform: skewX(-3deg) translateX(2%) translateY(1%); } }
+@keyframes f-skeleton { 0% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(1%); } }
+@keyframes f-cultist { 0% { transform: skewX(2deg); } 50% { transform: skewX(-2deg); } }
+@keyframes f-rats { 0% { transform: scale(1.06, 0.92); } 50% { transform: scale(0.95, 1.06) translateY(-3%); } }
+@keyframes f-abbess { 50% { transform: translateY(-3%); } }
+.foe-card.hit img, .foe-card.lunge img, .foe-card.cast img, .foe-card.rise img { animation-iteration-count: 1; }
+.foe-card.kind-zombie.hit img, .foe-card.kind-skeleton.hit img, .foe-card.kind-cultist.hit img, .foe-card.kind-rats.hit img, .foe-card.kind-abbess.hit img { animation: hit 0.45s ease-out; }
+.foe-card.kind-zombie.lunge img, .foe-card.kind-skeleton.lunge img, .foe-card.kind-cultist.lunge img, .foe-card.kind-rats.lunge img, .foe-card.kind-abbess.lunge img { animation: lunge 0.4s ease-out; }
+.foe-card.kind-zombie.cast img, .foe-card.kind-skeleton.cast img, .foe-card.kind-cultist.cast img, .foe-card.kind-rats.cast img, .foe-card.kind-abbess.cast img { animation: cast 0.6s ease-out; }
+.foe-card.kind-zombie.rise img, .foe-card.kind-skeleton.rise img, .foe-card.kind-cultist.rise img, .foe-card.kind-rats.rise img { animation: rise 0.8s ease-out; }
+.foe-card.slain img, .foe-card.fled img { animation: none; }
+@media (min-aspect-ratio: 1/1) {
+  .hud-buttons { flex-direction: row; width: auto; }
+  .hand-left { left: 10%; }
+  .hand-right { right: 9%; }
+}

@@ -12,6 +12,7 @@
   const D = (sides, value, tone, label) => ({ sides, value, tone, label });
   const throwDice = (spec) => (Q.Dice ? Q.Dice.roll(spec) : Promise.resolve());
   const short = (pc) => esc(pc.name.split(' ')[0]);
+  const sfx = (name, o) => Q.Sound && Q.Sound.play(name, o);
 
   let S = null; // the run in progress
   let world = null; // the 3D engine, made the first time you go below
@@ -76,6 +77,7 @@
   function showMisery(m, then) {
     const n = S.calendar.misery;
     if (n >= 7) return worldEnds(m);
+    sfx('toll', { f: 65 });
     log(`<b class="pink">The ${['first', 'second', 'third', 'fourth', 'fifth', 'sixth'][n - 1]} Misery:</b> ${esc(m.title)}.`, 'hurt');
     modal(`The ${['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'][n - 1]} Misery`, `
       <p class="misery-title">${esc(m.title)}</p>
@@ -108,6 +110,8 @@
     for (const id of ['title', 'create', 'town', 'crawl']) $(id).hidden = id !== screen;
     if (S) S.where = screen;
     if (screen !== 'crawl' && world) world.pause();
+    if (world) world.showHands(screen === 'crawl');
+    if (Q.Sound) Q.Sound.ambience(screen === 'crawl' ? 'crawl' : screen === 'town' ? 'town' : null, S ? S.floorIx : 0);
     if (screen === 'town') renderTown();
   }
 
@@ -278,6 +282,7 @@
 
   function visitStranger() {
     if (S.hasRelic) {
+      sfx('victory');
       S.won = true;
       S.over = true;
       clearSave();
@@ -316,7 +321,11 @@
       onDoor: (x, y) => {
         if (!floor().opened.includes(x + ',' + y)) floor().opened.push(x + ',' + y);
         log('The door groans open.');
+        sfx('door');
       },
+      onStep: () => sfx('step', { wet: S && S.floorIx >= 1 }),
+      onAlert: (kind, dist, pan) => sfx('alert', { kind, dist, pan }),
+      onVoice: (kind, dist, pan) => sfx('voice', { kind, dist, pan }),
       onContact: (g) => run(() => battle(g)),
       onFall: () => run(fall),
       explored: () => (S && S.where === 'crawl' ? floor().explored : null),
@@ -330,9 +339,10 @@
     S.floorIx = ix;
     show('crawl');
     const w = ensureWorld();
+    w.showHands(true);
     const f = Q.FLOORS[ix];
     const grid = floor().grid;
-    w.load({ grid, heights: f.heights, ceil: f.ceil, groups: floor().groups.filter((g) => g.alive), opened: floor().opened });
+    w.load({ grid, heights: f.heights, ceil: f.ceil, theme: f.theme, groups: floor().groups.filter((g) => g.alive), opened: floor().opened });
     let p = pose;
     if (!p) grid.forEach((row, y) => row.forEach((t, x) => { if (t === arriveOn && !p) p = w.cellPose(x, y); }));
     w.place(p);
@@ -395,6 +405,7 @@
       g[y][x] = '.';
       world.refreshTile(x, y);
       log('You take the <b class="yellow">Bell-Tongue</b>. It is warm, and it hums.', 'hit');
+      sfx('toll', { f: 196 });
       modal('The Bell-Tongue', art('relic', true) + '<p>The clapper of the last bell, black iron as long as your forearm. It is warm. It hums against your ribs.</p><p>Take it up to the Stranger in Skarnvik.</p>', [{ label: 'Go' }]);
     }
   }
@@ -410,9 +421,11 @@
       if (!S.scrolls.includes(key)) S.scrolls.push(key);
       const sc = Q.SCROLLS[key];
       log(`Under the bones, a scroll: <b class="yellow">${esc(sc.name)}</b>. ${esc(sc.text)}`, 'hit');
+      sfx('gain');
       return;
     }
     const res = Q.searchRemains(S.floorIx + 1);
+    if (res.kind !== 'hand') sfx('gain');
     if (res.kind === 'silver') { S.silver += res.amount; log(`You pick the remains clean: <b>${res.amount}s</b>.`, 'hit'); }
     if (res.kind === 'poultice') { S.poultices += 1; log('A black poultice, still sticky. <b>+1 poultice</b>.', 'hit'); }
     if (res.kind === 'omen') {
@@ -454,6 +467,7 @@
       await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: `Warmth spreads through ${short(pc)}` });
       pc.hp = Math.min(pc.maxHp, pc.hp + h);
       pc.bleeding = false;
+      sfx('heal');
       log(`Warmth spreads through ${short(pc)}. <b>+${h} HP</b>.`, 'hit');
     } else { pc.omens += 1; log(`${short(pc)} sees their own death, and it is not today. <b>+1 Omen</b>.`, 'hit'); }
     renderHud();
@@ -462,6 +476,7 @@
   // Into the chasm: everyone takes the fall, then climbs back out.
   async function fall() {
     log('The edge crumbles. You fall into the dark.', 'hurt');
+    sfx('fall');
     for (const pc of alive()) {
       const dmg = d(6);
       await throwDice({ dice: [D(6, dmg, 'pink', 'Fall')], verdict: `${short(pc)} −${dmg} HP`, tone: 'bad', text: 'A fall into the chasm: d6 damage each' });
@@ -473,6 +488,7 @@
   }
 
   async function hurt(pc, dmg, cause) {
+    sfx('hurt');
     await Q.hurtWretch(pc, dmg, cause, { log, onHurt: flashHurt, onChange: renderHud });
     renderHud();
     if (!alive().length) gameOver(cause);
@@ -490,6 +506,8 @@
     if (!g.alive || !alive().length) return;
     const v = $('viewport');
     v.classList.add('shatter');
+    sfx('shatter');
+    if (Q.Sound) Q.Sound.duck(true);
     await new Promise((r) => setTimeout(r, 420 * (Q.speed === undefined ? 1 : Q.speed)));
     v.classList.remove('shatter');
     const result = await Q.Battle.run({
@@ -507,6 +525,7 @@
       world.stepBack(g);
     }
     for (const pc of S.party) pc.dazed = false;
+    if (Q.Sound) Q.Sound.duck(false);
     renderHud();
     drawMini();
     if (result.outcome === 'lost' || !alive().length) return gameOver(S.party.map((p) => p.cause).find(Boolean) || 'the Vault');
@@ -520,6 +539,7 @@
 
   function worldEnds(m) {
     if (S.over) return;
+    sfx('toll', { f: 49 });
     S.over = true;
     clearSave();
     if (world) world.pause();
@@ -535,6 +555,7 @@
     S.over = true;
     clearSave();
     if (world) world.pause();
+    sfx('toll', { f: 82 });
     const pcs = S.party.map((pc) => `<p class="epitaph">Here lies <b>${esc(pc.name)}</b>.<br>${esc(pc.trait)}</p>`).join('');
     modal('Dead', `${art('grave')}${pcs}
       <p>Killed by ${esc(cause)} in ${esc(S.where === 'crawl' ? floor().name : 'Skarnvik')}, with ${S.kills} foe${S.kills === 1 ? '' : 's'} slain and ${S.silver}s in a purse someone else will empty.</p>
@@ -552,6 +573,11 @@
         <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span></span></div>`;
     }).join('') + `<div class="purse">${S.silver}s</div><div class="purse comet" title="Calendar of Nechrubel: ${calendarText()}">☄ ${S.calendar.days}</div>`;
     $('hudPlace').textContent = S.where === 'crawl' ? floor().name : '';
+    if (world) {
+      // the front wretch's weapon is the one in the right hand
+      const front = alive().find((p) => p.row !== 'back') || alive()[0];
+      world.setWeapon(front ? front.weapon.name : null);
+    }
     $('tPoultice').querySelector('small').textContent = S.poultices;
     $('tPoultice').disabled = S.poultices <= 0 || !alive().some((p) => p.hp < p.maxHp || p.bleeding);
   }
@@ -630,6 +656,7 @@
       await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: `${short(pc)}’s wounds bound · black poultice d6` });
       pc.hp = Math.min(pc.maxHp, pc.hp + h);
       pc.bleeding = false;
+      sfx('heal');
       log(`${short(pc)} is bound with a black poultice. <b>+${h} HP</b>.`, 'hit');
     });
     if (hurtOnes.length === 1) return bind(hurtOnes[0]);
@@ -691,6 +718,17 @@
     $('tParty').addEventListener('click', partySheet);
     $('tPoultice').addEventListener('click', usePoultice);
     $('mini').addEventListener('click', showMap);
+    const soundLabel = () => {
+      const on = !Q.Sound || Q.Sound.on;
+      $('btnSound').textContent = `Sound: ${on ? 'on' : 'off'}`;
+      $('tSound').textContent = on ? '♪' : '♪̸';
+      $('tSound').classList.toggle('off', !on);
+      $('tSound').setAttribute('aria-pressed', on ? 'true' : 'false');
+    };
+    const toggleSound = () => { if (Q.Sound) Q.Sound.toggle(); soundLabel(); };
+    $('btnSound').addEventListener('click', toggleSound);
+    $('tSound').addEventListener('click', toggleSound);
+    soundLabel();
     $('modal').addEventListener('click', (e) => { if (e.target === $('modal') && $('modal').dataset.closable === 'yes') closeModal(); });
     window.addEventListener('keydown', (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;

@@ -24,6 +24,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 | Pick a target | tap the foe | ← / → and Enter |
 | Hurry the dice | tap the dice | Space or Enter |
 | Map, party | the buttons at the bottom (or tap the mini-map) | M, P |
+| Sound on or off | ♪ (or the Sound button on the title screen) | |
 | Use a poultice outside battle | the Poultice button | |
 
 ## The game
@@ -31,6 +32,9 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their class, Toughness + a class HP die, Omens, random weapon, armor and silver. In the town of **Skarnvik** a stranger with a sewn-shut eye wants the **Bell-Tongue**, which hangs from the neck of the **Pale Abbess** at the bottom of the Weeping Vault.
 
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
+- **What you see**: the torch in your left hand burns with a living flame, and the dungeon's light flickers with it. Your right hand holds the front wretch's weapon. Both swing as you walk and lag as you turn. Monsters shamble in two-frame steps, like Doom's sprites: zombies lurch, skeletons rattle, cultists' robes swing, rats scurry, and the Abbess drifts with her veil rippling.
+- **Each floor has its own look**: the Undercroft is rough stone, ossuary walls and carved saints. The Weeping Vault is pale marble running with black tar, burial niches, a stone face that weeps, grave slabs underfoot, a ribbed vault overhead, black iron doors, and a colder, violet dark.
+- **Sound**: footsteps (wet in the Vault), dripping water, a low drone and moaning air below, wind and a far bell in town. A monster that spots you gives a dissonant sting and its own cry (squeaks, a groan, a rattle, a chant, a wail), and keeps calling while it hunts you, from the side it's on. Battles crunch, whoosh, ring on a critical and toll for the dead, and the dice clatter. Everything is made on the spot with Web Audio; there are no sound files.
 - **Monsters** wander the halls as groups. Once they see you, they hunt you; zombies are slow, rats are fast, and doors stop them all.
 - **Touching a group** shatters the screen into a turn-based battle, Final Fantasy style. Initiative is a d6; then each wretch picks Attack, their class ability, Scroll, Poultice, Omen, a change of row, or Flee, and the foes answer. Fleeing leaves the group stunned for a moment so you can get away, but it costs a day.
 - **Rows**: one wretch stands in front, one behind. Foes go for the front wretch three times in four, and a melee attack from the back row is at DR +2. Swap in battle (it takes the turn) or from the party sheet.
@@ -83,6 +87,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | `js/data.js` | The two floor maps (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
 | `js/art.js` | The town picture, the map, and the grain overlay |
 | `js/dice.js` | The dice thrown on screen for every roll in a battle |
+| `js/sound.js` | Every sound, synthesized with Web Audio: effects, ambience per place, mute |
 | `js/game.js` | Game state, the party, the town, what happens on each square, saving, the HUD and input |
 | `assets/` | The generated pictures (WebP) |
 | `tools/make_art.py` | Generates and grades the pictures |
@@ -100,6 +105,8 @@ The pictures in `assets/` (monsters, walls, floor, ceiling, the town, portraits)
 
 - Image model: [LCM Dreamshaper v7](https://huggingface.co/SimianLuo/LCM_Dreamshaper_v7) (MIT licence), 8 steps per image on the CPU.
 - Walls, door, floor, ceiling and the rat start from a simple flat layout drawn in code (stone blocks, rows of skulls, planks, a crouching rat), which the model paints over (image-to-image). Asked directly, the model paints whole corridors instead of a flat wall, and rat-men instead of rats.
+- The hands work the same way: an arm and fist drawn coming up from the bottom of the frame, gripping a torch or one of the eight weapons. Asked directly, the model paints a whole person holding the thing.
+- The Weeping Vault's black tears are painted onto the graded pictures by `make_art.py` (the model tidies them away), each a tapering run of ink with a wet bone-white glint.
 - The town prints in black and acid yellow; everything else in black and bone.
 - Cut-outs: [rembg](https://github.com/danielgatis/rembg) with the ISNet general-use model (Apache 2.0).
 - Each asset's prompt and chosen seed live in `make_art.py`, so any picture can be regenerated or re-graded.

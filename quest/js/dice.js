@@ -100,6 +100,8 @@ var Q = window.Q || (window.Q = {});
         return;
       }
       const tumble = 620 * k, stagger = 110 * k;
+      const sound = (name) => Q.Sound && Q.Sound.play(name, { count: els.length });
+      sound('dice');
       els.forEach((el, i) => {
         const dur = tumble + i * stagger;
         const spin = (i % 2 ? 1 : -1) * (300 + Math.random() * 260);
@@ -126,7 +128,7 @@ var Q = window.Q || (window.Q = {});
         }, dur * 0.8);
       });
       const landed = tumble + (els.length - 1) * stagger;
-      later(() => caption.classList.add('shown'), landed * 0.85);
+      later(() => { caption.classList.add('shown'); sound('land'); }, landed * 0.85);
       later(() => finish(0), landed + (spec.hold === undefined ? 900 : spec.hold) * k);
     });
   }

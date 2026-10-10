@@ -21,6 +21,7 @@
       <button id="btnContinue" type="button" hidden>Continue</button>
       <button id="btnNew" type="button">Roll a wretch</button>
     </div>
+    <button id="btnSound" type="button" class="ghost sound-toggle">Sound: on</button>
     <p class="legal">Quest is an independent production and is not affiliated with Ockult Örtmästare Games or Stockholm Kartell. It is published under the MÖRK BORG Third Party License. MÖRK BORG is copyright Ockult Örtmästare Games and Stockholm Kartell.</p>
   </div>
 </section>
@@ -58,14 +59,20 @@
     <!-- the 3D canvas goes first, made by js/engine.js -->
     <div class="view-fx" aria-hidden="true"></div>
     <div class="hud-top">
-      <div id="chips" class="chips"></div>
-      <div class="hud-right"><span id="hudPlace" class="place"></span><canvas id="mini" aria-label="Map of this floor. Tap to enlarge."></canvas></div>
-    </div>
-    <ol id="log" class="hud-log" aria-live="polite"></ol>
-    <div class="hud-buttons">
-      <button type="button" id="tMap" class="ghost">Map</button>
-      <button type="button" id="tParty" class="ghost">Party</button>
-      <button type="button" id="tPoultice" class="ghost">Poultice <small></small></button>
+      <div class="hud-left">
+        <div id="chips" class="chips"></div>
+        <ol id="log" class="hud-log" aria-live="polite"></ol>
+      </div>
+      <div class="hud-right">
+        <span id="hudPlace" class="place"></span>
+        <canvas id="mini" aria-label="Map of this floor. Tap to enlarge."></canvas>
+        <div class="hud-buttons">
+          <button type="button" id="tMap" class="ghost">Map</button>
+          <button type="button" id="tParty" class="ghost">Party</button>
+          <button type="button" id="tPoultice" class="ghost">Poultice <small></small></button>
+          <button type="button" id="tSound" class="ghost sound-toggle" aria-label="Sound">♪</button>
+        </div>
+      </div>
     </div>
     <p id="hint" class="hint">Left thumb: walk · Right thumb: look<br><span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look</span></p>
     <div id="battle" class="battle" hidden>
@@ -92,6 +99,7 @@
 <script src="js/data.js"></script>
 <script src="js/art.js"></script>
 <script src="js/dice.js"></script>
+<script src="js/sound.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/game.js"></script>
