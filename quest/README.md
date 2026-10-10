@@ -18,7 +18,9 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 
 | | Phone | Keyboard / mouse |
 |---|---|---|
-| Walk and strafe | drag the left half of the screen (a joystick appears) | W A S D |
+| Walk and strafe (free movement) | drag the left half of the screen (a joystick appears) | W A S D |
+| Step a square, turn a quarter (step movement) | the arrow pad | W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn |
+| Settings (movement, sound) | ⚙ (or Settings on the title screen) | |
 | Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
 | Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–7 |
 | Spend an Omen when one is offered | tap the yellow button on the dice | O |
@@ -33,6 +35,8 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their class, Toughness + a class HP die, Omens, random weapon, armor and silver. In the town of **Skarnvik** a stranger with a sewn-shut eye wants the **Bell-Tongue**, which hangs from the neck of the **Pale Abbess** at the bottom of the Weeping Vault.
 
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
+- **Two ways to move** (⚙ Settings): **Free**, walking anywhere and looking around like DOOM, or **Steps**, a square at a time with quarter turns, gliding between squares, like The Quest or Dungeon Master. Monsters move in real time either way.
+- **The DM**: walking into certain places for the first time, the game narrates them like a dungeon master and offers choices. Some are tests rolled on the dice (and an Omen can save them); what you choose can tell you what something is, find hidden things, open secret niches, or change how the boss fight goes. See *Story scenes* below.
 - **What you see**: the torch in your left hand burns with a living flame, and the dungeon's light flickers with it. Your right hand holds the front wretch's weapon. Both swing as you walk and lag as you turn. Monsters shamble in two-frame steps, like Doom's sprites: zombies lurch, skeletons rattle, cultists' robes swing, rats scurry, and the Abbess drifts with her veil rippling.
 - **Each floor has its own look**: the Undercroft is rough stone, ossuary walls and carved saints. The Weeping Vault is pale marble running with black tar, burial niches, a stone face that weeps, grave slabs underfoot, a ribbed vault overhead, black iron doors, and a colder, violet dark.
 - **Sound**: footsteps (wet in the Vault), dripping water, a low drone and moaning air below, wind and a far bell in town. A monster that spots you gives a dissonant sting and its own cry (squeaks, a groan, a rattle, a chant, a wail), and keeps calling while it hunts you, from the side it's on. Battles crunch, whoosh, ring on a critical and toll for the dead, and the dice clatter. Everything is made on the spot with Web Audio; there are no sound files.
@@ -44,6 +48,21 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their
 - **Skarnvik**: the Stranger (the quest), the Drowned Lamb (sleep, heal, Get Better, and hire a new wretch for 20s when one of yours has died) and Thrumm's Stall (weapons, armor, poultices; you choose who gets them).
 - **The Undercroft** (floor 1) and **the Weeping Vault** (floor 2) hold remains to search, black fonts to drink from, hidden pits, two scrolls, and the Abbess.
 - If both wretches die, the save is gone.
+
+## Story scenes
+
+The scenes live in `js/story.js`, one short script each.
+
+| Where | What happens |
+|---|---|
+| Arriving in the Undercroft | Listen at the dark (Presence DR 10): every monster on the floor shows on your map |
+| The black font | Pink liquid in a black basin. Its nature (saint's tears that heal, comet water that gives an Omen, or lye that burns) is decided when the run begins. Taste a drop (Presence DR 12) to learn which before you drink; look under the basin (Strength DR 12) to find a secret niche with a relic in it |
+| The rat-saint's dais | Read the words at her feet (Presence DR 12): an Omen, or a letter crawls into your eye |
+| The drowned crypt | Feel under the black water (Agility DR 12): a purse or a strange item, or a leech |
+| The stair down | A woman weeping, a long way below |
+| Arriving in the Weeping Vault | Listen to the echoes (Presence DR 12): monsters on the map |
+| The bone bridge | Drop a silver coin and listen (Presence DR 12): learn that the Abbess drinks the Vault's tears |
+| The nave | Before the Abbess: plug the tear-channels (if you know about the tears) or smash the statues' eyes (Strength DR 12) and she fights without armor and weaker; creep up on her (Agility DR 14) and you strike first, or fail and she does |
 
 ## Loot with personality
 
@@ -113,6 +132,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | `js/engine.js` | `src/engine.js` bundled with three.js. Rebuild it with `npm run build:quest` from the repository root |
 | `js/battle.js` | The turn-based battle screen: initiative, commands, targeting, enemy turns, morale and fleeing |
 | `js/rules.js` | Dice, character generation, attacks, defence, Broken, morale, Getting Better |
+| `js/story.js` | The DM's scenes: narration, choices, tests, secrets |
 | `js/items.js` | Unique weapons and relics, wearing and wielding, the Codex |
 | `js/data.js` | The two floor maps (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
 | `js/art.js` | The town picture, the map, and the grain overlay |

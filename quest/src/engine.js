@@ -290,6 +290,7 @@ export function createWorld(container, hooks) {
     }
     if (t === 'f') return [texture('font', false), 0.9, 1.2];
     if (t === 'R') return [texture('relic', false), 0.8, 1.1];
+    if (t === 'K') return [texture('remains', false), 0.9, 0.68]; // the hidden niche's bundle
     return null;
   }
 
@@ -352,7 +353,94 @@ export function createWorld(container, hooks) {
     return null;
   }
 
+  // ---------- old-school steps ----------
+  // In 'grid' mode a press moves one whole square (forward, back, sideways) or turns a quarter, gliding
+  // there, as in Dungeon Master or The Quest. Held keys keep stepping; the D-pad queues taps.
+  let mode = 'free';
+  const step = { active: false };
+  const queued = [];
+  const STEP_TIME = 0.3, TURN_TIME = 0.22;
+  const ease = (t) => t * t * (3 - 2 * t);
+  function snapToGrid() {
+    player.x = (cellOf(player.x) + 0.5) * CELL;
+    player.z = (cellOf(player.z) + 0.5) * CELL;
+    player.a = Math.round(player.a / (Math.PI / 2)) * (Math.PI / 2);
+    player.pitch = 0;
+    step.active = false;
+    queued.length = 0;
+  }
+  function heldIntent() {
+    if (keys.has('w') || keys.has('arrowup')) return 'f';
+    if (keys.has('s') || keys.has('arrowdown')) return 'b';
+    if (keys.has('a')) return 'l';
+    if (keys.has('d')) return 'r';
+    if (keys.has('q') || keys.has('arrowleft')) return 'tl';
+    if (keys.has('e') || keys.has('arrowright')) return 'tr';
+    return null;
+  }
+  function moveGrid(dt) {
+    if (step.active) {
+      step.t = Math.min(1, step.t + dt / step.dur);
+      const e = ease(step.t);
+      player.x = step.x0 + (step.x1 - step.x0) * e;
+      player.z = step.z0 + (step.z1 - step.z0) * e;
+      player.a = step.a0 + (step.a1 - step.a0) * e;
+      if (step.walk) {
+        const before = Math.floor(player.phase / Math.PI);
+        player.phase = step.phase0 + Math.PI * e;
+        if (Math.floor(player.phase / Math.PI) !== before) hooks.onStep && hooks.onStep();
+      }
+      player.moving = step.walk ? 1 : 0;
+      turnRate = step.walk ? 0 : (step.a1 - step.a0) / step.dur;
+      if (step.t >= 1) step.active = false;
+      return;
+    }
+    player.moving = 0;
+    turnRate = 0;
+    const intent = queued.shift() || heldIntent();
+    if (!intent) return;
+    const begin = (x1, z1, a1, walk) => Object.assign(step, {
+      active: true, t: 0, dur: walk ? STEP_TIME : TURN_TIME, walk,
+      x0: player.x, z0: player.z, a0: player.a, x1, z1, a1, phase0: Math.round(player.phase / Math.PI) * Math.PI + 0.01,
+    });
+    if (intent === 'tl' || intent === 'tr') {
+      begin(player.x, player.z, player.a + (intent === 'tl' ? -1 : 1) * Math.PI / 2, false);
+      return;
+    }
+    const fx = Math.round(Math.cos(player.a)), fz = Math.round(Math.sin(player.a));
+    const [dx, dz] = { f: [fx, fz], b: [-fx, -fz], r: [-fz, fx], l: [fz, -fx] }[intent];
+    const cx = cellOf(player.x), cz = cellOf(player.z);
+    const tx = cx + dx, tz = cz + dz;
+    if (solid(tx, tz)) {
+      if (doorAt(tx, tz)) touch({ cx: tx, cy: tz, door: true });
+      else hooks.onBump && hooks.onBump();
+      return;
+    }
+    if (floorH(tx, tz) - floorH(cx, cz) > CLIMB) { hooks.onBump && hooks.onBump(); return; }
+    begin((tx + 0.5) * CELL, (tz + 0.5) * CELL, player.a, true);
+  }
+
+  // The on-screen arrows for step mode (and for anyone who prefers buttons).
+  const pad = document.createElement('div');
+  pad.className = 'step-pad';
+  pad.hidden = true;
+  pad.innerHTML = [['tl', '↶', 'Turn left'], ['f', '▲', 'Step forward'], ['tr', '↷', 'Turn right'], ['l', '◀', 'Step left'], ['b', '▼', 'Step back'], ['r', '▶', 'Step right']]
+    .map(([k, g, t]) => `<button type="button" data-k="${k}" aria-label="${t}">${g}</button>`).join('');
+  container.appendChild(pad);
+  const padHeld = new Map();
+  pad.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('button');
+    if (!b || paused) return;
+    e.preventDefault();
+    if (queued.length < 2) queued.push(b.dataset.k);
+    // holding a button keeps stepping, like holding a key
+    padHeld.set(e.pointerId, setInterval(() => { if (!paused && !step.active && !queued.length) queued.push(b.dataset.k); }, 60));
+  });
+  const padUp = (e) => { clearInterval(padHeld.get(e.pointerId)); padHeld.delete(e.pointerId); };
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => pad.addEventListener(ev, padUp));
+
   function movePlayer(dt) {
+    if (mode === 'grid') return moveGrid(dt);
     let fwd = stick.y, side = stick.x;
     if (keys.has('w') || keys.has('arrowup')) fwd += 1;
     if (keys.has('s') || keys.has('arrowdown')) fwd -= 1;
@@ -516,7 +604,7 @@ export function createWorld(container, hooks) {
           const cx = cellOf(g.x), cy = cellOf(g.z);
           const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]][Math.floor(Math.random() * 4)];
           const nx = cx + dx, ny = cy + dy;
-          if (!solid(nx, ny) && !'G<>RLSFf'.includes(tile(nx, ny)) && Math.abs(floorH(nx, ny) - floorH(cx, cy)) <= CLIMB) {
+          if (!solid(nx, ny) && !'G<>RLSFfK'.includes(tile(nx, ny)) && Math.abs(floorH(nx, ny) - floorH(cx, cy)) <= CLIMB) {
             entry.wander = [(nx + 0.5) * CELL, (ny + 0.5) * CELL];
           }
         }
@@ -781,6 +869,9 @@ export function createWorld(container, hooks) {
     if (paused || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
     if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+      if (mode === 'grid' && !e.repeat && !keys.has(k) && queued.length < 2) {
+        queued.push({ w: 'f', arrowup: 'f', s: 'b', arrowdown: 'b', a: 'l', d: 'r', q: 'tl', arrowleft: 'tl', e: 'tr', arrowright: 'tr' }[k]);
+      }
       keys.add(k);
       e.preventDefault();
     }
@@ -799,7 +890,7 @@ export function createWorld(container, hooks) {
   const el = renderer.domElement;
   el.style.touchAction = 'none';
   el.addEventListener('pointerdown', (e) => {
-    if (paused) return;
+    if (paused || mode === 'grid') return;
     el.setPointerCapture(e.pointerId);
     const r = el.getBoundingClientRect();
     const role = e.pointerType === 'mouse' ? 'look' : (e.clientX - r.left < r.width / 2 ? 'move' : 'look');
@@ -863,7 +954,16 @@ export function createWorld(container, hooks) {
       player.safe = { x: pose.x, z: pose.z };
       falling = false;
       keys.clear();
+      if (mode === 'grid') snapToGrid();
     },
+    // 'free' (Doom: walk anywhere, look around) or 'grid' (old school: a square at a time, quarter turns).
+    setMode(m) {
+      mode = m === 'grid' ? 'grid' : 'free';
+      pad.hidden = mode !== 'grid';
+      container.classList.toggle('step-mode', mode === 'grid');
+      if (mode === 'grid' && level) snapToGrid();
+    },
+    get mode() { return mode; },
     // Where a cell's middle is, in world units, and which way faces out of it.
     cellPose(cx, cy) {
       let a = 0;
@@ -875,13 +975,22 @@ export function createWorld(container, hooks) {
     pose: () => ({ x: player.x, z: player.z, a: player.a }),
     // The wretches' place on the map, in cells, and their facing.
     mapPose: () => ({ x: player.x / CELL - 0.5, y: player.z / CELL - 0.5, a: player.a }),
-    pause() { paused = true; keys.clear(); stick.x = 0; stick.y = 0; knob.hidden = true; pointers.clear(); player.moving = 0; turnRate = 0; },
+    pause() {
+      paused = true; keys.clear(); stick.x = 0; stick.y = 0; knob.hidden = true; pointers.clear(); player.moving = 0; turnRate = 0;
+      queued.length = 0;
+      for (const id of padHeld.values()) clearInterval(id);
+      padHeld.clear();
+      if (step.active) { player.x = step.x1; player.z = step.z1; player.a = step.a1; step.active = false; }
+    },
     resume() { paused = false; lastTime = performance.now(); },
     get paused() { return paused; },
     refreshTile(cx, cy) { placeItem(cx, cy); },
     openDoor(cx, cy) { const d = doorAt(cx, cy); if (d) d.opening = true; },
     // After a fall: climb back out to the last firm ground.
-    haulBack() { player.x = player.safe.x; player.z = player.safe.z; player.y = floorH(cellOf(player.x), cellOf(player.z)) + EYE; player.vy = 0; falling = false; },
+    haulBack() {
+      player.x = player.safe.x; player.z = player.safe.z; player.y = floorH(cellOf(player.x), cellOf(player.z)) + EYE; player.vy = 0; falling = false;
+      if (mode === 'grid') snapToGrid();
+    },
     // After fleeing: back off from the monster a pace.
     stepBack(g) {
       const dx = player.x - g.x, dz = player.z - g.z;
@@ -890,6 +999,7 @@ export function createWorld(container, hooks) {
         const nx = player.x + (dx / d) * k, nz = player.z + (dz / d) * k;
         if (!blockedAt(nx, nz, floorH(cellOf(player.x), cellOf(player.z)) + CLIMB)) { player.x = nx; player.z = nz; break; }
       }
+      if (mode === 'grid') snapToGrid();
     },
     monsterPos: (g) => ({ x: g.x / CELL - 0.5, y: g.z / CELL - 0.5 }),
     // The weapon drawn in the right hand, by its name in the rules ('Zweihänder' -> held-zweihander).

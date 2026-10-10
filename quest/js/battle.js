@@ -761,6 +761,8 @@ var Q = window.Q || (window.Q = {});
       };
     });
     B = { ...opts, foes, slain: [], active: -1, mods };
+    // what the story did to the boss (js/story.js): no tears, no armor
+    if (opts.bossWeak) for (const f of foes) if (f.def.boss) { f.armor = 0; f.hp = Math.max(1, f.hp - 3); f.maxHp = f.hp; }
     fixRows(B.party);
     B.party.forEach((p) => { p.dazed = false; p.usedAbility = false; });
     $('battle').hidden = false;
@@ -787,6 +789,11 @@ var Q = window.Q || (window.Q = {});
     let theyFirst = false;
     if (!B.foes.some((f) => f.hp > 0)) {
       // nothing left to fight
+    } else if (B.firstStrike) {
+      B.log('You came on her unseen. <b class="yellow">You strike first.</b>', 'hit');
+    } else if (B.foesFirst && !glory) {
+      theyFirst = true;
+      B.log('She was waiting for you. <b class="pink">She strikes first.</b>', 'hurt');
     } else if (glory) {
       B.log(`The Hand of Glory flares in ${short(glory)}’s grip: you move first.`, 'hit');
       await hurt(glory, 1, 'the Hand of Glory');

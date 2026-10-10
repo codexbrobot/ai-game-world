@@ -477,3 +477,38 @@ body.in-battle .hands { opacity: 0; }
 .omen-bar { display: block; height: 4px; width: min(16rem, 80%); background: var(--yellow); transform-origin: left; animation: omenbar linear forwards; }
 @keyframes omenbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 @keyframes omenin { from { transform: scale(0.8); opacity: 0; } }
+
+/* ---------- step movement: the old-school arrow pad ---------- */
+.step-pad {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 54px);
+  gap: 6px; z-index: 3; touch-action: none;
+}
+.step-pad[hidden] { display: none; }
+.step-pad button {
+  min-height: 48px; padding: 0; font-size: 20px; line-height: 1; background: rgba(10, 10, 8, 0.72); color: var(--yellow);
+  box-shadow: inset 0 0 0 2px rgba(255, 225, 26, 0.7);
+}
+.step-pad button:active { background: var(--yellow); color: var(--ink); }
+body.in-battle .step-pad { visibility: hidden; }
+.viewport.step-mode .stick { display: none; }
+
+/* ---------- settings ---------- */
+.settings { display: grid; gap: 12px; }
+.settings .opt { display: grid; gap: 6px; }
+.settings .opt > b { font-family: var(--display); font-size: 19px; color: var(--yellow); }
+.settings .choices { display: flex; gap: 8px; flex-wrap: wrap; }
+.settings .choices button { flex: 1 1 8rem; min-height: 44px; font-size: 13px; }
+.settings .choices button.on { background: var(--yellow); color: var(--ink); box-shadow: 4px 4px 0 var(--pink); }
+.settings small { color: var(--dim); }
+
+/* ---------- the DM's voice ---------- */
+.dm-text { font-family: var(--display); font-size: 19px; line-height: 1.45; margin: 4px 0 6px; }
+.dm-text p { margin: 0 0 10px; }
+.dm-text em { color: var(--yellow); font-style: normal; }
+.dm-aside { font-size: 13px; color: var(--dim); }
+.modal .choice-note { display: block; font-weight: 400; font-size: 11.5px; opacity: 0.8; text-transform: none; letter-spacing: 0; }
+.dm-text .w { display: inline; animation: wordin 0.3s ease-out both; }
+.dm-text.all .w { animation: none; }
+@keyframes wordin { from { opacity: 0; filter: blur(2px); } }
+@media (prefers-reduced-motion: reduce) { .dm-text .w { animation: none; } }
+.settings .choices button.on .choice-note { color: var(--ink); opacity: 0.75; }

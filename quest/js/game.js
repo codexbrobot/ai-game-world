@@ -52,11 +52,95 @@
       party, silver: party.reduce((s, p) => s + p.silver, 0), poultices: 3 + extra, scrolls: [], kills: 0, killsSinceBetter: 0,
       floors: buildFloors(), floorIx: 0, pose: null, where: 'town', hasRelic: false, metStranger: false, log: [],
       calendar: Q.calendarStart(), found: [], curios: [], deepest: 1, pendingMiseries: [],
+      flags: {}, scenes: {},
     };
+    setupFonts();
     for (const p of party) { delete p.silver; delete p.poultices; delete p.scrolls; }
     Q.fixRows(S.party);
     Q.applyMiseries(0);
     rollCurios();
+  }
+
+  // Each black font gets a hidden nature for this run (js/story.js).
+  function setupFonts() {
+    const natures = Object.keys(Q.FONT_NATURES);
+    S.floors.forEach((f) => {
+      if (f.font || !f.grid.some((row) => row.includes('F'))) return;
+      const nature = natures[Math.floor(Math.random() * natures.length)];
+      f.font = { nature, uses: Q.FONT_NATURES[nature].uses, known: false, searched: false };
+    });
+  }
+
+  // ---------- the DM (scenes in js/story.js) ----------
+  const ABILITY = { strength: 'Strength', agility: 'Agility', presence: 'Presence', toughness: 'Toughness' };
+
+  // The DM speaks: words fade in one after another (a tap shows them all); choices wait below.
+  function say(title, text, choices) {
+    return new Promise((resolve) => {
+      let i = 0;
+      const words = (html) => html.split(/(<[^>]+>)/).map((part) => (part.startsWith('<') ? part
+        : part.replace(/(\S+)/g, (w) => `<span class="w" style="animation-delay:${(i++ * 28)}ms">${w}</span>`))).join('');
+      const body = text.split(/\n\s*\n/).map((p) => `<p>${words(p.trim())}</p>`).join('');
+      modal(title, `<div class="dm-text">${body}</div>`, choices.map((c, n) => ({ label: c.label, note: c.note, disabled: c.disabled, action: () => resolve(n) })), { closable: false });
+      const box = document.querySelector('#modalBody .dm-text');
+      if (box) box.addEventListener('click', () => box.classList.add('all'));
+    });
+  }
+
+  function makeDM() {
+    const living = () => alive();
+    const dm = {
+      get party() { return living(); },
+      get font() { return floor().font; },
+      get silverLeft() { return S.silver; },
+      say,
+      name: (pc) => esc(pc.name.split(' ')[0]),
+      d: (n) => d(n),
+      best: (ab) => living().slice().sort((a, b) => b[ab] - a[ab])[0],
+      async test(pc, ab, dr, what) {
+        let r = Q.test(pc[ab], dr);
+        const Ab = ABILITY[ab];
+        await throwDice({ dice: [D(20, r.r, 'yellow', Ab)], verdict: r.ok ? 'Success' : 'Failure', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} ${what} · ${Q.testText(Ab, r, pc[ab])}` });
+        r = await Q.rescueTest(S.party, pc, r, pc[ab], Ab, { log, onChange: renderHud });
+        await new Promise((res) => setTimeout(res, 350 * (Q.speed === undefined ? 1 : Q.speed)));
+        if (Q.Dice) Q.Dice.clear();
+        return r.ok;
+      },
+      heal(pc, n) { pc.hp = Math.min(pc.maxHp, pc.hp + n); sfx('heal'); log(`${short(pc)} <b>+${n} HP</b>.`, 'hit'); renderHud(); },
+      async hurt(pc, n, cause) { await hurt(pc, n, cause); },
+      omen(pc) { pc.omens += 1; sfx('gain'); log(`${short(pc)} <b>+1 Omen</b>.`, 'hit'); renderHud(); },
+      silver(n) { S.silver = Math.max(0, S.silver + n); if (n > 0) { sfx('gain'); log(`<b>+${n}s</b>.`, 'hit'); } renderHud(); },
+      item(kind) {
+        const key = Q.rollItem(S, S.floorIx + 1, kind);
+        if (!key) { dm.silver(d(6) * 5); return Promise.resolve(); }
+        return new Promise((res) => offerItem(key, { title: 'Found', then: res }));
+      },
+      listen() { floor().heard = true; drawMini(); },
+      open(x, y, tile) {
+        floor().grid[y][x] = tile;
+        if (floor().explored[y]) floor().explored[y][x] = true;
+        sfx('door');
+        enterFloor(S.floorIx, null, world.pose());
+        log('Stone grinds against stone. <b class="yellow">A secret opens.</b>', 'hit');
+      },
+      dry() {
+        floor().grid.forEach((row, y) => row.forEach((t, x) => { if (t === 'F') { row[x] = 'f'; world.refreshTile(x, y); } }));
+      },
+      flag(name, value) {
+        if (value === undefined) return !!S.flags[name];
+        S.flags[name] = value;
+        return value;
+      },
+      log,
+    };
+    return dm;
+  }
+
+  async function playScene(scene, first) {
+    if (!alive().length) return;
+    await scene.run(makeDM(), first);
+    save();
+    renderHud();
   }
 
   // ---------- loot with personality (js/items.js) ----------
@@ -169,6 +253,7 @@
       const saved = raw ? JSON.parse(raw) : null;
       if (saved && !saved.calendar) saved.calendar = Q.calendarStart(); // saves from before the Calendar
       if (saved && !saved.found) Object.assign(saved, { found: [], curios: [], deepest: 1, pendingMiseries: [] }); // or before loot
+      if (saved && !saved.flags) Object.assign(saved, { flags: {}, scenes: {} }); // or before the DM
       return saved;
     } catch (e) { return null; }
   }
@@ -437,6 +522,7 @@
       explored: () => (S && S.where === 'crawl' ? floor().explored : null),
       onTick: drawMini,
     });
+    applyMove();
     return world;
   }
 
@@ -462,6 +548,14 @@
     drawMini();
     if (!modalOpen && !busy) w.resume();
     save();
+    const arrival = Q.SCENES.find((sc) => sc.arrive && sc.floor === ix && !S.scenes[sc.id]);
+    if (arrival) {
+      setTimeout(() => {
+        if (busy || modalOpen || !S || S.scenes[arrival.id] || S.floorIx !== ix || S.where !== 'crawl') return;
+        S.scenes[arrival.id] = true;
+        run(() => playScene(arrival, true));
+      }, 700 * (Q.speed === undefined ? 1 : Q.speed));
+    }
   }
 
   // Run something that plays out over time (dice, a battle) with the dungeon paused.
@@ -482,6 +576,24 @@
 
   async function enterCell(x, y, t) {
     const g = floor().grid;
+    // a place the DM has something to say about, the first time you walk in
+    const scene = Q.SCENES.find((sc) => sc.floor === S.floorIx && sc.area && !S.scenes[sc.id]
+      && x >= sc.area[0] && x <= sc.area[2] && y >= sc.area[1] && y <= sc.area[3]);
+    if (scene) {
+      S.scenes[scene.id] = true;
+      await playScene(scene, true);
+      if (scene.tile === t) return;
+    } else {
+      const again = Q.SCENES.find((sc) => sc.floor === S.floorIx && sc.tile && sc.tile === t);
+      if (again) { await playScene(again, false); return; }
+    }
+    if (t === 'K') {
+      g[y][x] = '.';
+      world.refreshTile(x, y);
+      const key = Q.rollItem(S, S.floorIx + 1, 'relic');
+      if (key) await new Promise((res) => offerItem(key, { title: 'The hidden niche', intro: 'Wrapped in rotten velvet, at the back of the niche:', then: res }));
+      return;
+    }
     if (t === 'p') {
       g[y][x] = '.';
       const pc = alive()[Math.floor(Math.random() * alive().length)];
@@ -506,8 +618,6 @@
       ask('Steps down', `<p>The stair descends into a cold that smells of candle wax and old water. <b>${esc(next.name)}</b>.</p>`, 'Descend', () => { enterFloor(S.floorIx + 1, '<'); log(`You descend into <b>${esc(floor().name)}</b>.`); });
     } else if (t === '<') {
       ask('Steps up', `<p>Back up to <b>${esc(S.floors[S.floorIx - 1].name)}</b>?</p>`, 'Climb', () => { enterFloor(S.floorIx - 1, '>'); log(`You climb back to <b>${esc(floor().name)}</b>.`); });
-    } else if (t === 'F') {
-      ask('A black font', '<p>A font of black stone, brimming with pink water that does not ripple.</p>', 'Drink', () => run(() => drinkFont(x, y)));
     } else if (t === 'R') {
       S.hasRelic = true;
       g[y][x] = '.';
@@ -569,28 +679,6 @@
     renderHud();
   }
 
-  async function drinkFont(x, y) {
-    floor().grid[y][x] = 'f';
-    world.refreshTile(x, y);
-    const pc = alive()[0];
-    const r = d(6);
-    const verdict = ['', 'It burns!', 'Iron', 'Iron', 'Warmth', 'Warmth', 'An Omen'][r];
-    await throwDice({ dice: [D(6, r, 'bone', 'Font')], verdict, tone: r === 1 ? 'bad' : r <= 3 ? 'neutral' : 'good', text: `${short(pc)} drinks · 1 burns · 2–3 nothing · 4–5 heal d6 · 6 an Omen` });
-    if (r === 1) {
-      log('It burns like lye.', 'hurt');
-      await hurt(pc, d(4), 'the font');
-    } else if (r <= 3) log('It tastes of iron and nothing happens. The font runs dry.');
-    else if (r <= 5) {
-      const h = d(6);
-      await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `+${h} HP`, tone: 'good', text: `Warmth spreads through ${short(pc)}` });
-      pc.hp = Math.min(pc.maxHp, pc.hp + h);
-      pc.bleeding = false;
-      sfx('heal');
-      log(`Warmth spreads through ${short(pc)}. <b>+${h} HP</b>.`, 'hit');
-    } else { pc.omens += 1; log(`${short(pc)} sees their own death, and it is not today. <b>+1 Omen</b>.`, 'hit'); }
-    renderHud();
-  }
-
   // Into the chasm: everyone takes the fall, then climbs back out.
   async function fall() {
     log('The edge crumbles. You fall into the dark.', 'hurt');
@@ -630,6 +718,7 @@
     v.classList.remove('shatter');
     const result = await Q.Battle.run({
       party: S.party, foes: g.members, inv: S, log, misery: S.calendar.misery,
+      ...(g.members.some((m) => Q.MONSTERS[m.key].boss) ? { bossWeak: !!S.flags.abbessWeak, firstStrike: !!S.flags.ambush, foesFirst: !!S.flags.abbessAlert && !S.flags.ambush } : {}),
       onDayLost: () => { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); renderHud(); },
       onChange: renderHud, onHurt: flashHurt,
     });
@@ -732,7 +821,7 @@
 
   function mapView(mini) {
     const p = world.mapPose();
-    const eye = Q.anyHas(S.party, 'eye');
+    const eye = Q.anyHas(S.party, 'eye') || !!floor().heard;
     const groups = floor().groups.filter((g) => g.alive).map((g) => ({ hp: 1, seen: true, always: eye, ...world.monsterPos(g) }));
     return { mini, grid: floor().grid, explored: floor().explored, x: p.x, y: p.y, a: p.a, monsters: groups };
   }
@@ -753,6 +842,7 @@
       const el = document.createElement('button');
       el.type = 'button';
       el.textContent = b.label;
+      if (b.note) { const n = document.createElement('small'); n.className = 'choice-note'; n.textContent = b.note; el.appendChild(n); }
       if (b.ghost) el.className = 'ghost';
       if (b.disabled) el.disabled = true;
       el.addEventListener('click', () => {
@@ -802,6 +892,36 @@
     ]);
   }
 
+  // ---------- settings ----------
+  const MOVE_KEY = 'quest-borg-move';
+  let moveMode = 'free';
+  try { moveMode = localStorage.getItem(MOVE_KEY) === 'grid' ? 'grid' : 'free'; } catch (e) { /* storage may be unavailable */ }
+  function applyMove() {
+    if (world) world.setMode(moveMode);
+    $('hint').innerHTML = moveMode === 'grid'
+      ? 'Step a square at a time: the arrow pad<br><span>Keyboard: W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn</span>'
+      : 'Left thumb: walk · Right thumb: look<br><span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look</span>';
+  }
+  function showSettings() {
+    const on = !Q.Sound || Q.Sound.on;
+    const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${(key === 'move' ? moveMode : on ? 'on' : 'off') === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
+    modal('Settings', `<div class="settings">
+      <div class="opt"><b>Movement</b><div class="choices">
+        ${opt('move', 'free', 'Free', 'walk anywhere, look around, like DOOM')}
+        ${opt('move', 'grid', 'Steps', 'a square at a time, quarter turns, old school')}
+      </div></div>
+      <div class="opt"><b>Sound</b><div class="choices">${opt('sound', 'on', 'On')}${opt('sound', 'off', 'Off')}</div></div>
+      <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
+    document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.set === 'move') {
+        moveMode = b.dataset.val;
+        try { localStorage.setItem(MOVE_KEY, moveMode); } catch (e) { /* ignore */ }
+        applyMove();
+      } else if (Q.Sound && (b.dataset.val === 'on') !== Q.Sound.on) Q.Sound.toggle();
+      showSettings();
+    }));
+  }
+
   // ---------- flow ----------
   function startCreate() {
     S = null;
@@ -826,6 +946,7 @@
     const saved = loadSave();
     if (!saved) return;
     S = saved;
+    setupFonts();
     Q.fixRows(S.party);
     Q.applyMiseries(S.calendar.misery);
     renderLog();
@@ -855,17 +976,8 @@
     $('tParty').addEventListener('click', partySheet);
     $('tPoultice').addEventListener('click', usePoultice);
     $('mini').addEventListener('click', showMap);
-    const soundLabel = () => {
-      const on = !Q.Sound || Q.Sound.on;
-      $('btnSound').textContent = `Sound: ${on ? 'on' : 'off'}`;
-      $('tSound').textContent = on ? '♪' : '♪̸';
-      $('tSound').classList.toggle('off', !on);
-      $('tSound').setAttribute('aria-pressed', on ? 'true' : 'false');
-    };
-    const toggleSound = () => { if (Q.Sound) Q.Sound.toggle(); soundLabel(); };
-    $('btnSound').addEventListener('click', toggleSound);
-    $('tSound').addEventListener('click', toggleSound);
-    soundLabel();
+    $('btnSettings').addEventListener('click', showSettings);
+    $('tSettings').addEventListener('click', showSettings);
     $('modal').addEventListener('click', (e) => { if (e.target === $('modal') && $('modal').dataset.closable === 'yes') closeModal(); });
     window.addEventListener('keydown', (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -894,6 +1006,7 @@
 
   if (Q.Dice) Q.Dice.init($('dice'));
   bind();
+  applyMove();
   renderTitle();
   Q.loadArt(() => { if (S && S.where === 'town') renderTown(); });
 })();
