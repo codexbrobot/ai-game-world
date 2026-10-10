@@ -156,6 +156,39 @@ var Q = window.Q || (window.Q = {});
     },
   };
 
+  // The Calendar of Nechrubel. Each night's sleep and each flight from a battle is a day lost. When the
+  // days run out a Misery comes to pass, and the count starts again. The seventh Misery ends the world.
+  Q.MISERIES = [
+    { title: 'The rats breed in the walls', text: 'Something fat and pink is born in every crack. Gutter Rats have 3 more HP.' },
+    { title: 'The dead grow restless', text: 'The graves of Skarnvik stand open. Every monster moves faster.' },
+    { title: 'Thrumm doubles his prices', text: '“The end is near, and silver will be worthless. So pay me more of it.” The stall costs half again as much.' },
+    { title: 'Noon is black as midnight', text: 'The sun does not rise. Sleep brings back only one Omen.' },
+    { title: 'Blades rust and flesh rots', text: 'Every wound festers. Monsters roll a larger damage die.' },
+    { title: 'The gutters run with blood', text: 'No one sleeps in the gutter now. It heals nothing, and the Drowned Lamb charges 20s a bed.' },
+    { title: 'The comet falls', text: 'Nechrubel opens its eye. The world ends, and you with it.' },
+  ];
+  Q.calendarStart = () => ({ misery: 0, days: d(6) + 3 });
+  Q.calendarNext = () => d(6) + 2;
+  // What the Miseries so far have done to the world.
+  Q.miseryMods = (n) => ({
+    ratHp: n >= 1 ? 3 : 0,
+    speed: n >= 2 ? 1.3 : 1,
+    price: n >= 3 ? 1.5 : 1,
+    omenCap: n >= 4 ? 1 : 0,
+    dieAdd: n >= 5 ? 2 : 0,
+    gutter: n < 6,
+    bed: n >= 6 ? 20 : 10,
+  });
+  // Monster speed is read by the engine every frame, so a Misery can change it in place.
+  const baseSpeed = {};
+  Q.applyMiseries = (n) => {
+    const m = Q.miseryMods(n);
+    for (const [k, def] of Object.entries(Q.MONSTERS)) {
+      if (!(k in baseSpeed)) baseSpeed[k] = def.speed;
+      def.speed = baseSpeed[k] * m.speed;
+    }
+  };
+
   // Who you meet at each monster mark, floor by floor: the first is the one that leads the band.
   Q.GROUPS = [
     { r: ['r', 'r'], z: ['z'], s: ['s'], c: ['c', 'r'] },

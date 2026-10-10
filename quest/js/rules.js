@@ -71,21 +71,61 @@ var Q = window.Q || (window.Q = {});
     'Owes silver to someone very patient.',
   ];
 
-  function rollWretch() {
-    const ability = () => abilityFromRoll(roll(3, 6));
+  // Classes, after the core book. Each changes the 3d6 rolls, the HP die and the Omen die, and brings one
+  // battle ability, usable once per battle. `row` is where the class would rather stand.
+  const CLASSES = {
+    deserter: {
+      name: 'Fanged Deserter', mods: { strength: 2, agility: -1, presence: -1 }, hpDie: 10, omenDie: 2, row: 'front',
+      blurb: 'Huge, hungry, and not entirely sane. Deserted from a war nobody won.',
+      ability: { key: 'bite', name: 'Bite', note: 'DR 10, d6 through armor', text: 'Sink your fangs in: Strength DR 10, d6 damage that ignores armor.' },
+    },
+    scum: {
+      name: 'Gutterborn Scum', mods: { agility: 2, strength: -1 }, hpDie: 6, omenDie: 2, row: 'back',
+      blurb: 'Born in a ditch, raised by worse. Quick hands, no loyalty.',
+      ability: { key: 'lowblow', name: 'Low Blow', note: 'Agility, +d4, any row', text: 'A knife from behind your friend: attack with Agility, +d4 damage, no back-row penalty.' },
+    },
+    hermit: {
+      name: 'Esoteric Hermit', mods: { presence: 2, strength: -1 }, hpDie: 4, omenDie: 2, row: 'back', powers: 2,
+      blurb: 'Lived in a cave with a book that should not exist. Reads two more scrolls a day.',
+      ability: { key: 'wither', name: 'Wither', note: 'Presence, d4 to all', text: 'Words that rot: Presence DR 12, d4 damage to every foe.' },
+    },
+    priest: {
+      name: 'Heretical Priest', mods: { presence: 1, toughness: 1, agility: -1 }, hpDie: 8, omenDie: 4, row: 'front',
+      blurb: 'Excommunicated twice. Still preaching, mostly to the dead. Rolls d4 Omens.',
+      ability: { key: 'sacrament', name: 'Black Sacrament', note: 'heal both d6', text: 'A blasphemous blessing: Presence DR 10, both wretches heal d6 and stop bleeding.' },
+    },
+    royalty: {
+      name: 'Wretched Royalty', mods: { presence: 1, strength: 1, toughness: -1 }, hpDie: 6, omenDie: 2, row: 'front',
+      blurb: 'Heir to a kingdom that drowned. Still expects to be obeyed.',
+      ability: { key: 'command', name: 'Command', note: 'a foe loses its turn', text: '“Kneel.” Presence against the foe’s DR: it loses its next turn.' },
+    },
+    herbmaster: {
+      name: 'Occult Herbmaster', mods: { toughness: 1, presence: 1, strength: -1 }, hpDie: 6, omenDie: 2, row: 'back', poultices: 2,
+      blurb: 'Grows things in graveyards. Brings two extra poultices to the party.',
+      ability: { key: 'toxin', name: 'Toxic Flask', note: 'd4 now, d4 each round', text: 'A flask of graveyard tincture: Agility DR 12, d4 damage now and d4 at the start of every enemy turn.' },
+    },
+  };
+  const classOf = (pc) => CLASSES[pc.cls] || null;
+  const powersFor = (pc) => Math.max(0, pc.presence + d(4) + ((classOf(pc) || {}).powers || 0));
+
+  function rollWretch(cls) {
+    const key = CLASSES[cls] ? cls : pick(Object.keys(CLASSES));
+    const c = CLASSES[key];
+    const ability = (name) => abilityFromRoll(roll(3, 6) + (c.mods[name] || 0));
     // Starting gear comes from the cheaper half of the lists, as in the rulebook.
     const weapon = WEAPONS[d(6) - 1];
     const armor = ARMOR[d(3) - 1];
     const pc = {
       name: `${pick(NAMES)} ${pick(EPITHETS)}`,
+      cls: key,
       trait: pick(TRAITS),
-      strength: ability(),
-      agility: ability(),
-      presence: ability(),
-      toughness: ability(),
+      strength: ability('strength'),
+      agility: ability('agility'),
+      presence: ability('presence'),
+      toughness: ability('toughness'),
       weapon: { name: weapon.name, die: weapon.die },
       armor: { name: armor.name, tier: armor.tier },
-      omens: d(2),
+      omens: d(c.omenDie),
       silver: roll(2, 6) * 10,
       poultices: 2,
       scrolls: [],
@@ -94,10 +134,11 @@ var Q = window.Q || (window.Q = {});
       bleeding: false,
       omenMax: false,
       omenWard: false,
+      row: c.row,
     };
-    pc.maxHp = Math.max(1, pc.toughness + d(8));
+    pc.maxHp = Math.max(1, pc.toughness + d(c.hpDie));
     pc.hp = pc.maxHp;
-    pc.powers = Math.max(0, pc.presence + d(4));
+    pc.powers = powersFor(pc);
     return pc;
   }
 
@@ -119,25 +160,29 @@ var Q = window.Q || (window.Q = {});
   // The wretch attacks: Strength test vs the foe's DR.
   // Natural 20 deals double damage. Natural 1 fumbles and the foe gets a free blow.
   // Every die is reported (dmgRoll, armorRoll) so the dice on screen show what was really rolled.
-  function attack(pc, foe) {
-    const t = test(pc.strength, foe.dr);
+  // opts: { ability, dr (overrides the foe's), drAdd, die (overrides the weapon), bonusDie, ignoreArmor }
+  function attack(pc, foe, opts = {}) {
+    const t = test(pc[opts.ability || 'strength'], (opts.dr || foe.dr) + (opts.drAdd || 0));
     if (t.fumble) return { kind: 'fumble', ...t };
     if (!t.ok) return { kind: 'miss', ...t };
+    const die = opts.die || pc.weapon.die;
     const maxed = pc.omenMax;
     pc.omenMax = false;
-    const dmgRoll = maxed ? pc.weapon.die : d(pc.weapon.die);
-    let dmg = dmgRoll * (t.crit ? 2 : 1);
-    const armorRoll = foe.armor ? d(foe.armor) : 0;
+    const dmgRoll = maxed ? die : d(die);
+    const bonusRoll = opts.bonusDie ? d(opts.bonusDie) : 0;
+    let dmg = (dmgRoll + bonusRoll) * (t.crit ? 2 : 1);
+    const armorRoll = foe.armor && !opts.ignoreArmor ? d(foe.armor) : 0;
     const absorbed = Math.min(dmg, armorRoll);
     dmg -= absorbed;
-    return { kind: t.crit ? 'crit' : 'hit', ...t, dmg, dmgRoll, armorRoll, absorbed, maxed };
+    return { kind: t.crit ? 'crit' : 'hit', ...t, die, dmg, dmgRoll, bonusRoll, armorRoll, absorbed, maxed };
   }
 
   // A foe attacks: the wretch tests Agility vs DR 12 (DR 14 in plate).
   // Natural 20 dodges and grants a free counterattack.
   // Natural 1 takes double damage and the armor drops a tier.
-  function defend(pc, foeDie) {
-    const t = test(pc.agility, DR + (pc.armor.tier === 3 ? 2 : 0));
+  // drAdd makes the dodge harder (a swarm comes from everywhere).
+  function defend(pc, foeDie, drAdd = 0) {
+    const t = test(pc.agility, DR + (pc.armor.tier === 3 ? 2 : 0) + drAdd);
     if (t.crit) return { kind: 'riposte', ...t };
     if (t.ok) return { kind: 'dodge', ...t };
     const dmgRoll = d(foeDie);
@@ -222,6 +267,6 @@ var Q = window.Q || (window.Q = {});
 
   Object.assign(Q, {
     DR, d, roll, pick, fmt, abilityFromRoll, WEAPONS, ARMOR, ARMOR_DIE, SCROLLS,
-    rollWretch, healthWord, test, attack, defend, broken, morale, gettingBetter,
+    CLASSES, classOf, powersFor, rollWretch, healthWord, test, attack, defend, broken, morale, gettingBetter,
   });
 })();

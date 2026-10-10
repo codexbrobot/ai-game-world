@@ -1,6 +1,9 @@
 // Turn-based battles, Final Fantasy style, played with Mörk Borg rules.
 // The enemies line up across the top, your two wretches wait below, and each wretch picks a command in
-// turn. Then the enemies strike. Every roll is thrown on screen with Q.Dice.
+// turn. Then the enemies act. Every roll is thrown on screen with Q.Dice.
+//
+// Rows: one wretch stands in front and one behind. Foes go for the front wretch three times in four, and a
+// melee attack from the back row is at DR +2. Rats ignore the rows, and cultists' curses reach anyone.
 'use strict';
 var Q = window.Q || (window.Q = {});
 
@@ -38,9 +41,10 @@ var Q = window.Q || (window.Q = {});
     B.foes.forEach((f, i) => {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = `foe-card kind-${f.kind}` + (f.hp <= 0 ? (f.fled ? ' fled' : ' slain') : '');
+      card.className = `foe-card kind-${f.kind}` + (f.hp <= 0 ? (f.fled ? ' fled' : ' slain') : '') + (f.phase === 2 ? ' phase2' : '');
       card.dataset.i = i;
-      card.innerHTML = `<img src="${Q.assetUrl(f.kind)}" alt=""><span class="foe-label"><b>${esc(f.name)}</b><small>${f.hp > 0 ? Q.healthWord(f.hp, f.maxHp) : f.fled ? 'Fled' : 'Dead'}</small></span>`;
+      const marks = `${f.stunned ? ' · kneels' : ''}${f.poison ? ' · poisoned' : ''}${f.raised && f.hp > 0 ? ' · risen' : ''}`;
+      card.innerHTML = `<img src="${Q.assetUrl(f.kind)}" alt=""><span class="foe-label"><b>${esc(f.name)}</b><small>${f.hp > 0 ? Q.healthWord(f.hp, f.maxHp) + marks : f.fled ? 'Fled' : 'Dead'}</small></span>`;
       card.disabled = f.hp <= 0;
       card.addEventListener('click', () => pick('foe', i));
       row.appendChild(card);
@@ -54,12 +58,12 @@ var Q = window.Q || (window.Q = {});
     B.party.forEach((pc, i) => {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'pc-card' + (pc.dead ? ' dead' : '') + (B.active === i ? ' active' : '');
+      card.className = 'pc-card' + (pc.dead ? ' dead' : '') + (B.active === i ? ' active' : '') + (pc.row === 'back' ? ' row-back' : ' row-front');
       card.dataset.i = i;
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
       const marks = `${pc.omenMax ? '<i title="next hit at maximum">▲</i>' : ''}${pc.omenWard ? '<i title="next wound turned aside">◆</i>' : ''}${pc.dazed ? '<i title="dazed">✶</i>' : ''}`;
       card.innerHTML = `<img src="${Q.portraitUrl(pc.name)}" alt="">
-        <span class="pc-info"><b>${esc(pc.name)}</b>
+        <span class="pc-info"><span class="row-tag">${pc.row === 'back' ? 'Back' : 'Front'}${Q.classOf(pc) ? ` · ${esc(Q.classOf(pc).name)}` : ''}</span><b>${esc(pc.name)}</b>
         <span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span>
         <small>${esc(pc.weapon.name)} d${pc.weapon.die} · Omens ${pc.omens}${marks}</small></span>`;
       card.disabled = pc.dead;
@@ -79,6 +83,7 @@ var Q = window.Q || (window.Q = {});
   }
 
   function banner(text, tone) {
+    if (Q.Dice) Q.Dice.clear(); // a banner never shares the table with dice
     const b = $('banner');
     b.className = `battle-banner tone-${tone || 'neutral'}`;
     b.innerHTML = text;
@@ -125,12 +130,16 @@ var Q = window.Q || (window.Q = {});
 
   async function chooseCommand(pc) {
     if (Q.Dice) Q.Dice.clear(); // take the last dice off the table before asking
+    const cls = Q.classOf(pc);
+    const partner = B.party.find((p) => p !== pc && !p.dead);
     for (;;) {
       menu([
-        { label: 'Attack', value: 'attack', note: `${esc(pc.weapon.name)} d${pc.weapon.die}` },
+        { label: 'Attack', value: 'attack', note: `${esc(pc.weapon.name)} d${pc.weapon.die}${pc.row === 'back' ? ', DR +2 from behind' : ''}` },
+        ...(cls ? [{ label: esc(cls.ability.name), value: 'ability', disabled: pc.usedAbility, note: pc.usedAbility ? 'used this battle' : esc(cls.ability.note) }] : []),
         { label: 'Scroll', value: 'scroll', disabled: !B.inv.scrolls.length || pc.powers <= 0, note: B.inv.scrolls.length ? `${pc.powers} left` : 'none' },
         { label: 'Poultice', value: 'poultice', disabled: B.inv.poultices <= 0, note: `${B.inv.poultices}` },
         { label: 'Omen', value: 'omen', disabled: pc.omens <= 0, note: `${pc.omens}` },
+        { label: pc.row === 'back' ? 'Step forward' : 'Fall back', value: 'swap', disabled: !partner, note: partner ? `swap with ${short(partner)}` : 'alone' },
         { label: 'Flee', value: 'flee', ghost: true },
       ], `${short(pc)}’s turn`);
       const c = await choose(['cmd']);
@@ -138,6 +147,13 @@ var Q = window.Q || (window.Q = {});
       if (c.value === 'attack') {
         const foe = await chooseFoe('Attack whom?');
         if (foe) return { kind: 'attack', foe };
+      } else if (c.value === 'ability') {
+        const key = cls.ability.key;
+        if (key === 'wither' || key === 'sacrament') return { kind: 'ability', key };
+        const foe = await chooseFoe(`${cls.ability.name}: whom?`);
+        if (foe) return { kind: 'ability', key, foe };
+      } else if (c.value === 'swap') {
+        return { kind: 'swap', partner };
       } else if (c.value === 'scroll') {
         menu([
           ...B.inv.scrolls.map((k) => ({ label: esc(Q.SCROLLS[k].name), value: k, note: esc(Q.SCROLLS[k].text) })),
@@ -193,21 +209,29 @@ var Q = window.Q || (window.Q = {});
   }
 
   // ---------- the wretches act ----------
-  async function swing(pc, f, riposte) {
-    const res = Q.attack(pc, f.def);
+  // A melee attack. opts (all optional): label, ability, dr, die, bonusDie, ignoreArmor, anyRow.
+  async function swing(pc, f, riposte, opts = {}) {
+    const ability = opts.ability || 'strength';
+    const Ab = ability[0].toUpperCase() + ability.slice(1);
+    const behind = pc.row === 'back' && !riposte && !opts.anyRow && B.party.some((p) => p !== pc && !p.dead);
+    const res = Q.attack(pc, f, { ...opts, drAdd: behind ? 2 : 0 });
+    const label = opts.label || pc.weapon.name;
     const verdict = { crit: 'Critical!', hit: 'Hit!', miss: 'Miss', fumble: 'Fumble!' }[res.kind];
-    await throwDice({ dice: [D(20, res.r, 'yellow', 'Strength')], verdict, tone: res.kind === 'hit' || res.kind === 'crit' ? 'good' : 'bad', text: `${short(pc)}${riposte ? ' ripostes' : ' attacks'} ${the(f)} · ${testText('Strength', res, pc.strength)}` });
-    const tag = `<span class="dim">(Strength d20 ${res.r}${pc.strength ? Q.fmt(pc.strength) : ''}=${res.total} vs DR ${res.dr})</span>`;
+    await throwDice({ dice: [D(20, res.r, 'yellow', Ab)], verdict, tone: res.kind === 'hit' || res.kind === 'crit' ? 'good' : 'bad', text: `${short(pc)}${riposte ? ' ripostes' : opts.label ? ` · ${esc(opts.label)} on` : ' attacks'} ${the(f)}${behind ? ' from the back row' : ''} · ${testText(Ab, res, pc[ability])}` });
+    const tag = `<span class="dim">(${Ab} d20 ${res.r}${pc[ability] ? Q.fmt(pc[ability]) : ''}=${res.total} vs DR ${res.dr})</span>`;
     if (res.kind === 'fumble') {
-      B.log(`${short(pc)}’s ${esc(pc.weapon.name)} goes wide. ${tag}`, 'miss');
+      B.log(`${short(pc)}’s ${esc(label)} goes wide. ${tag}`, 'miss');
       if (!riposte) await foeStrike(f, pc, true);
       return;
     }
     if (res.kind === 'miss') { B.log(`${short(pc)} misses ${the(f)}. ${tag}`, 'miss'); return; }
-    const dice = [D(pc.weapon.die, res.dmgRoll, 'bone', res.maxed ? 'Omen' : 'Damage')];
-    if (f.def.armor) dice.push(D(f.def.armor, res.armorRoll, 'dim', 'Armor'));
-    await throwDice({ dice, verdict: res.dmg ? `${res.dmg} damage` : 'It glances off', tone: res.dmg ? 'good' : 'neutral', text: `${esc(pc.weapon.name)} d${pc.weapon.die}${res.maxed ? ' (Omen: maximum)' : ''} · ${damageText(res.dmgRoll, res.kind === 'crit', res.absorbed, res.dmg)}` });
-    B.log(`${short(pc)} hits ${the(f)} for <b>${res.dmg}</b>${res.kind === 'crit' ? ' (CRITICAL)' : ''}. ${tag}`, res.kind === 'crit' ? 'crit' : 'hit');
+    const dice = [D(res.die, res.dmgRoll, 'bone', res.maxed ? 'Omen' : 'Damage')];
+    if (opts.bonusDie) dice.push(D(opts.bonusDie, res.bonusRoll, 'bone', 'Bonus'));
+    if (f.armor && !opts.ignoreArmor) dice.push(D(f.armor, res.armorRoll, 'dim', 'Armor'));
+    const rolled = res.dmgRoll + res.bonusRoll;
+    const rolledText = opts.bonusDie ? `(${res.dmgRoll} + ${res.bonusRoll})` : rolled;
+    await throwDice({ dice, verdict: res.dmg ? `${res.dmg} damage` : 'It glances off', tone: res.dmg ? 'good' : 'neutral', text: `${esc(label)} d${res.die}${opts.bonusDie ? ` + d${opts.bonusDie}` : ''}${opts.ignoreArmor ? ', through armor' : ''}${res.maxed ? ' (Omen: maximum)' : ''} · ${damageText(rolledText, res.kind === 'crit', res.absorbed, res.dmg)}` });
+    B.log(`${short(pc)}${opts.label ? `’s ${esc(opts.label)}` : ''} hits ${the(f)} for <b>${res.dmg}</b>${res.kind === 'crit' ? ' (CRITICAL)' : ''}. ${tag}`, res.kind === 'crit' ? 'crit' : 'hit');
     await damageFoe(f, res.dmg, pc);
   }
 
@@ -221,6 +245,10 @@ var Q = window.Q || (window.Q = {});
       B.log(`<b>${the(f, true)}</b> ${verb(f, 'is', 'are')} dead.`, 'crit');
       if (f.def.boss) B.log('The Abbess crumples. Her weeping stops.', 'hit');
       renderFoes();
+      return;
+    }
+    if (f.def.boss && f.phase !== 2 && f.hp <= f.maxHp / 2) {
+      await abbessWakes(f);
       return;
     }
     const score = f.def.morale;
@@ -283,32 +311,121 @@ var Q = window.Q || (window.Q = {});
     return r.ok;
   }
 
-  // ---------- the enemies act ----------
-  async function foeStrike(f, target, free) {
-    const pc = target && !target.dead ? target : pickTarget();
-    if (!pc) return;
-    flash(f.el, 'lunge', 400);
-    if (f.def.boss && !free && d(6) <= 2) {
+  function swapRows(pc, partner) {
+    const mine = pc.row;
+    pc.row = partner.row;
+    partner.row = mine;
+    B.log(`${short(pc)} ${pc.row === 'front' ? 'steps in front of' : 'falls back behind'} ${short(partner)}.`, 'dim');
+    renderParty();
+  }
+
+  // ---------- class abilities (once per battle) ----------
+  async function useAbility(pc, cmd) {
+    pc.usedAbility = true;
+    const cls = Q.classOf(pc);
+    const name = cls.ability.name;
+    const alive = () => B.foes.filter((x) => x.hp > 0);
+    const target = () => (cmd.foe && cmd.foe.hp > 0 ? cmd.foe : alive()[0]);
+    if (cmd.key === 'bite') return swing(pc, target(), false, { label: 'Bite', dr: 10, die: 6, ignoreArmor: true });
+    if (cmd.key === 'lowblow') return swing(pc, target(), false, { label: 'Low Blow', ability: 'agility', bonusDie: 4, anyRow: true });
+    if (cmd.key === 'wither') {
       const r = Q.test(pc.presence, Q.DR);
-      await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? `${short(pc)} endures it` : `${short(pc)} is frozen`, tone: r.ok ? 'good' : 'bad', text: `The Abbess wails at ${short(pc)} · ${testText('Presence', r, pc.presence)}` });
-      if (!r.ok) { pc.dazed = true; B.log(`The Abbess wails and ${short(pc)}’s limbs turn to lead.`, 'hurt'); }
-      else B.log(`The Abbess wails. ${short(pc)} grits their teeth through it.`, 'dim');
+      await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'The words rot' : 'The words fail', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} speaks ${name} · ${testText('Presence', r, pc.presence)}` });
+      if (!r.ok) { B.log(`${short(pc)} mutters the words of withering. Nothing rots.`, 'miss'); return; }
+      const foes = alive();
+      const rolls = foes.map(() => d(4) * (r.crit ? 2 : 1));
+      await throwDice({ dice: foes.map((f, i) => D(4, r.crit ? rolls[i] / 2 : rolls[i], 'pink', f.name.split(' ').pop())), verdict: 'Flesh sloughs away', tone: 'good', text: `${name} · d4${r.crit ? ' × 2' : ''} to every foe` });
+      B.log(`<b class="pink">${name}:</b> ${foes.map((f, i) => `${the(f)} −${rolls[i]}`).join(', ')}.`, 'crit');
+      for (let i = 0; i < foes.length; i++) if (foes[i].hp > 0) await damageFoe(foes[i], rolls[i]);
+      return;
+    }
+    if (cmd.key === 'sacrament') {
+      const r = Q.test(pc.presence, 10);
+      await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'It is heard' : 'Silence', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} performs the ${name} · ${testText('Presence', r, pc.presence)}` });
+      if (!r.ok) { B.log(`${short(pc)} prays. Nothing below is listening.`, 'miss'); return; }
+      const party = B.party.filter((p) => !p.dead);
+      const heals = party.map(() => d(6));
+      await throwDice({ dice: party.map((p, i) => D(6, heals[i], 'bone', p.name.split(' ')[0])), verdict: 'Wounds close', tone: 'good', text: `${name} · d6 to each wretch` });
+      party.forEach((p, i) => { p.hp = Math.min(p.maxHp, p.hp + heals[i]); p.bleeding = false; });
+      B.log(`<b class="yellow">${name}:</b> ${party.map((p, i) => `${short(p)} +${heals[i]}`).join(', ')} HP.`, 'hit');
       renderParty();
       return;
     }
-    const res = Q.defend(pc, f.def.die);
+    if (cmd.key === 'command') {
+      const f = target();
+      const r = Q.test(pc.presence, f.dr);
+      await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? `${f.def.plural ? 'They kneel' : 'It kneels'}` : 'Ignored', tone: r.ok ? 'good' : 'bad', text: `${short(pc)}: “Kneel.” · ${testText('Presence', r, pc.presence)}` });
+      if (r.ok) { f.stunned = true; B.log(`${the(f, true)} ${verb(f, 'falters', 'falter')} before ${short(pc)}’s voice and will lose ${f.def.plural ? 'their' : 'its'} next turn.`, 'hit'); }
+      else B.log(`${the(f, true)} ${verb(f, 'does', 'do')} not kneel.`, 'miss');
+      renderFoes();
+      return;
+    }
+    if (cmd.key === 'toxin') {
+      const f = target();
+      const r = Q.test(pc.agility, Q.DR);
+      await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'It shatters on them' : 'It misses', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} hurls a ${name} at ${the(f)} · ${testText('Agility', r, pc.agility)}` });
+      if (!r.ok) { B.log(`The flask smashes on the flagstones. The floor hisses.`, 'miss'); return; }
+      const dmg = d(4);
+      await throwDice({ dice: [D(4, dmg, 'pink', 'Poison')], verdict: `${dmg} damage`, tone: 'good', text: 'Graveyard tincture · d4 now, d4 every round' });
+      f.poison = true;
+      B.log(`${the(f, true)} ${verb(f, 'is', 'are')} drenched in poison: <b>${dmg}</b>, and more to come.`, 'hit');
+      await damageFoe(f, dmg);
+    }
+  }
+
+  // ---------- the enemies act ----------
+  // Front row three times in four, unless something ignores the rows.
+  function pickTarget(anyRow) {
+    const alive = B.party.filter((p) => !p.dead);
+    if (!alive.length) return null;
+    const rand = (list) => list[Math.floor(Math.random() * list.length)];
+    const front = alive.filter((p) => p.row !== 'back');
+    const back = alive.filter((p) => p.row === 'back');
+    if (anyRow || !front.length || !back.length) return rand(alive);
+    return Math.random() < 0.75 ? rand(front) : rand(back);
+  }
+
+  // One foe's action: each kind has its own trick.
+  async function foeAct(f) {
+    const others = B.foes.filter((x) => x !== f && x.hp > 0);
+    if (f.kind === 'rats') {
+      // The swarm: rats ignore the rows, and every other pack of rats makes them harder to dodge.
+      const packs = others.filter((x) => x.kind === 'rats').length;
+      return foeStrike(f, pickTarget(true), false, packs, packs ? `The swarm comes from everywhere: DR +${packs}` : '');
+    }
+    if (f.kind === 'cultist') {
+      const hurtAlly = [f, ...others].filter((x) => x.hp <= x.maxHp - 3).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+      if (hurtAlly && d(6) <= 2) return benediction(f, hurtAlly);
+      if (d(6) <= 2) return cometCurse(f);
+    }
+    if (f.kind === 'skeleton') {
+      const fallen = B.foes.filter((x) => x.hp <= 0 && !x.fled && !x.raised && !x.def.boss);
+      if (fallen.length && d(6) <= 3) return raise(f, fallen[0]);
+    }
+    if (f.def.boss) {
+      if (f.phase === 2 && d(6) <= 2) return toll(f);
+      if (f.phase !== 2 && d(6) <= 2) return wail(f);
+    }
+    return foeStrike(f, null, false);
+  }
+
+  async function foeStrike(f, target, free, drAdd = 0, why = '') {
+    const pc = target && !target.dead ? target : pickTarget();
+    if (!pc) return;
+    flash(f.el, 'lunge', 400);
+    const res = Q.defend(pc, f.die, drAdd);
     const verdict = { riposte: 'Riposte!', dodge: 'Dodged', wound: 'Hit', fumble: 'Fumble!' }[res.kind];
-    await throwDice({ dice: [D(20, res.r, 'yellow', 'Defence')], verdict, tone: res.kind === 'riposte' || res.kind === 'dodge' ? 'good' : 'bad', text: `${the(f, true)} ${verb(f, 'attacks', 'attack')} ${short(pc)} · ${testText('Agility', res, pc.agility)}` });
+    await throwDice({ dice: [D(20, res.r, 'yellow', 'Defence')], verdict, tone: res.kind === 'riposte' || res.kind === 'dodge' ? 'good' : 'bad', text: `${the(f, true)} ${verb(f, 'attacks', 'attack')} ${short(pc)} · ${testText('Agility', res, pc.agility)}${why ? ` · ${why}` : ''}` });
     if (res.kind === 'riposte') {
       B.log(`${short(pc)} slips the blow and strikes back!`, 'hit');
       await swing(pc, f, true);
       return;
     }
     if (res.kind === 'dodge') { B.log(`${the(f, true)} ${verb(f, 'misses', 'miss')} ${short(pc)}.`, 'miss'); return; }
-    const dice = [D(f.def.die, res.dmgRoll, 'pink', 'Wound')];
+    const dice = [D(f.die, res.dmgRoll, 'pink', 'Wound')];
     if (res.armorDie) dice.push(D(res.armorDie, res.armorRoll, 'dim', 'Armor'));
     const sum = damageText(res.dmgRoll, res.kind === 'fumble', res.absorbed, res.before) + (res.warded ? ', but an Omen turns it aside' : '');
-    await throwDice({ dice, verdict: res.dmg ? `${short(pc)} −${res.dmg} HP` : 'No harm done', tone: res.dmg ? 'bad' : 'good', text: `${esc(f.def.name)} d${f.def.die}${res.kind === 'fumble' ? ', doubled' : ''} · ${sum}` });
+    await throwDice({ dice, verdict: res.dmg ? `${short(pc)} −${res.dmg} HP` : 'No harm done', tone: res.dmg ? 'bad' : 'good', text: `${esc(f.def.name)} d${f.die}${res.kind === 'fumble' ? ', doubled' : ''} · ${sum}` });
     const notes = [res.brokeArmor ? `${short(pc)}’s armor cracks` : '', res.warded ? 'an Omen turns it aside' : ''].filter(Boolean).join(', ');
     if (res.dmg) B.log(`${the(f, true)} ${verb(f, 'hits', 'hit')} ${short(pc)} for <b>${res.dmg}</b>${notes ? ` (${notes})` : ''}.`, 'hurt');
     else B.log(`${the(f, true)} ${verb(f, 'hits', 'hit')} ${short(pc)}, but it does no harm${notes ? ` (${notes})` : ''}.`, 'miss');
@@ -316,9 +433,105 @@ var Q = window.Q || (window.Q = {});
     renderParty();
   }
 
-  function pickTarget() {
-    const alive = B.party.filter((p) => !p.dead);
-    return alive.length ? alive[Math.floor(Math.random() * alive.length)] : null;
+  // A Presence test against something no armor stops. Returns true if the wretch withstood it.
+  async function resist(pc, label, text) {
+    const r = Q.test(pc.presence, Q.DR);
+    await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? `${short(pc)} withstands it` : `${short(pc)} is struck`, tone: r.ok ? 'good' : 'bad', text: `${text} ${short(pc)} · ${testText('Presence', r, pc.presence)}` });
+    return r.ok;
+  }
+
+  // Cultists: a curse from the comet. It reaches either row, and armor is no help.
+  async function cometCurse(f) {
+    const pc = pickTarget(true);
+    if (!pc) return;
+    flash(f.el, 'cast', 600);
+    B.log(`${the(f, true)} raises a branded hand to the comet.`, 'dim');
+    if (await resist(pc, 'Curse', 'Comet’s Wrath on')) { B.log(`The curse slides off ${short(pc)}.`, 'miss'); return; }
+    const dmg = d(6);
+    await throwDice({ dice: [D(6, dmg, 'pink', 'Curse')], verdict: `${short(pc)} −${dmg} HP`, tone: 'bad', text: 'Comet’s Wrath · d6, armor is no help' });
+    B.log(`Comet-fire burns through ${short(pc)}: <b>${dmg}</b>.`, 'hurt');
+    await hurt(pc, dmg, 'a cultist’s curse');
+    renderParty();
+  }
+
+  // Cultists: heal a hurt ally.
+  async function benediction(f, ally) {
+    flash(f.el, 'cast', 600);
+    const h = d(6);
+    await throwDice({ dice: [D(6, h, 'bone', 'Heal')], verdict: `${ally === f ? 'It' : the(ally, true)} +${h} HP`, tone: 'bad', text: `${the(f, true)} chants a black benediction${ally === f ? '' : ` over ${the(ally)}`}` });
+    ally.hp = Math.min(ally.maxHp, ally.hp + h);
+    B.log(`${the(f, true)} chants, and ${ally === f ? 'its' : `${the(ally)}’s`} wounds close. <b>+${h} HP</b>.`, 'hurt');
+    renderFoes();
+  }
+
+  // Skeletons: call a fallen foe back up, once each.
+  async function raise(f, x) {
+    flash(f.el, 'cast', 600);
+    x.hp = Math.max(1, Math.ceil(x.maxHp / 2));
+    x.raised = true;
+    x.moraleChecked = true;
+    x.poison = false;
+    B.slain = B.slain.filter((s) => s !== x);
+    await throwDice({ dice: [], verdict: `${x.def.plural ? 'They rise' : 'It rises'}!`, tone: 'bad', text: `${the(f, true)} rattles a summons at ${the(x)}` });
+    B.log(`${the(f, true)} clatters its jaw, and ${the(x)} ${verb(x, 'gets', 'get')} back up.`, 'hurt');
+    renderFoes();
+    flash(x.el, 'rise', 800);
+  }
+
+  // The Abbess, before: a wail that freezes a wretch for a turn.
+  async function wail(f) {
+    const pc = pickTarget(true);
+    if (!pc) return;
+    flash(f.el, 'cast', 600);
+    if (await resist(pc, 'Wail', 'The Abbess wails at')) { B.log(`The Abbess wails. ${short(pc)} grits their teeth through it.`, 'dim'); return; }
+    pc.dazed = true;
+    B.log(`The Abbess wails and ${short(pc)}’s limbs turn to lead.`, 'hurt');
+    renderParty();
+  }
+
+  // The Abbess, after: the Bell-Tongue tolls, and every wretch hears it.
+  async function toll(f) {
+    flash(f.el, 'cast', 600);
+    B.log('The Bell-Tongue tolls against her ribs.', 'hurt');
+    for (const pc of B.party) {
+      if (pc.dead) continue;
+      if (await resist(pc, 'Toll', 'The toll rings through')) { B.log(`${short(pc)} stops their ears in time.`, 'miss'); continue; }
+      const dmg = d(4);
+      await throwDice({ dice: [D(4, dmg, 'pink', 'Toll')], verdict: `${short(pc)} −${dmg} HP`, tone: 'bad', text: 'The toll · d4, armor is no help' });
+      B.log(`The sound splits ${short(pc)}’s skull: <b>${dmg}</b>.`, 'hurt');
+      await hurt(pc, dmg, 'the toll of the Bell-Tongue');
+    }
+    renderParty();
+  }
+
+  // Halfway dead, the Abbess tears off her crown: no more armor, a bigger die, two actions a round,
+  // and her fallen guards stand up again.
+  async function abbessWakes(f) {
+    f.phase = 2;
+    f.armor = 0;
+    f.die = 10 + B.mods.dieAdd;
+    renderFoes();
+    banner('<b>She wakes</b><small>The Abbess tears off her crown</small>', 'bad');
+    B.log('<b class="pink">The Abbess tears off her crown.</b> The Bell-Tongue begins to swing. She will act twice each round.', 'hurt');
+    await wait(1300);
+    for (const x of B.foes.filter((y) => y.hp <= 0 && !y.fled && !y.raised && !y.def.boss)) {
+      x.hp = Math.max(1, Math.ceil(x.maxHp / 2));
+      x.raised = true;
+      x.moraleChecked = true;
+      B.slain = B.slain.filter((s) => s !== x);
+      B.log(`At her call, ${the(x)} ${verb(x, 'rises', 'rise')} again.`, 'hurt');
+      renderFoes();
+      flash(x.el, 'rise', 800);
+      await wait(500);
+    }
+  }
+
+  // Poison from the Herbmaster's flask, at the start of the foe's turn.
+  async function poisonTick(f) {
+    const dmg = d(4);
+    await throwDice({ dice: [D(4, dmg, 'pink', 'Poison')], verdict: `${dmg} damage`, tone: 'good', text: `The tincture eats at ${the(f)}` });
+    B.log(`Poison eats at ${the(f)}: <b>${dmg}</b>.`, 'hit');
+    await damageFoe(f, dmg);
   }
 
   // Damage to a wretch: at 0 HP they are Broken, below 0 they are dead.
@@ -352,16 +565,21 @@ var Q = window.Q || (window.Q = {});
   };
 
   // ---------- a whole battle ----------
-  // opts: { party, foes: [{ key }], inv: { poultices, scrolls }, log, onChange, onHurt }
+  // opts: { party, foes: [{ key }], inv: { poultices, scrolls }, misery, log, onChange, onHurt }
   // Resolves to { outcome: 'won' | 'fled' | 'lost', silver }.
   async function run(opts) {
+    const mods = Q.miseryMods(opts.misery || 0);
     const foes = opts.foes.map((m) => {
       const def = Q.MONSTERS[m.key];
-      const hp = m.hp !== undefined ? m.hp : def.hp();
-      return { key: m.key, def, kind: def.kind, name: def.name, hp, maxHp: m.maxHp || hp, moraleChecked: false };
+      const hp = (m.hp !== undefined ? m.hp : def.hp()) + (def.kind === 'rats' ? mods.ratHp : 0);
+      return {
+        key: m.key, def, kind: def.kind, name: def.name, hp, maxHp: m.maxHp || hp, moraleChecked: false,
+        dr: def.dr, armor: def.armor, die: def.die + mods.dieAdd, phase: 1,
+      };
     });
-    B = { ...opts, foes, slain: [], active: -1 };
-    B.party.forEach((p) => { p.dazed = false; });
+    B = { ...opts, foes, slain: [], active: -1, mods };
+    fixRows(B.party);
+    B.party.forEach((p) => { p.dazed = false; p.usedAbility = false; });
     $('battle').hidden = false;
     document.body.classList.add('in-battle');
     renderFoes();
@@ -392,6 +610,8 @@ var Q = window.Q || (window.Q = {});
           }
           const cmd = await chooseCommand(pc);
           if (cmd.kind === 'attack') await swing(pc, cmd.foe.hp > 0 ? cmd.foe : B.foes.find((f) => f.hp > 0), false);
+          else if (cmd.kind === 'ability') await useAbility(pc, cmd);
+          else if (cmd.kind === 'swap') swapRows(pc, cmd.partner);
           else if (cmd.kind === 'poultice') await poultice(pc, cmd.ally);
           else if (cmd.kind === 'scroll') await readScroll(pc, cmd);
           else if (cmd.kind === 'flee' && (await flee(pc))) outcome = 'fled';
@@ -404,9 +624,20 @@ var Q = window.Q || (window.Q = {});
       if (!B.foes.some((f) => f.hp > 0)) { outcome = 'won'; break; }
       for (const f of B.foes) {
         if (f.hp <= 0) continue;
-        if (B.party.every((p) => p.dead)) break;
-        await foeStrike(f, null, false);
-        if (!B.foes.some((x) => x.hp > 0)) break;
+        if (f.poison) await poisonTick(f);
+        if (f.hp <= 0) continue;
+        if (f.stunned) {
+          f.stunned = false;
+          B.log(`${the(f, true)} ${verb(f, 'stays', 'stay')} down, cowed.`, 'dim');
+          renderFoes();
+          await wait(600);
+          continue;
+        }
+        for (let n = f.phase === 2 ? 2 : 1; n > 0 && f.hp > 0; n--) {
+          if (B.party.every((p) => p.dead)) break;
+          await foeAct(f);
+        }
+        if (B.party.every((p) => p.dead) || !B.foes.some((x) => x.hp > 0)) break;
       }
       if (B.party.every((p) => p.dead)) outcome = 'lost';
       else if (!B.foes.some((f) => f.hp > 0)) outcome = 'won';
@@ -444,7 +675,7 @@ var Q = window.Q || (window.Q = {});
     if (['arrowdown', 'arrowright'].includes(k)) { e.preventDefault(); (targets[(i + 1) % targets.length] || targets[0]).focus(); }
     if (['arrowup', 'arrowleft'].includes(k)) { e.preventDefault(); (targets[(i - 1 + targets.length) % targets.length] || targets[0]).focus(); }
     if (k === 'escape') { const back = [...document.querySelectorAll('#commands .cmd')].find((b) => b.textContent === 'Back'); if (back) back.click(); }
-    if (/^[1-5]$/.test(k) && !document.body.classList.contains('targeting-foe') && !document.body.classList.contains('targeting-pc')) {
+    if (/^[1-9]$/.test(k) && !document.body.classList.contains('targeting-foe') && !document.body.classList.contains('targeting-pc')) {
       const b = document.querySelectorAll('#commands .cmd')[+k - 1];
       if (b && !b.disabled) b.click();
     }
@@ -452,6 +683,14 @@ var Q = window.Q || (window.Q = {});
       if (i < 0 && targets[0] && ['arrowdown', 'arrowright', 'arrowup', 'arrowleft'].includes(k)) targets[0].focus();
     }
   });
+
+  // One wretch in front and one behind; if both stand in the same row, the first steps forward.
+  function fixRows(party) {
+    const alive = party.filter((p) => !p.dead);
+    party.forEach((p) => { if (p.row !== 'back' && p.row !== 'front') p.row = 'front'; });
+    if (alive.length === 2 && alive[0].row === alive[1].row) { alive[0].row = 'front'; alive[1].row = 'back'; }
+  }
+  Q.fixRows = fixRows;
 
   Q.Battle = { run, active: () => !!B };
 })();

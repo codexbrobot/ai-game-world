@@ -46,11 +46,42 @@
   }
 
   function newRun(party) {
+    const extra = party.reduce((n, p) => n + ((Q.classOf(p) || {}).poultices || 0), 0);
     S = {
-      party, silver: party.reduce((s, p) => s + p.silver, 0), poultices: 3, scrolls: [], kills: 0, killsSinceBetter: 0,
+      party, silver: party.reduce((s, p) => s + p.silver, 0), poultices: 3 + extra, scrolls: [], kills: 0, killsSinceBetter: 0,
       floors: buildFloors(), floorIx: 0, pose: null, where: 'town', hasRelic: false, metStranger: false, log: [],
+      calendar: Q.calendarStart(),
     };
     for (const p of party) { delete p.silver; delete p.poultices; delete p.scrolls; }
+    Q.fixRows(S.party);
+    Q.applyMiseries(0);
+  }
+
+  // ---------- the Calendar of Nechrubel ----------
+  const mods = () => Q.miseryMods(S.calendar.misery);
+  const calendarText = () => {
+    const c = S.calendar;
+    return `${c.days} day${c.days === 1 ? '' : 's'} until the next Misery · ${c.misery} of 7 have come`;
+  };
+  // A day lost (a night's sleep, a flight from battle). Returns the Misery that came to pass, if one did.
+  function tickCalendar() {
+    const c = S.calendar;
+    c.days -= 1;
+    if (c.days > 0) return null;
+    c.misery += 1;
+    c.days = Q.calendarNext();
+    Q.applyMiseries(c.misery);
+    return Q.MISERIES[c.misery - 1];
+  }
+  function showMisery(m, then) {
+    const n = S.calendar.misery;
+    if (n >= 7) return worldEnds(m);
+    log(`<b class="pink">The ${['first', 'second', 'third', 'fourth', 'fifth', 'sixth'][n - 1]} Misery:</b> ${esc(m.title)}.`, 'hurt');
+    modal(`The ${['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'][n - 1]} Misery`, `
+      <p class="misery-title">${esc(m.title)}</p>
+      <p>${esc(m.text)}</p>
+      <p class="small">The Calendar of Nechrubel turns. ${7 - n} Miser${7 - n === 1 ? 'y' : 'ies'} remain before the end. The next in ${S.calendar.days} days.</p>`,
+    [{ label: 'Endure', action: then }], { closable: false, dead: true });
   }
 
   // ---------- saving ----------
@@ -63,7 +94,9 @@
   function loadSave() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const saved = raw ? JSON.parse(raw) : null;
+      if (saved && !saved.calendar) saved.calendar = Q.calendarStart(); // saves from before the Calendar
+      return saved;
     } catch (e) { return null; }
   }
   function clearSave() {
@@ -85,21 +118,29 @@
   // ---------- the party ----------
   let rolled = null;
   function renderCreate() {
+    const options = (pc) => Object.entries(Q.CLASSES).map(([k, c]) => `<option value="${k}"${pc.cls === k ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
     $('sheets').innerHTML = rolled.map((pc, i) => `
       <div class="sheet">${sheetHtml(pc, true)}
+        <label class="cls-pick">Class <select data-i="${i}">${options(pc)}</select></label>
         <button type="button" class="ghost reroll" data-i="${i}">Roll this one again</button>
       </div>`).join('');
     document.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', () => {
-      rolled[+b.dataset.i] = Q.rollWretch();
+      rolled[+b.dataset.i] = Q.rollWretch(rolled[+b.dataset.i].cls);
+      renderCreate();
+    }));
+    document.querySelectorAll('.cls-pick select').forEach((sel) => sel.addEventListener('change', () => {
+      rolled[+sel.dataset.i] = Q.rollWretch(sel.value);
       renderCreate();
     }));
   }
 
   function sheetHtml(pc, fresh) {
     const ab = (label, v) => `<div class="ab"><span>${label}</span><b>${fmt(v)}</b></div>`;
+    const cls = Q.classOf(pc);
     return `
       <img class="face" src="${Q.portraitUrl(pc.name)}" alt="" onerror="this.remove()">
       <h2 class="pcname">${esc(pc.name)}${pc.dead ? ' <span class="pink">(dead)</span>' : ''}</h2>
+      ${cls ? `<p class="cls"><b>${esc(cls.name)}</b> · ${esc(cls.blurb)}</p>` : ''}
       <p class="trait">${esc(pc.trait)}</p>
       <div class="abs">${ab('Strength', pc.strength)}${ab('Agility', pc.agility)}${ab('Presence', pc.presence)}${ab('Toughness', pc.toughness)}</div>
       <dl class="gear">
@@ -108,13 +149,20 @@
         <dt>Weapon</dt><dd>${esc(pc.weapon.name)} (d${pc.weapon.die})</dd>
         <dt>Armor</dt><dd>${esc(pc.armor.name)}${pc.armor.tier ? ` (−d${Q.ARMOR_DIE[pc.armor.tier]})` : ''}</dd>
         <dt>Powers</dt><dd>${pc.powers} use${pc.powers === 1 ? '' : 's'} a day</dd>
+        ${cls ? `<dt>${esc(cls.ability.name)}</dt><dd>${esc(cls.ability.text)} Once per battle.</dd>` : ''}
+        ${fresh ? '' : `<dt>Row</dt><dd>${pc.row === 'back' ? 'Back' : 'Front'}</dd>`}
         ${fresh ? `<dt>Silver</dt><dd>${pc.silver}s</dd>` : ''}
       </dl>`;
   }
 
   function partySheet() {
-    const extra = `<p class="small">The party carries <b>${S.silver}s</b>, <b>${S.poultices}</b> poultice${S.poultices === 1 ? '' : 's'}${S.scrolls.length ? ` and ${S.scrolls.map((k) => esc(Q.SCROLLS[k].name)).join(', ')}` : ''}. ${S.kills} slain; ${Math.max(0, 5 - S.killsSinceBetter)} more before you can Get Better at the inn.</p>`;
-    modal('The party', `<div class="sheets">${S.party.map((pc) => `<div class="sheet">${sheetHtml(pc, false)}</div>`).join('')}</div>${extra}`, [{ label: 'Close' }], { wide: true });
+    const calendar = `<p class="small"><b class="pink">☄ The Calendar of Nechrubel:</b> ${calendarText()}.${S.calendar.misery ? ` So far: ${Q.MISERIES.slice(0, S.calendar.misery).map((m) => esc(m.title)).join('; ')}.` : ''}</p>`;
+    const extra = calendar + `<p class="small">The party carries <b>${S.silver}s</b>, <b>${S.poultices}</b> poultice${S.poultices === 1 ? '' : 's'}${S.scrolls.length ? ` and ${S.scrolls.map((k) => esc(Q.SCROLLS[k].name)).join(', ')}` : ''}. ${S.kills} slain; ${Math.max(0, 5 - S.killsSinceBetter)} more before you can Get Better at the inn.</p>`;
+    const both = alive().length === 2;
+    modal('The party', `<div class="sheets">${S.party.map((pc) => `<div class="sheet">${sheetHtml(pc, false)}</div>`).join('')}</div>${extra}<p class="small">In battle, foes go for the front wretch three times in four, and a melee attack from the back row is at DR +2.</p>`, [
+      ...(both ? [{ label: 'Swap front and back', action: () => { const [a, b] = S.party; [a.row, b.row] = [b.row, a.row]; save(); partySheet(); } }] : []),
+      { label: 'Close' },
+    ], { wide: true });
   }
 
   // ---------- the town ----------
@@ -125,7 +173,8 @@
     const ctx = c.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     Q.drawTown(ctx, W, H);
-    $('townStatus').innerHTML = S.party.map((pc) => `<b>${esc(pc.name)}</b> ${pc.dead ? '<span class="pink">dead</span>' : `HP ${pc.hp}/${pc.maxHp}`}`).join(' · ') + ` · ${S.silver}s`;
+    $('townStatus').innerHTML = S.party.map((pc) => `<b>${esc(pc.name)}</b> ${pc.dead ? '<span class="pink">dead</span>' : `HP ${pc.hp}/${pc.maxHp}`}`).join(' · ') + ` · ${S.silver}s`
+      + `<br><span class="pink">☄ ${calendarText()}</span>`;
     $('townGoal').textContent = S.hasRelic
       ? 'You carry the Bell-Tongue. The Stranger is waiting.'
       : S.metStranger ? 'Bring the Bell-Tongue up from the Weeping Vault.' : 'A stranger in the square is asking for you.';
@@ -135,11 +184,12 @@
   function visitInn() {
     const better = S.killsSinceBetter >= 5;
     const dead = S.party.findIndex((p) => p.dead);
+    const bed = mods().bed;
     modal('The Drowned Lamb', art('inn') + `
       <p>Damp straw, a bowl of grey gruel, a landlord who will not meet your eye. ${better ? '<br><b class="yellow">You have survived enough horror to change. Sleep and you will Get Better.</b>' : ''}</p>
-      <p class="small">A night's sleep restores Omens and Powers. You have ${S.silver}s.</p>`, [
-      { label: 'Beds for the party (10s): all HP back', disabled: S.silver < 10, action: () => { S.silver -= 10; sleep(true); } },
-      { label: 'The gutter (free): d4 HP each', action: () => sleep(false) },
+      <p class="small">A night's sleep restores Omens and Powers, but it costs a day: <span class="pink">☄ ${calendarText()}</span>. You have ${S.silver}s.</p>`, [
+      { label: `Beds for the party (${bed}s): all HP back`, disabled: S.silver < bed, action: () => { S.silver -= bed; sleep(true); } },
+      { label: mods().gutter ? 'The gutter (free): d4 HP each' : 'The gutter (free): it runs with blood, and heals nothing', action: () => sleep(false) },
       ...(dead >= 0 ? [{ label: `Hire a wretch from the taproom (${HIRE}s)`, disabled: S.silver < HIRE, action: () => hire(dead) }] : []),
       { label: 'Leave', ghost: true },
     ]);
@@ -150,7 +200,9 @@
     const pc = Q.rollWretch();
     delete pc.silver; delete pc.poultices; delete pc.scrolls;
     const lost = S.party[slot];
+    pc.row = lost.row;
     S.party[slot] = pc;
+    Q.fixRows(S.party);
     save();
     renderTown();
     modal('A new wretch', `<p>${esc(lost.name)} is gone. For ${HIRE}s, this one will take their place.</p><div class="sheet">${sheetHtml(pc, false)}</div>`, [{ label: 'Welcome aboard' }]);
@@ -162,12 +214,13 @@
 
   function sleep(bed) {
     const lines = [];
+    const m = mods();
     for (const pc of alive()) {
       if (bed) pc.hp = pc.maxHp;
-      else pc.hp = Math.min(pc.maxHp, pc.hp + d(4));
+      else if (m.gutter) pc.hp = Math.min(pc.maxHp, pc.hp + d(4));
       pc.bleeding = false;
-      pc.omens = d(2);
-      pc.powers = Math.max(0, pc.presence + d(4));
+      pc.omens = m.omenCap || d((Q.classOf(pc) || { omenDie: 2 }).omenDie);
+      pc.powers = Q.powersFor(pc);
       lines.push(`<b>${esc(pc.name)}</b>: HP ${pc.hp}/${pc.maxHp}, Omens ${pc.omens}, Powers ${pc.powers}.`);
     }
     if (!bed && d(6) === 1 && S.silver > 0) {
@@ -179,36 +232,41 @@
       S.killsSinceBetter = 0;
       for (const pc of alive()) lines.push(`<b class="yellow">${esc(pc.name)} Gets Better</b>`, ...Q.gettingBetter(pc));
     }
+    const misery = tickCalendar();
+    lines.push(`<span class="pink">☄ A day is gone. ${misery ? 'Something is wrong with the sky.' : calendarText() + '.'}</span>`);
     save();
     renderTown();
-    modal(bed ? 'Morning' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [{ label: 'Get up' }]);
+    modal(bed ? 'Morning' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
+      { label: 'Get up', action: misery ? () => { showMisery(misery, () => { save(); renderTown(); }); } : null },
+    ]);
   }
 
   function visitShop() {
     const rows = Q.SHOP.map((item, i) => {
-      const can = S.silver >= item.price;
+      const can = S.silver >= price(item);
       return `<button class="shoprow" data-i="${i}" ${can ? '' : 'disabled'}>
-        <span><b>${esc(item.name)}</b><small>${esc(item.note)}</small></span><span class="price">${item.price}s</span></button>`;
+        <span><b>${esc(item.name)}</b><small>${esc(item.note)}</small></span><span class="price">${price(item)}s</span></button>`;
     }).join('');
     modal('Thrumm’s Stall', `${art('stall')}<p>Thrumm sells what the dead no longer need. You have <b>${S.silver}s</b>.</p><div class="shop">${rows}</div>`, [{ label: 'Leave', ghost: true }]);
     document.querySelectorAll('.shoprow').forEach((b) => b.addEventListener('click', () => buy(Q.SHOP[+b.dataset.i])));
   }
 
+  const price = (item) => Math.round(item.price * mods().price);
   function buy(item) {
     if (item.kind === 'poultice') {
-      S.silver -= item.price;
+      S.silver -= price(item);
       S.poultices += 1;
       save(); renderTown(); visitShop();
       return;
     }
     // weapons and armor go to one wretch: ask who
     const better = (pc) => (item.kind === 'weapon' ? item.item.die > pc.weapon.die : item.item.tier > pc.armor.tier);
-    modal(item.name, `<p>Who takes the ${esc(item.name)}? (${item.price}s)</p>`, [
+    modal(item.name, `<p>Who takes the ${esc(item.name)}? (${price(item)}s)</p>`, [
       ...S.party.map((pc) => ({
         label: `${pc.name}: now ${item.kind === 'weapon' ? `${pc.weapon.name} d${pc.weapon.die}` : pc.armor.name}`,
         disabled: pc.dead || !better(pc),
         action: () => {
-          S.silver -= item.price;
+          S.silver -= price(item);
           if (item.kind === 'weapon') pc.weapon = { name: item.item.name, die: item.item.die };
           else pc.armor = { name: item.item.name, tier: item.item.tier };
           save(); renderTown(); visitShop();
@@ -435,7 +493,7 @@
     await new Promise((r) => setTimeout(r, 420 * (Q.speed === undefined ? 1 : Q.speed)));
     v.classList.remove('shatter');
     const result = await Q.Battle.run({
-      party: S.party, foes: g.members, inv: S, log,
+      party: S.party, foes: g.members, inv: S, log, misery: S.calendar.misery,
       onChange: renderHud, onHurt: flashHurt,
     });
     if (result.outcome === 'won') {
@@ -451,7 +509,25 @@
     for (const pc of S.party) pc.dazed = false;
     renderHud();
     drawMini();
-    if (result.outcome === 'lost' || !alive().length) gameOver(S.party.map((p) => p.cause).find(Boolean) || 'the Vault');
+    if (result.outcome === 'lost' || !alive().length) return gameOver(S.party.map((p) => p.cause).find(Boolean) || 'the Vault');
+    if (result.outcome === 'fled') {
+      const misery = tickCalendar();
+      log(`☄ Running costs you a day. ${misery ? '' : calendarText() + '.'}`, 'dim');
+      renderHud();
+      if (misery) showMisery(misery);
+    }
+  }
+
+  function worldEnds(m) {
+    if (S.over) return;
+    S.over = true;
+    clearSave();
+    if (world) world.pause();
+    modal('The Seventh Misery', `${art('grave')}<p class="misery-title">${esc(m.title)}</p><p>${esc(m.text)}</p>
+      <p>${S.party.map((pc) => esc(pc.name)).join(' and ')} ${S.hasRelic ? 'held the Bell-Tongue in their hands, too late' : 'never found the Bell-Tongue'}. ${S.kills} foe${S.kills === 1 ? '' : 's'} slain, for nothing.</p>
+      <p class="small">The Calendar of Nechrubel has run out. New wretches, in some other world, are already on the way.</p>`, [
+      { label: 'Roll new wretches', action: () => startCreate() },
+    ], { closable: false, dead: true });
   }
 
   function gameOver(cause) {
@@ -461,7 +537,7 @@
     if (world) world.pause();
     const pcs = S.party.map((pc) => `<p class="epitaph">Here lies <b>${esc(pc.name)}</b>.<br>${esc(pc.trait)}</p>`).join('');
     modal('Dead', `${art('grave')}${pcs}
-      <p>Killed by ${esc(cause)} in ${esc(floor().name)}, with ${S.kills} foe${S.kills === 1 ? '' : 's'} slain and ${S.silver}s in a purse someone else will empty.</p>
+      <p>Killed by ${esc(cause)} in ${esc(S.where === 'crawl' ? floor().name : 'Skarnvik')}, with ${S.kills} foe${S.kills === 1 ? '' : 's'} slain and ${S.silver}s in a purse someone else will empty.</p>
       <p class="small">The Weeping Vault keeps what it takes. New wretches are already on the way.</p>`, [
       { label: 'Roll new wretches', action: () => startCreate() },
     ], { closable: false, dead: true });
@@ -474,7 +550,7 @@
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
       return `<div class="chip${pc.dead ? ' dead' : ''}"><img src="${Q.portraitUrl(pc.name)}" alt="">
         <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span></span></div>`;
-    }).join('') + `<div class="purse">${S.silver}s</div>`;
+    }).join('') + `<div class="purse">${S.silver}s</div><div class="purse comet" title="Calendar of Nechrubel: ${calendarText()}">☄ ${S.calendar.days}</div>`;
     $('hudPlace').textContent = S.where === 'crawl' ? floor().name : '';
     $('tPoultice').querySelector('small').textContent = S.poultices;
     $('tPoultice').disabled = S.poultices <= 0 || !alive().some((p) => p.hp < p.maxHp || p.bleeding);
@@ -567,12 +643,15 @@
   function startCreate() {
     S = null;
     if (world) world.pause();
-    rolled = [Q.rollWretch(), Q.rollWretch()];
+    const keys = Object.keys(Q.CLASSES).sort(() => Math.random() - 0.5);
+    rolled = [Q.rollWretch(keys[0]), Q.rollWretch(keys[1])];
     renderCreate();
     show('create');
   }
 
   function acceptParty() {
+    // the one who would rather stand in front does; otherwise the first
+    if (rolled[0].row === rolled[1].row) { rolled[0].row = 'front'; rolled[1].row = 'back'; }
     newRun(rolled);
     log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> crawl into Skarnvik under the comet.`);
     show('town');
@@ -584,6 +663,8 @@
     const saved = loadSave();
     if (!saved) return;
     S = saved;
+    Q.fixRows(S.party);
+    Q.applyMiseries(S.calendar.misery);
     renderLog();
     if (S.where === 'crawl' && S.pose) enterFloor(S.floorIx, null, S.pose);
     else show('town');

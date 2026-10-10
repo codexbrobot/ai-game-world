@@ -28,14 +28,32 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 
 ## The game
 
-You lead two wretches, rolled up from the gutter: 3d6 abilities, Toughness + d8 HP, d2 Omens, random weapon, armor and silver. In the town of **Skarnvik** a stranger with a sewn-shut eye wants the **Bell-Tongue**, which hangs from the neck of the **Pale Abbess** at the bottom of the Weeping Vault.
+You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their class, Toughness + a class HP die, Omens, random weapon, armor and silver. In the town of **Skarnvik** a stranger with a sewn-shut eye wants the **Bell-Tongue**, which hangs from the neck of the **Pale Abbess** at the bottom of the Weeping Vault.
 
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
 - **Monsters** wander the halls as groups. Once they see you, they hunt you; zombies are slow, rats are fast, and doors stop them all.
-- **Touching a group** shatters the screen into a turn-based battle, Final Fantasy style. Initiative is a d6; then each wretch picks Attack, Scroll, Poultice, Omen or Flee, and the foes answer. Fleeing leaves the group stunned for a moment so you can get away.
+- **Touching a group** shatters the screen into a turn-based battle, Final Fantasy style. Initiative is a d6; then each wretch picks Attack, their class ability, Scroll, Poultice, Omen, a change of row, or Flee, and the foes answer. Fleeing leaves the group stunned for a moment so you can get away, but it costs a day.
+- **Rows**: one wretch stands in front, one behind. Foes go for the front wretch three times in four, and a melee attack from the back row is at DR +2. Swap in battle (it takes the turn) or from the party sheet.
+- **Monsters have tricks**: rats ignore the rows and swarm (each other pack of rats makes them harder to dodge), cultists curse anyone with Comet's Wrath (no armor helps) or heal each other, skeletons raise their fallen allies, and the Pale Abbess wakes at half HP: she tears off her crown, loses her armor, acts twice a round, tolls the Bell-Tongue at the whole party, and calls her dead guards back up.
+- **The Calendar of Nechrubel**: every night's sleep and every flight from a battle is a day lost. When the days run out a Misery comes to pass and makes the world worse (fatter rats, faster dead, dearer shops, fewer Omens, nastier wounds, a bloody gutter). The seventh Misery ends the world. The count is on the HUD (☄) and in town.
 - **Skarnvik**: the Stranger (the quest), the Drowned Lamb (sleep, heal, Get Better, and hire a new wretch for 20s when one of yours has died) and Thrumm's Stall (weapons, armor, poultices; you choose who gets them).
 - **The Undercroft** (floor 1) and **the Weeping Vault** (floor 2) hold remains to search, black fonts to drink from, hidden pits, two scrolls, and the Abbess.
 - If both wretches die, the save is gone.
+
+## Classes
+
+Pick a class for each wretch on the creation screen, or let the dice choose. Each ability works once per battle.
+
+| Class | Rolls | Ability |
+|---|---|---|
+| Fanged Deserter | Strength +2, Agility and Presence −1, HP d10 | **Bite**: Strength DR 10, d6 that ignores armor |
+| Gutterborn Scum | Agility +2, Strength −1, HP d6 | **Low Blow**: attack with Agility, +d4, no back-row penalty |
+| Esoteric Hermit | Presence +2, Strength −1, HP d4, two more scroll uses a day | **Wither**: Presence DR 12, d4 to every foe |
+| Heretical Priest | Presence and Toughness +1, Agility −1, HP d8, d4 Omens | **Black Sacrament**: Presence DR 10, both wretches heal d6 |
+| Wretched Royalty | Presence and Strength +1, Toughness −1, HP d6 | **Command**: Presence vs the foe's DR, it loses its next turn |
+| Occult Herbmaster | Toughness and Presence +1, Strength −1, HP d6, two extra poultices | **Toxic Flask**: Agility DR 12, d4 now and d4 every enemy turn |
+
+The modifiers are added to the 3d6 roll before it becomes an ability score, as in the rulebook.
 
 ## Rules used (MÖRK BORG)
 
@@ -51,6 +69,7 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities, Toughness + d8 
 | Scrolls | Presence test DR 12, Presence + d4 uses a day. A failure leaves you unable to read more until you sleep |
 | 0 HP | Broken: d4 for blacking out, a broken bone or lost eye, haemorrhaging (bleeding), or death |
 | Below 0 HP | Dead. Hire a replacement at the inn; if both die, the save is gone |
+| Calendar of Nechrubel | d6+3 days to the first Misery, then d6+2 to each next one. Seven Miseries and the world ends |
 | Getting Better | After five kills, sleep at the inn: 6d10 vs max HP for more HP, and d6 per ability to raise or lower it |
 
 ## Code

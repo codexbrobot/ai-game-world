@@ -95,7 +95,7 @@ var Q = window.Q || (window.Q = {});
       };
       current = { finish };
 
-      if (k === 0 || reduced() || !els[0].animate) {
+      if (k === 0 || reduced() || !els.length || !els[0].animate) {
         finish(k === 0 ? 0 : 900);
         return;
       }
