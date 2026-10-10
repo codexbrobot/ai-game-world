@@ -142,23 +142,23 @@ var Q = window.Q || (window.Q = {});
   // dr: the DR to hit it. armor: die it soaks with. morale: 2d6 over this and it flees (0 = never).
   Q.MONSTERS = {
     r: {
-      kind: 'rats', name: 'Gutter Rats', plural: true, hp: () => d(4) + 2, die: 4, dr: 10, armor: 0, morale: 6, sight: 5, speed: 2.7,
+      kind: 'rats', name: 'Gutter Rats', plural: true, hp: () => d(2), die: 4, dr: 10, armor: 0, morale: 6, sight: 5, speed: 2.7,
       silver: () => 0, desc: 'A boiling knot of rats, fat on the dead.',
     },
     z: {
-      kind: 'zombie', name: 'Rotting Dead', hp: () => d(6) + 4, die: 6, dr: 10, armor: 0, morale: 0, sight: 5, speed: 1.3,
+      kind: 'zombie', name: 'Rotting Dead', hp: () => 4, die: 6, dr: 10, armor: 0, morale: 0, sight: 5, speed: 1.3,
       silver: () => d(6), desc: 'It still wears its burial shroud. It is hungry.',
     },
     s: {
-      kind: 'skeleton', name: 'Rattling Skeleton', hp: () => d(6) + 2, die: 6, dr: 12, armor: 2, morale: 0, sight: 7, speed: 2.2,
+      kind: 'skeleton', name: 'Rattling Skeleton', hp: () => d(2) + 2, die: 6, dr: 12, armor: 2, morale: 0, sight: 7, speed: 2.2,
       silver: () => d(8), desc: 'Bones bound by spite, a rusted blade in its fist.',
     },
     c: {
-      kind: 'cultist', name: 'Comet Cultist', hp: () => d(8) + 3, die: 6, dr: 12, armor: 0, morale: 7, sight: 7, speed: 2.3,
+      kind: 'cultist', name: 'Comet Cultist', hp: () => d(3) + 2, die: 6, dr: 12, armor: 0, morale: 7, sight: 7, speed: 2.3,
       silver: () => roll(2, 10), desc: 'Hooded, branded with the comet, smiling.',
     },
     w: {
-      kind: 'abbess', name: 'The Pale Abbess', hp: () => 18 + d(6), die: 8, dr: 14, armor: 2, morale: 0, sight: 6, speed: 1.6,
+      kind: 'abbess', name: 'The Pale Abbess', hp: () => 8 + d(4), die: 8, dr: 14, armor: 2, morale: 0, sight: 6, speed: 1.6,
       boss: true, silver: () => roll(4, 10), desc: 'A crowned corpse weeping black. The Bell-Tongue hangs from her neck.',
     },
   };
@@ -166,7 +166,7 @@ var Q = window.Q || (window.Q = {});
   // The Calendar of Nechrubel. Each night's sleep and each flight from a battle is a day lost. When the
   // days run out a Misery comes to pass, and the count starts again. The seventh Misery ends the world.
   Q.MISERIES = [
-    { title: 'The rats breed in the walls', text: 'Something fat and pink is born in every crack. Gutter Rats have 3 more HP.' },
+    { title: 'The rats breed in the walls', text: 'Something fat and pink is born in every crack. Gutter Rats have 1 more HP.' },
     { title: 'The dead grow restless', text: 'The graves of Skarnvik stand open. Every monster moves faster.' },
     { title: 'Thrumm doubles his prices', text: '“The end is near, and silver will be worthless. So pay me more of it.” The stall costs half again as much.' },
     { title: 'Noon is black as midnight', text: 'The sun does not rise. Sleep brings back only one Omen.' },
@@ -178,7 +178,7 @@ var Q = window.Q || (window.Q = {});
   Q.calendarNext = () => d(6) + 2;
   // What the Miseries so far have done to the world.
   Q.miseryMods = (n) => ({
-    ratHp: n >= 1 ? 3 : 0,
+    ratHp: n >= 1 ? 1 : 0,
     speed: n >= 2 ? 1.3 : 1,
     price: n >= 3 ? 1.5 : 1,
     omenCap: n >= 4 ? 1 : 0,
