@@ -969,12 +969,13 @@ export function createWorld(container, hooks) {
   // DOM over the canvas, under the HUD: the torch in the left hand, the front wretch's weapon in the right.
   const hands = document.createElement('div');
   hands.className = 'hands';
-  hands.innerHTML = '<div class="hand hand-left"><span class="torch-glow"></span><img alt="" draggable="false"><canvas class="flame" width="96" height="160"></canvas></div>'
+  hands.innerHTML = '<div class="hand hand-left"><span class="torch-glow"></span><img alt="" draggable="false"><canvas class="flame" width="128" height="256"></canvas></div>'
     + '<div class="hand hand-right"><img alt="" draggable="false"></div>';
   renderer.domElement.after(hands);
   const leftHand = hands.querySelector('.hand-left'), rightHand = hands.querySelector('.hand-right');
   const torchImg = leftHand.querySelector('img'), weaponImg = rightHand.querySelector('img');
-  const flameCanvas = leftHand.querySelector('.flame'), flameCtx = flameCanvas.getContext('2d');
+  const flameCanvas = leftHand.querySelector('.flame'), flame = makeFlame(flameCanvas);
+  if (!flame) flameCanvas.remove(); // no WebGL for it: the flame painted on the torch stays
   const glow = leftHand.querySelector('.torch-glow');
   // where the torch's tip is in its picture, found from the picture's alpha once it loads
   let tip = { x: 0.5, y: 0.08 };
@@ -985,12 +986,13 @@ export function createWorld(container, hooks) {
       const g = c.getContext('2d');
       g.drawImage(torchImg, 0, 0, c.width, c.height);
       const a = g.getImageData(0, 0, c.width, c.height).data;
-      for (let y = 0; y < c.height; y++) {
-        let sum = 0, n = 0;
-        for (let x = 0; x < c.width; x++) if (a[(y * c.width + x) * 4 + 3] > 140) { sum += x; n++; }
-        // a little below the very top, so the live flame covers any flame painted on the picture
-        if (n >= 3) { tip = { x: sum / n / c.width, y: Math.min(0.5, (y + 3) / c.height + 0.07) }; break; }
-      }
+      const row = (y) => { let sum = 0, n = 0; for (let x = 0; x < c.width; x++) if (a[(y * c.width + x) * 4 + 3] > 140) { sum += x; n++; } return n >= 3 ? sum / n : -1; };
+      let top = 0;
+      while (top < c.height && row(top) < 0) top++;
+      // the middle of the torch head, a little way below its very top: the live flame sits on the head and
+      // covers the flame painted on the picture
+      const y = Math.min(c.height - 1, top + Math.round(c.height * 0.12));
+      if (top < c.height && row(y) >= 0) tip = { x: row(y) / c.width, y: y / c.height };
     } catch (e) { /* a tainted canvas keeps the default */ }
     flameCanvas.style.left = (tip.x * 100) + '%';
     flameCanvas.style.top = (tip.y * 100) + '%';
@@ -1000,8 +1002,7 @@ export function createWorld(container, hooks) {
   torchImg.onerror = () => { leftHand.classList.add('no-art'); };
   weaponImg.onerror = () => { rightHand.classList.add('no-art'); };
   torchImg.src = Q.assetUrl('held-torch');
-  let sway = 0;
-  const embers = [];
+  let sway = 0, lastBx = 0, drag = 0;
   function drawHands(now, f) {
     if (paused && !hands.classList.contains('shown')) return;
     // the walk swings the hands in a figure of eight; turning drags them behind
@@ -1011,56 +1012,119 @@ export function createWorld(container, hooks) {
     leftHand.style.transform = `translate(${(bx - sway * 10).toFixed(1)}px, ${(by + 4).toFixed(1)}px) rotate(${(-4 + sway * 1.2).toFixed(2)}deg)`;
     rightHand.style.transform = `translate(${(bx * 0.9 - sway * 14).toFixed(1)}px, ${(12 - by * 0.9).toFixed(1)}px) rotate(${(5 + sway * 1.5).toFixed(2)}deg)`;
     glow.style.opacity = (0.45 + f * 0.45).toFixed(2);
-    drawFlame(now, f);
+    // the flame trails the way the torch moves: turning, and the swing of the walk
+    const lx = bx - sway * 10;
+    drag += ((lx - lastBx) * 0.12 - drag) * 0.15;
+    lastBx = lx;
+    if (flame) flame.draw(now / 1000, f, Math.max(-1, Math.min(1, -sway * 0.22 - drag)), m);
   }
-  // The flame: a few licking tongues in the zine's colours (acid yellow inked in black, bone-white hearts),
-  // with pink embers rising. Each tongue's sides wave, and its tip whips with the flicker and your turning.
-  const TONGUES = [
-    { x: 0, w: 0.34, h: 1, speed: 1, phase: 0 },
-    { x: -0.17, w: 0.2, h: 0.6, speed: 1.3, phase: 2.1 },
-    { x: 0.16, w: 0.19, h: 0.66, speed: 1.15, phase: 4.2 },
-  ];
-  function drawFlame(now, f) {
-    const g = flameCtx, W = flameCanvas.width, H = flameCanvas.height;
-    g.clearRect(0, 0, W, H);
-    const t = now / 1000;
-    const base = H - 8;
-    const path = (tg, scale) => {
-      const h = H * 0.86 * tg.h * scale * (0.72 + f * 0.36);
-      const w = W * tg.w * scale;
-      const cx = W / 2 + tg.x * W;
-      const whip = Math.sin(t * 6.1 * tg.speed + tg.phase) * 7 + Math.sin(t * 11.3 * tg.speed + tg.phase) * 3 - sway * 6;
-      const n = 12;
-      const side = (dir) => {
-        const pts = [];
-        for (let i = 0; i <= n; i++) {
-          const k = i / n;
-          // wide at the root, bellying out a little, then drawn to a point
-          const width = w * Math.sin(Math.PI * (0.5 + k * 0.5)) * (1 + 0.25 * Math.sin(k * Math.PI));
-          const wave = Math.sin(k * 7 - t * 9 * tg.speed + tg.phase + dir) * 3.5 * k;
-          pts.push([cx + dir * width + whip * k * k + wave, base - h * k]);
+  // The flame: a fragment shader on its own small canvas over the torch's head. Fire is turbulence rising
+  // through a teardrop: two layers of noise scroll up through it, push it sideways and eat at its top so
+  // tongues tear loose, and what heat is left is coloured like burning pitch, white at the heart through
+  // yellow and orange to a dull red edge. Sparks lift off it. The world's torchlight flicker makes it leap;
+  // turning and the swing of your walk drag it sideways.
+  function makeFlame(canvas) {
+    let gl = null;
+    try { gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false }); } catch (e) { /* none */ }
+    if (!gl) return null;
+    const vs = 'attribute vec2 aPos; varying vec2 vUv; void main() { vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }';
+    const fs = `
+      #ifdef GL_FRAGMENT_PRECISION_HIGH
+      precision highp float;
+      #else
+      precision mediump float;
+      #endif
+      varying vec2 vUv;
+      uniform float uTime, uFlick, uLean, uStir, uAspect;
+      float hash(vec2 p) { p = fract(p * vec2(234.34, 435.345)); p += dot(p, p + 34.23); return fract(p.x * p.y); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float v = 0.0, a = 0.5;
+        for (int i = 0; i < 5; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+        return v;
+      }
+      // burning pitch: a dull red edge, orange, yellow, a white heart
+      vec3 fire(float k) {
+        vec3 c = mix(vec3(0.3, 0.03, 0.0), vec3(0.86, 0.2, 0.02), smoothstep(0.0, 0.3, k));
+        c = mix(c, vec3(1.0, 0.52, 0.08), smoothstep(0.25, 0.55, k));
+        c = mix(c, vec3(1.0, 0.83, 0.4), smoothstep(0.5, 0.8, k));
+        return mix(c, vec3(1.0, 0.97, 0.86), smoothstep(0.88, 1.0, k));
+      }
+      const float BASE = 0.2; // the torch head, up from the canvas' bottom edge
+      void main() {
+        float t = uTime;
+        vec2 p = vec2(vUv.x * 2.0 - 1.0, (vUv.y - BASE) / (1.0 - BASE));
+        float h = 0.66 + 0.22 * uFlick;
+        float yy = p.y / h;
+        float up = max(yy, 0.0);
+        p.x -= uLean * 0.6 * up * up;
+        float rise = t * (1.9 + uStir * 0.9);
+        float n1 = fbm(vec2(p.x * 1.8, p.y * 2.0 - rise));
+        float n2 = fbm(vec2(p.x * 4.2 + 3.0, p.y * 4.0 - rise * 1.7));
+        // the noise pushes the flame about, more toward its top
+        float x = p.x + (n1 - 0.5) * 0.9 * up + (n2 - 0.5) * 0.24 * (0.3 + up);
+        // a bushy body, round-bottomed where the whole top of the rag head burns, broadest a third of the way up
+        float w = 0.56 * sqrt(clamp((yy + 0.24) / 0.27, 0.0, 1.0)) * pow(clamp(1.0 - yy, 0.0, 1.0), 0.62) * (0.8 + 0.2 * smoothstep(0.0, 0.3, yy));
+        float body = clamp(1.0 - pow(abs(x) / max(w, 0.001), 1.6), 0.0, 1.0);
+        // and the noise eats it from above, so it splits into tongues that tear loose
+        float heat = body * (1.0 - 0.3 * smoothstep(0.0, 1.0, yy)) - max(0.0, n1 * 0.95 + n2 * 0.5 - 0.58) * smoothstep(0.0, 0.85, yy) * 1.9;
+        // nothing reaches the canvas' edges, so no tongue is ever cut off square
+        heat *= smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x) * smoothstep(1.0, 0.9, vUv.y) * smoothstep(0.02, 0.16, vUv.y);
+        heat = clamp(heat, 0.0, 1.0);
+        // brighter and darker streaks rising inside it
+        vec3 col = fire(clamp(heat * (0.72 + 0.45 * n2 + 0.15 * uFlick), 0.0, 1.0));
+        float a = smoothstep(0.02, 0.4, heat);
+        float sp = 0.0;
+        for (int i = 0; i < 7; i++) {
+          float fi = float(i);
+          float c = t * (0.45 + hash(vec2(fi, 1.3)) * 0.5) + hash(vec2(fi, 7.1));
+          float life = fract(c), seed = hash(vec2(fi, floor(c)));
+          vec2 s = vec2((seed - 0.5) * 0.5 + sin(t * 2.3 + fi * 1.7) * 0.08 * life - uLean * 0.55 * life * life, 0.25 + life * 0.85);
+          vec2 d = (p - s) * vec2(uAspect, 1.0);
+          d.y *= 0.55; // drawn out a little as they rise
+          sp += (1.0 - life) * step(0.25, seed) * smoothstep(0.022, 0.004, length(d));
         }
-        return pts;
-      };
-      const left = side(-1), right = side(1).reverse();
-      g.beginPath();
-      g.moveTo(left[0][0], left[0][1]);
-      for (const [x, y] of left) g.lineTo(x, y);
-      for (const [x, y] of right) g.lineTo(x, y);
-      g.closePath();
+        sp = clamp(sp, 0.0, 1.0);
+        col = mix(col, vec3(1.0, 0.72, 0.28), sp);
+        a = max(a, sp);
+        col *= 0.94 + 0.12 * hash(gl_FragCoord.xy + fract(t) * 91.0); // a whisper of the zine's grain
+        gl_FragColor = vec4(col * a, a);
+      }`;
+    const shader = (type, src) => { const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh); return sh; };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, shader(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    const u = {};
+    for (const n of ['uTime', 'uFlick', 'uLean', 'uStir', 'uAspect']) u[n] = gl.getUniformLocation(prog, n);
+    return {
+      draw(t, flick, lean, stir) {
+        if (gl.isContextLost()) return;
+        // as sharp as the screen, up to twice the CSS size
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(16, Math.round(canvas.clientWidth * dpr)), h = Math.max(32, Math.round(canvas.clientHeight * dpr));
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+        gl.viewport(0, 0, w, h);
+        gl.uniform1f(u.uTime, t % 2000);
+        gl.uniform1f(u.uFlick, flick);
+        gl.uniform1f(u.uLean, lean);
+        gl.uniform1f(u.uStir, stir);
+        gl.uniform1f(u.uAspect, w / (2 * h * 0.8));
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      },
     };
-    g.lineJoin = 'round';
-    for (const tg of TONGUES) { path(tg, 1); g.fillStyle = '#ffe11a'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#0a0a08'; g.stroke(); }
-    for (const tg of TONGUES) { path(tg, 0.55); g.fillStyle = '#ebe4d0'; g.fill(); }
-    path(TONGUES[0], 0.28); g.fillStyle = '#fffaf0'; g.fill();
-    if (Math.random() < 0.3) embers.push({ x: W / 2 + (Math.random() - 0.5) * 24, y: H * 0.45, vy: 35 + Math.random() * 45, life: 1 });
-    for (let i = embers.length - 1; i >= 0; i--) {
-      const e = embers[i];
-      e.y -= e.vy / 60; e.x += Math.sin(t * 9 + i) * 0.9 - sway * 0.6; e.life -= 0.028;
-      if (e.life <= 0 || e.y < 0) { embers.splice(i, 1); continue; }
-      g.fillStyle = `rgba(255,61,139,${e.life.toFixed(2)})`;
-      g.fillRect(e.x, e.y, 3, 3);
-    }
   }
 
   function updateDoors(dt) {

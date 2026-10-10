@@ -421,10 +421,10 @@ body.in-battle .hands { opacity: 0; }
 .hand-left { left: 2%; }
 .hand-right { right: 0; bottom: -26px; height: min(50vh, 66vw); }
 .hand.no-art { display: none; }
-.hand .flame { position: absolute; width: 38%; height: auto; aspect-ratio: 96 / 160; transform: translate(-50%, -86%); mix-blend-mode: normal; }
+.hand .flame { position: absolute; width: 66%; height: auto; aspect-ratio: 1 / 1.85; transform: translate(-50%, -80%); }
 .hand .torch-glow {
   position: absolute; width: 260%; aspect-ratio: 1; transform: translate(-50%, -60%); border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 225, 26, 0.32), rgba(255, 61, 139, 0.12) 35%, transparent 65%);
+  background: radial-gradient(circle, rgba(255, 176, 64, 0.3), rgba(255, 96, 24, 0.12) 35%, transparent 65%);
 }
 .viewport.hurt .hands { animation: handsjolt 0.35s ease-out; }
 @keyframes handsjolt { 30% { transform: translate(-8px, 14px); } 60% { transform: translate(6px, 6px); } }
