@@ -1235,7 +1235,7 @@ export function createWorld(container, hooks) {
       stick.x = Math.abs(dx) < 8 ? 0 : dx / R;
       stick.y = Math.abs(dy) < 8 ? 0 : -dy / R;
       knob.firstChild.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-    } else {
+    } else if (!paused) {
       look.dx += (e.clientX - p.x) * (e.pointerType === 'mouse' ? 0.005 : 0.0075);
       look.dy += (e.clientY - p.y) * 0.004;
     }
@@ -1249,6 +1249,16 @@ export function createWorld(container, hooks) {
   };
   el.addEventListener('pointerup', release);
   el.addEventListener('pointercancel', release);
+  el.addEventListener('lostpointercapture', release);
+  // A finger lifted anywhere (over a menu that opened under it, say) lets go of the stick and the pad.
+  for (const ev of ['pointerup', 'pointercancel']) window.addEventListener(ev, (e) => { release(e); padUp(e); });
+  // Leaving the dungeon forgets everything held.
+  function clearInput() {
+    keys.clear();
+    stick.x = 0; stick.y = 0; knob.hidden = true; pointers.clear();
+    for (const id of padHeld.values()) clearInterval(id);
+    padHeld.clear();
+  }
 
   requestAnimationFrame(frame);
 
@@ -1299,11 +1309,11 @@ export function createWorld(container, hooks) {
     pose: () => ({ x: player.x, z: player.z, a: player.a }),
     // The wretches' place on the map, in cells, and their facing.
     mapPose: () => ({ x: player.x / CELL - 0.5, y: player.z / CELL - 0.5, a: player.a }),
+    // Stop the world for a moment: the game pauses it on every square you walk into, to see what's there.
+    // A thumb on the stick, a held arrow or key stays held, so you walk on when it resumes.
     pause() {
-      paused = true; keys.clear(); stick.x = 0; stick.y = 0; knob.hidden = true; pointers.clear(); player.moving = 0; turnRate = 0;
+      paused = true; player.moving = 0; turnRate = 0;
       queued.length = 0;
-      for (const id of padHeld.values()) clearInterval(id);
-      padHeld.clear();
       if (step.active) { player.x = step.x1; player.z = step.z1; player.a = step.a1; step.active = false; }
     },
     resume() { paused = false; lastTime = performance.now(); },
@@ -1336,7 +1346,7 @@ export function createWorld(container, hooks) {
         weaponImg.src = Q.assetUrl('held-' + slug);
       }
     },
-    showHands(on) { hands.classList.toggle('shown', !!on); },
+    showHands(on) { hands.classList.toggle('shown', !!on); if (!on) clearInput(); },
     cellSize: CELL,
     render() { placeCamera(performance.now()); renderer.render(scene, camera); },
   };
