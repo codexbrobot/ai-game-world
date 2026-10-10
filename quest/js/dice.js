@@ -65,6 +65,7 @@ var Q = window.Q || (window.Q = {});
     layer.replaceChildren(throwEl);
     layer.hidden = false;
     layer.classList.remove('leaving');
+    layer.classList.add('rolling'); // only a throw in progress catches taps
 
     return new Promise((resolve) => {
       const anims = [];
@@ -85,6 +86,7 @@ var Q = window.Q || (window.Q = {});
         if (done) return;
         done = true;
         if (current && current.finish === finish) current = null;
+        layer.classList.remove('rolling');
         for (const id of timers) clearTimeout(id);
         timers.clear();
         anims.forEach((a) => { try { a.finish(); } catch (e) { /* already done */ } });

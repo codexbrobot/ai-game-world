@@ -25,13 +25,12 @@
   </div>
 </section>
 
-<!-- character -->
+<!-- the party -->
 <section id="create" class="screen" hidden>
-  <div class="paper">
-    <p class="kicker">You are nobody. Here is your nobody.</p>
-    <div id="sheet" class="sheet"></div>
+  <div class="paper wide">
+    <p class="kicker">You are nobodies. Here are your nobodies.</p>
+    <div id="sheets" class="sheets"></div>
     <div class="row">
-      <button id="btnReroll" type="button" class="ghost">Roll again</button>
       <button id="btnAccept" type="button">Into the dark</button>
     </div>
   </div>
@@ -49,51 +48,35 @@
       <button id="goShop" type="button" class="place-stall"><span class="label"><b>Thrumm’s Stall</b><small>weapons, armor, poultices</small></span></button>
       <button id="goCrypt" type="button" class="place-stair danger"><span class="label"><b>The Crypt Stair</b><small>down into the Weeping Vault</small></span></button>
     </div>
-    <button id="goSheet" type="button" class="ghost small-btn">Your wretch</button>
+    <button id="goSheet" type="button" class="ghost small-btn">Your party</button>
   </div>
 </section>
 
 <!-- crawl -->
 <section id="crawl" hidden>
-  <header class="hud">
-    <img id="hudFace" class="hudface" alt="" onerror="this.style.visibility='hidden'" onload="this.style.visibility=''">
-    <div class="who"><span id="hudName"></span><span id="hudPlace" class="place"></span></div>
-    <div class="vitals">
-      <div class="hpbar"><div id="hpFill"></div><span id="hudHp"></span></div>
-      <div id="hudMore" class="more"></div>
+  <div id="viewport" class="viewport">
+    <!-- the 3D canvas goes first, made by js/engine.js -->
+    <div class="view-fx" aria-hidden="true"></div>
+    <div class="hud-top">
+      <div id="chips" class="chips"></div>
+      <div class="hud-right"><span id="hudPlace" class="place"></span><canvas id="mini" aria-label="Map of this floor. Tap to enlarge."></canvas></div>
     </div>
-  </header>
-  <div class="stage">
-    <div class="viewwrap">
-      <canvas id="view" aria-label="First-person view of the dungeon"></canvas>
-      <canvas id="mini" aria-label="Map of this floor. Tap to enlarge."></canvas>
-      <div id="foe" class="foe" hidden></div>
-      <div id="dice" class="dice-layer" hidden aria-live="polite" title="Tap to hurry the dice"></div>
+    <ol id="log" class="hud-log" aria-live="polite"></ol>
+    <div class="hud-buttons">
+      <button type="button" id="tMap" class="ghost">Map</button>
+      <button type="button" id="tParty" class="ghost">Party</button>
+      <button type="button" id="tPoultice" class="ghost">Poultice <small></small></button>
     </div>
-    <div class="controls">
-      <ol id="log" aria-live="polite"></ol>
-      <div id="pad" class="pad" role="group" aria-label="Movement">
-        <button type="button" data-move="turnL" aria-label="Turn left">↶</button>
-        <button type="button" data-move="fwd" aria-label="Step forward">▲</button>
-        <button type="button" data-move="turnR" aria-label="Turn right">↷</button>
-        <button type="button" data-move="strafeL" aria-label="Step left">◀</button>
-        <button type="button" data-move="back" aria-label="Step back">▼</button>
-        <button type="button" data-move="strafeR" aria-label="Step right">▶</button>
+    <p id="hint" class="hint">Left thumb: walk · Right thumb: look<br><span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look</span></p>
+    <div id="battle" class="battle" hidden>
+      <div id="foes" class="foes"></div>
+      <div class="battle-bottom">
+        <div id="commands" class="commands" hidden></div>
+        <div id="partyCards" class="party-cards"></div>
       </div>
-      <div id="fight" class="fight" role="group" aria-label="Combat" hidden>
-        <button type="button" data-fight="attack" class="big">Attack</button>
-        <button type="button" data-fight="scroll" id="bScroll">Scroll <small></small></button>
-        <button type="button" data-fight="poultice" id="bPoultice">Poultice <small></small></button>
-        <button type="button" data-fight="omen" id="bOmen">Omen <small></small></button>
-        <button type="button" data-fight="flee" class="ghost">Flee</button>
-      </div>
-      <div class="tools">
-        <button type="button" id="tMap" class="ghost">Map</button>
-        <button type="button" id="tSheet" class="ghost">Wretch</button>
-        <button type="button" id="tPoultice" class="ghost">Poultice <small></small></button>
-        <button type="button" id="tScroll" class="ghost" hidden>Mend</button>
-      </div>
+      <div id="banner" class="battle-banner" hidden></div>
     </div>
+    <div id="dice" class="dice-layer" hidden aria-live="polite" title="Tap to hurry the dice"></div>
   </div>
 </section>
 
@@ -109,6 +92,8 @@
 <script src="js/data.js"></script>
 <script src="js/art.js"></script>
 <script src="js/dice.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/battle.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

@@ -4,28 +4,38 @@ A small first-person dungeon crawler in the style of *The Quest* (Redshift, 2009
 
 ## Play
 
-Open `index.html` in a browser. There is no build step and nothing to install, and it works on a phone. The only network request is for Google Fonts; the pictures load from `assets/`. The game saves to your browser after every step.
+Serve the folder and open it in a browser; it works on a phone too:
+
+```sh
+cd quest && python3 -m http.server 8765   # then open http://localhost:8765
+```
+
+Opening `index.html` straight from disk doesn't work, because WebGL won't load textures from `file://`. The only network request is for Google Fonts; the pictures load from `assets/`. The game saves to your browser as you go.
 
 To publish it as a single web page (a claude.ai artifact, for example), run `python tools/build_page.py`. It writes `dist/quest.html` with the CSS and scripts inlined; publish that page together with the `assets/` folder.
 
 ## Controls
 
-| | Phone | Keyboard |
+| | Phone | Keyboard / mouse |
 |---|---|---|
-| Step forward / back | ▲ / ▼ | ↑ / ↓ or W / S |
-| Turn left / right | ↶ / ↷ | ← / → or A / D |
-| Step sideways | ◀ / ▶ | Q / E |
-| Attack, Scroll, Poultice, Omen, Flee | the fight buttons | 1–5 (Space also attacks) |
-| Hurry the dice | tap the dice, or any fight button | Space, Enter or 1 |
-| Map, character | Map, Wretch (or tap the mini-map) | M, C |
+| Walk and strafe | drag the left half of the screen (a joystick appears) | W A S D |
+| Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
+| Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–5 |
+| Pick a target | tap the foe | ← / → and Enter |
+| Hurry the dice | tap the dice | Space or Enter |
+| Map, party | the buttons at the bottom (or tap the mini-map) | M, P |
+| Use a poultice outside battle | the Poultice button | |
 
 ## The game
 
-You're a wretch, rolled up from the gutter: 3d6 abilities, Toughness + d8 HP, d2 Omens, random weapon, armor and silver. In the town of **Skarnvik** a stranger with a sewn-shut eye wants the **Bell-Tongue**, which hangs from the neck of the **Pale Abbess** at the bottom of the Weeping Vault.
+You lead two wretches, rolled up from the gutter: 3d6 abilities, Toughness + d8 HP, d2 Omens, random weapon, armor and silver. In the town of **Skarnvik** a stranger with a sewn-shut eye wants the **Bell-Tongue**, which hangs from the neck of the **Pale Abbess** at the bottom of the Weeping Vault.
 
-- **Skarnvik**: the Stranger (the quest), the Drowned Lamb (sleep, heal, Get Better) and Thrumm's Stall (weapons, armor, poultices).
-- **The Undercroft** (floor 1) and **the Weeping Vault** (floor 2): 16 × 16 mazes with remains to search, black fonts to drink from, hidden pits, two scrolls, and the Abbess.
-- **Monsters**: Gutter Rats, Rotting Dead, Rattling Skeletons, Comet Cultists and the Pale Abbess. They hunt you once they see you; zombies are slow, and doors stop them.
+- **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
+- **Monsters** wander the halls as groups. Once they see you, they hunt you; zombies are slow, rats are fast, and doors stop them all.
+- **Touching a group** shatters the screen into a turn-based battle, Final Fantasy style. Initiative is a d6; then each wretch picks Attack, Scroll, Poultice, Omen or Flee, and the foes answer. Fleeing leaves the group stunned for a moment so you can get away.
+- **Skarnvik**: the Stranger (the quest), the Drowned Lamb (sleep, heal, Get Better, and hire a new wretch for 20s when one of yours has died) and Thrumm's Stall (weapons, armor, poultices; you choose who gets them).
+- **The Undercroft** (floor 1) and **the Weeping Vault** (floor 2) hold remains to search, black fonts to drink from, hidden pits, two scrolls, and the Abbess.
+- If both wretches die, the save is gone.
 
 ## Rules used (MÖRK BORG)
 
@@ -33,40 +43,41 @@ You're a wretch, rolled up from the gutter: 3d6 abilities, Toughness + d8 HP, d2
 |---|---|
 | Tests | d20 + ability vs DR 12 |
 | Attacking | Strength vs the foe's DR. Natural 20 doubles damage; natural 1 gives the foe a free blow |
-| Defence | Monsters never roll. You roll Agility vs DR 12 (14 in plate). Natural 20: free counterattack. Natural 1: double damage and your armor cracks a tier |
+| Defence | Monsters never roll. The wretch they strike rolls Agility vs DR 12 (14 in plate). Natural 20: free counterattack. Natural 1: double damage and your armor cracks a tier |
 | Armor | Soaks d2 / d4 / d6. Some foes have armor too |
-| Initiative | d6 when a fight starts: 1–3 and they strike first |
+| Initiative | d6 when a battle starts: 1–3 and they strike first |
 | Morale | Rats and cultists roll 2d6 against their morale when badly hurt, and may flee |
 | Omens | Spend one for maximum damage on your next hit, or to turn aside your next wound. Back to d2 after sleeping |
 | Scrolls | Presence test DR 12, Presence + d4 uses a day. A failure leaves you unable to read more until you sleep |
 | 0 HP | Broken: d4 for blacking out, a broken bone or lost eye, haemorrhaging (bleeding), or death |
-| Below 0 HP | Dead. The save is gone; roll a new wretch |
+| Below 0 HP | Dead. Hire a replacement at the inn; if both die, the save is gone |
 | Getting Better | After five kills, sleep at the inn: 6d10 vs max HP for more HP, and d6 per ability to raise or lower it |
 
 ## Code
 
 | File | What it holds |
 |---|---|
+| `src/engine.js` | The 3D world (three.js): builds each floor from its map, the camera, movement and collision, doors, sprites, and the monsters that roam and chase |
+| `js/engine.js` | `src/engine.js` bundled with three.js. Rebuild it with `npm run build:quest` from the repository root |
+| `js/battle.js` | The turn-based battle screen: initiative, commands, targeting, enemy turns, morale and fleeing |
 | `js/rules.js` | Dice, character generation, attacks, defence, Broken, morale, Getting Better |
-| `js/data.js` | The two floor maps, the bestiary, loot and the shop |
-| `js/art.js` | The first-person view (a raycaster with textured walls, floor and ceiling), sprites, the town picture and the map |
-| `js/dice.js` | The dice thrown on screen for every roll in a fight |
-| `js/game.js` | Game state, the gliding camera, monster AI, combat played out a die at a time, the town, saving and input |
+| `js/data.js` | The two floor maps (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
+| `js/art.js` | The town picture, the map, and the grain overlay |
+| `js/dice.js` | The dice thrown on screen for every roll in a battle |
+| `js/game.js` | Game state, the party, the town, what happens on each square, saving, the HUD and input |
 | `assets/` | The generated pictures (WebP) |
 | `tools/make_art.py` | Generates and grades the pictures |
 | `tools/build_page.py` | Bundles the game into one page for publishing |
 
-Edit the maps in `js/data.js` (the key is at the top of the file).
+Edit the maps in `js/data.js` (the key is at the top of the file). Each floor has three layers of the same size: `rows` (walls, doors, stairs and so on), `heights` (`.` is ground level, `1`–`9` raise the floor by a quarter step each, `a`–`h` sink it, `x` is a chasm) and `ceil` (`.` normal, `H` high, `L` low). You can climb up to two quarter steps at a time.
 
-### Moving and dice
+### Dice
 
-The rules move in whole squares, but the view doesn't jump. `js/art.js` is a raycaster (one ray per screen column, with the floor and ceiling drawn as perspective-mapped pattern rows), so the camera can stand anywhere and face any angle. `js/game.js` glides it between squares with a slight head-bob, swings it round on turns, and walks monsters from square to square. A move pressed mid-glide is remembered and played as soon as the camera arrives.
-
-Every roll in a fight is thrown on screen by `js/dice.js`: the dice tumble in, land on the number actually rolled, and a caption gives the sum (for example *Strength 14 + 1 = 15 vs DR 12*). The rules in `js/rules.js` report each die they roll, so what you see is what was rolled. Animations are skipped for anyone who prefers reduced motion.
+Every roll in a battle is thrown on screen by `js/dice.js`: the dice tumble in, land on the number actually rolled, and a caption gives the sum (for example *Strength 14 + 1 = 15 vs DR 12*). The rules in `js/rules.js` report each die they roll, so what you see is what was rolled. Animations are skipped for anyone who prefers reduced motion.
 
 ## Art
 
-The pictures in `assets/` (monsters, walls, floor, ceiling, the town, portraits) were generated by `tools/make_art.py`, which runs an open image model locally and then grades every image into the same Mörk Borg look: hard black ink, bone-white highlights, acid yellow and pink only where the picture glows or bleeds, and photocopier grain. Monsters and objects are cut out with a segmentation model and get a rough bone-white rim, like stickers in a zine.
+The pictures in `assets/` (monsters, walls, floor, ceiling, the town, portraits), used as textures and sprites in the 3D world, were generated by `tools/make_art.py`, which runs an open image model locally and then grades every image into the same Mörk Borg look: hard black ink, bone-white highlights, acid yellow and pink only where the picture glows or bleeds, and photocopier grain. Monsters and objects are cut out with a segmentation model and get a rough bone-white rim, like stickers in a zine.
 
 - Image model: [LCM Dreamshaper v7](https://huggingface.co/SimianLuo/LCM_Dreamshaper_v7) (MIT licence), 8 steps per image on the CPU.
 - Walls, door, floor, ceiling and the rat start from a simple flat layout drawn in code (stone blocks, rows of skulls, planks, a crouching rat), which the model paints over (image-to-image). Asked directly, the model paints whole corridors instead of a flat wall, and rat-men instead of rats.
@@ -81,8 +92,6 @@ pip install -r requirements.txt
 python make_art.py candidates zombie --seeds 1 2 3   # contact sheets of three tries in tools/sheets/
 python make_art.py build                             # render the chosen seeds into assets/
 ```
-
-If an image is missing, the game falls back to its older drawn-in-code art for that piece.
 
 ## Licence note
 
