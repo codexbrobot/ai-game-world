@@ -150,9 +150,8 @@ var Q = window.Q || (window.Q = {});
     return 'Near death';
   }
 
-  // A generic test: d20 + ability vs DR.
-  function test(ability, dr) {
-    const r = d(20);
+  // A generic test: d20 + ability vs DR. r: a die already rolled (an Omen re-scores it at a lower DR).
+  function test(ability, dr, r = d(20)) {
     const total = r + ability;
     return { r, total, dr, ok: r !== 1 && (r === 20 || total >= dr), crit: r === 20, fumble: r === 1 };
   }
@@ -160,9 +159,9 @@ var Q = window.Q || (window.Q = {});
   // The wretch attacks: Strength test vs the foe's DR.
   // Natural 20 deals double damage. Natural 1 fumbles and the foe gets a free blow.
   // Every die is reported (dmgRoll, armorRoll) so the dice on screen show what was really rolled.
-  // opts: { ability, dr (overrides the foe's), drAdd, die (overrides the weapon), bonusDie, ignoreArmor }
+  // opts: { ability, dr (overrides the foe's), drAdd, die (overrides the weapon), bonusDie, ignoreArmor, r (a d20 already rolled) }
   function attack(pc, foe, opts = {}) {
-    const t = test(pc[opts.ability || 'strength'], (opts.dr || foe.dr) + (opts.drAdd || 0));
+    const t = test(pc[opts.ability || 'strength'], (opts.dr || foe.dr) + (opts.drAdd || 0), opts.r);
     if (t.fumble) return { kind: 'fumble', ...t };
     if (!t.ok) return { kind: 'miss', ...t };
     const die = opts.die || pc.weapon.die;

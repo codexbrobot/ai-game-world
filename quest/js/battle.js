@@ -63,7 +63,7 @@ var Q = window.Q || (window.Q = {});
       card.className = 'pc-card' + (pc.dead ? ' dead' : '') + (B.active === i ? ' active' : '') + (pc.row === 'back' ? ' row-back' : ' row-front');
       card.dataset.i = i;
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
-      const marks = `${pc.omenMax ? '<i title="next hit at maximum">▲</i>' : ''}${pc.omenWard ? '<i title="next wound turned aside">◆</i>' : ''}${pc.dazed ? '<i title="dazed">✶</i>' : ''}${pc.relic ? `<i title="${esc(Q.ITEMS[pc.relic].name)}">✠</i>` : ''}`;
+      const marks = `${pc.dazed ? '<i title="dazed">✶</i>' : ''}${pc.relic ? `<i title="${esc(Q.ITEMS[pc.relic].name)}">✠</i>` : ''}`;
       card.innerHTML = `<img src="${Q.portraitUrl(pc.name)}" alt="">
         <span class="pc-info"><span class="row-tag">${pc.row === 'back' ? 'Back' : 'Front'}${Q.classOf(pc) ? ` · ${esc(Q.classOf(pc).name)}` : ''}</span><b>${esc(pc.name)}</b>
         <span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span>
@@ -141,7 +141,6 @@ var Q = window.Q || (window.Q = {});
         Q.has(pc, 'rosary') ? { label: 'Scroll', value: 'scroll', disabled: true, note: 'the rosary forbids it' }
           : { label: 'Scroll', value: 'scroll', disabled: !B.inv.scrolls.length || pc.powers <= 0, note: B.inv.scrolls.length ? `${pc.powers} left` : 'none' },
         { label: 'Poultice', value: 'poultice', disabled: B.inv.poultices <= 0, note: `${B.inv.poultices}` },
-        { label: 'Omen', value: 'omen', disabled: pc.omens <= 0, note: `${pc.omens}` },
         { label: pc.row === 'back' ? 'Step forward' : 'Fall back', value: 'swap', disabled: !partner, note: partner ? `swap with ${short(partner)}` : 'alone' },
         Q.has(pc, 'heart') ? { label: 'Flee', value: 'flee', ghost: true, disabled: true, note: 'the heart won’t run' } : { label: 'Flee', value: 'flee', ghost: true },
       ], `${short(pc)}’s turn`);
@@ -175,17 +174,6 @@ var Q = window.Q || (window.Q = {});
       } else if (c.value === 'poultice') {
         const ally = await chooseAlly('Bind whose wounds?');
         if (ally) return { kind: 'poultice', ally };
-      } else if (c.value === 'omen') {
-        menu([
-          { label: 'Next hit: maximum damage', value: 'max', disabled: pc.omenMax },
-          { label: 'Turn aside the next wound', value: 'ward', disabled: pc.omenWard },
-          { label: 'Back', value: 'back', ghost: true },
-        ], `Spend an Omen (${pc.omens} left). It costs no time.`);
-        const o = await choose(['cmd']);
-        hideMenu();
-        if (o.value === 'max') { pc.omens -= 1; pc.omenMax = true; B.log(`<b class="yellow">Omen:</b> ${short(pc)}’s next hit will land with full force.`); }
-        if (o.value === 'ward') { pc.omens -= 1; pc.omenWard = true; B.log(`<b class="yellow">Omen:</b> the next wound to ${short(pc)} will miss its mark.`); }
-        renderParty();
       } else if (c.value === 'flee') {
         return { kind: 'flee' };
       }
@@ -211,6 +199,34 @@ var Q = window.Q || (window.Q = {});
     return c.kind === 'pc' ? B.party[c.value] : null;
   }
 
+  // ---------- Omens, spent after the dice ----------
+  // As in the rulebook, an Omen is spent once you see the roll: reroll any die, lower a test's DR by 4,
+  // deal maximum damage, or lower a wound by d6. The game offers one only when a roll has gone wrong
+  // and someone still has an Omen; the button sits on the dice for a moment and a tap anywhere else
+  // turns it down. The wretch who rolled pays if they can, otherwise their partner.
+  async function omen(pc, label) {
+    const payer = pc && !pc.dead && pc.omens > 0 ? pc : B.party.find((p) => !p.dead && p.omens > 0);
+    if (!payer || !Q.Dice) return null;
+    const pick = await Q.Dice.offer([{ label: `${label}<small>${esc(payer.name.split(' ')[0])}’s Omen · ${payer.omens} left</small>` }]);
+    if (pick !== 0) return null;
+    payer.omens -= 1;
+    sfx('cast');
+    renderParty();
+    return payer;
+  }
+
+  // A failed test: lower the DR by 4 if that is enough to pass, otherwise roll again.
+  async function rescue(pc, t, mod, Ab) {
+    if (t.ok) return t;
+    const close = !t.fumble && t.total + 4 >= t.dr;
+    const payer = await omen(pc, close ? 'Omen: lower the DR by 4' : 'Omen: roll again');
+    if (!payer) return t;
+    const t2 = close ? Q.test(mod, t.dr - 4, t.r) : Q.test(mod, t.dr);
+    B.log(`<b class="yellow">Omen:</b> ${short(payer)} ${close ? 'bends fate a little' : 'spits on the dice'}, and ${short(pc)} ${t2.ok ? 'passes' : 'still fails'}.`, t2.ok ? 'hit' : 'miss');
+    await throwDice({ dice: [D(20, t2.r, 'yellow', Ab)], verdict: t2.ok ? 'The Omen holds' : 'Fate is not moved', tone: t2.ok ? 'good' : 'bad', text: `${close ? 'Omen: DR −4' : 'Omen: rolled again'} · ${testText(Ab, t2, mod)}` });
+    return t2;
+  }
+
   // ---------- the wretches act ----------
   // A melee attack. opts (all optional): label, ability, dr, die, bonusDie, ignoreArmor, anyRow.
   async function swing(pc, f, riposte, opts = {}) {
@@ -224,10 +240,21 @@ var Q = window.Q || (window.Q = {});
     const ability = opts.ability || 'strength';
     const Ab = ability[0].toUpperCase() + ability.slice(1);
     const behind = pc.row === 'back' && !riposte && !opts.anyRow && B.party.some((p) => p !== pc && !p.dead);
-    const res = Q.attack(pc, f, { ...opts, drAdd: behind ? 2 : 0 });
+    let res = Q.attack(pc, f, { ...opts, drAdd: behind ? 2 : 0 });
     const label = opts.label || pc.weapon.name;
-    const verdict = { crit: 'Critical!', hit: 'Hit!', miss: 'Miss', fumble: 'Fumble!' }[res.kind];
-    await throwDice({ dice: [D(20, res.r, 'yellow', Ab)], verdict, tone: res.kind === 'hit' || res.kind === 'crit' ? 'good' : 'bad', text: `${short(pc)}${riposte ? ' ripostes' : opts.label ? ` · ${esc(opts.label)} on` : ' attacks'} ${the(f)}${behind ? ' from the back row' : ''} · ${testText(Ab, res, pc[ability])}` });
+    const verdictOf = (k) => ({ crit: 'Critical!', hit: 'Hit!', miss: 'Miss', fumble: 'Fumble!' }[k]);
+    const toneOf = (k) => (k === 'hit' || k === 'crit' ? 'good' : 'bad');
+    await throwDice({ dice: [D(20, res.r, 'yellow', Ab)], verdict: verdictOf(res.kind), tone: toneOf(res.kind), text: `${short(pc)}${riposte ? ' ripostes' : opts.label ? ` · ${esc(opts.label)} on` : ' attacks'} ${the(f)}${behind ? ' from the back row' : ''} · ${testText(Ab, res, pc[ability])}` });
+    if (res.kind === 'miss' || res.kind === 'fumble') {
+      // an Omen: lower the DR by 4 if that turns it into a hit, otherwise roll again
+      const close = res.kind === 'miss' && res.total + 4 >= res.dr;
+      const payer = await omen(pc, close ? 'Omen: lower the DR by 4 and hit' : 'Omen: roll again');
+      if (payer) {
+        res = Q.attack(pc, f, { ...opts, drAdd: (behind ? 2 : 0) - (close ? 4 : 0), r: close ? res.r : undefined });
+        B.log(`<b class="yellow">Omen:</b> ${short(payer)} ${close ? 'bends fate a little' : 'spits on the dice'}.`, 'hit');
+        await throwDice({ dice: [D(20, res.r, 'yellow', Ab)], verdict: verdictOf(res.kind), tone: toneOf(res.kind), text: `${close ? 'Omen: DR −4' : 'Omen: rolled again'} · ${testText(Ab, res, pc[ability])}` });
+      }
+    }
     const tag = `<span class="dim">(${Ab} d20 ${res.r}${pc[ability] ? Q.fmt(pc[ability]) : ''}=${res.total} vs DR ${res.dr})</span>`;
     if (res.kind === 'fumble') {
       B.log(`${short(pc)}’s ${esc(label)} goes wide. ${tag}`, 'miss');
@@ -257,6 +284,19 @@ var Q = window.Q || (window.Q = {});
     const rolled = res.dmgRoll + res.bonusRoll;
     const rolledText = opts.bonusDie ? `(${res.dmgRoll} + ${res.bonusRoll})` : rolled;
     await throwDice({ dice, verdict: res.dmg ? `${res.dmg} damage` : 'It glances off', tone: res.dmg ? 'good' : 'neutral', text: `${esc(label)} d${res.die}${opts.bonusDie ? ` + d${opts.bonusDie}` : ''}${opts.ignoreArmor ? ', through armor' : ''}${res.maxed ? ' (Omen: maximum)' : ''} · ${damageText(rolledText, res.kind === 'crit', res.absorbed, res.dmg)}` });
+    // an Omen for maximum damage, offered only when it would finish the foe and the roll didn't
+    const armorBack = f.armor && !opts.ignoreArmor ? res.armorRoll : 0;
+    const maxDmg = Math.max(0, (res.die + (opts.bonusDie || 0)) * (res.kind === 'crit' ? 2 : 1) - armorBack);
+    if (res.dmg < f.hp && maxDmg >= f.hp) {
+      const payer = await omen(pc, `Omen: maximum damage (${maxDmg}) and it dies`);
+      if (payer) {
+        res = { ...res, dmg: maxDmg, dmgRoll: res.die, bonusRoll: opts.bonusDie || 0, absorbed: Math.min(armorBack, maxDmg + armorBack), maxed: true };
+        B.log(`<b class="yellow">Omen:</b> ${short(payer)} calls the blow home: maximum damage.`, 'hit');
+        const maxDice = [D(res.die, res.die, 'yellow', 'Omen')];
+        if (opts.bonusDie) maxDice.push(D(opts.bonusDie, opts.bonusDie, 'yellow', 'Omen'));
+        await throwDice({ dice: maxDice, verdict: `${maxDmg} damage`, tone: 'good', text: 'Omen: maximum damage' });
+      }
+    }
     B.log(`${short(pc)}${opts.label ? `’s ${esc(opts.label)}` : ''} hits ${the(f)} for <b>${res.dmg}</b>${res.kind === 'crit' ? ' (CRITICAL)' : ''}. ${tag}`, res.kind === 'crit' ? 'crit' : 'hit');
     sfx(res.dmg ? 'hit' : 'land', { crit: res.kind === 'crit' });
     if (res.dmg > 0 && perk === 'hook') heal(pc, 1, 'The hook drinks');
@@ -342,8 +382,9 @@ var Q = window.Q || (window.Q = {});
 
   async function readScroll(pc, cmd) {
     pc.powers -= 1;
-    const r = Q.test(pc.presence, presDR(pc, Q.DR));
+    let r = Q.test(pc.presence, presDR(pc, Q.DR));
     await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'The words take hold' : 'The words turn to ash', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} reads the ${esc(Q.SCROLLS[cmd.key].name)} · ${testText('Presence', r, pc.presence)}` });
+    r = await rescue(pc, r, pc.presence, 'Presence');
     if (!r.ok) {
       pc.powers = 0;
       sfx('miss');
@@ -373,8 +414,9 @@ var Q = window.Q || (window.Q = {});
   }
 
   async function flee(pc) {
-    const r = Q.test(pc.agility, Q.DR);
+    let r = Q.test(pc.agility, Q.DR);
     await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'You get away!' : 'Cut off', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} leads the retreat · ${testText('Agility', r, pc.agility)}` });
+    r = await rescue(pc, r, pc.agility, 'Agility');
     B.log(r.ok ? `${short(pc)} finds a way out. You run.` : `${short(pc)} cannot find a way out.`, r.ok ? '' : 'miss');
     if (r.ok) sfx('flee');
     return r.ok;
@@ -398,8 +440,9 @@ var Q = window.Q || (window.Q = {});
     if (cmd.key === 'bite') return swing(pc, target(), false, { label: 'Bite', dr: 10, die: 6, ignoreArmor: true });
     if (cmd.key === 'lowblow') return swing(pc, target(), false, { label: 'Low Blow', ability: 'agility', bonusDie: 4, anyRow: true });
     if (cmd.key === 'wither') {
-      const r = Q.test(pc.presence, presDR(pc, Q.DR));
+      let r = Q.test(pc.presence, presDR(pc, Q.DR));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'The words rot' : 'The words fail', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} speaks ${name} · ${testText('Presence', r, pc.presence)}` });
+      r = await rescue(pc, r, pc.presence, 'Presence');
       if (!r.ok) { B.log(`${short(pc)} mutters the words of withering. Nothing rots.`, 'miss'); return; }
       const foes = alive();
       const rolls = foes.map(() => d(4) * (r.crit ? 2 : 1));
@@ -410,8 +453,9 @@ var Q = window.Q || (window.Q = {});
       return;
     }
     if (cmd.key === 'sacrament') {
-      const r = Q.test(pc.presence, presDR(pc, 10));
+      let r = Q.test(pc.presence, presDR(pc, 10));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? 'It is heard' : 'Silence', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} performs the ${name} · ${testText('Presence', r, pc.presence)}` });
+      r = await rescue(pc, r, pc.presence, 'Presence');
       if (!r.ok) { B.log(`${short(pc)} prays. Nothing below is listening.`, 'miss'); return; }
       const party = B.party.filter((p) => !p.dead);
       const heals = party.map(() => d(6));
@@ -424,8 +468,9 @@ var Q = window.Q || (window.Q = {});
     }
     if (cmd.key === 'command') {
       const f = target();
-      const r = Q.test(pc.presence, presDR(pc, f.dr));
+      let r = Q.test(pc.presence, presDR(pc, f.dr));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? `${f.def.plural ? 'They kneel' : 'It kneels'}` : 'Ignored', tone: r.ok ? 'good' : 'bad', text: `${short(pc)}: “Kneel.” · ${testText('Presence', r, pc.presence)}` });
+      r = await rescue(pc, r, pc.presence, 'Presence');
       if (r.ok) { f.stunned = true; sfx('cast'); B.log(`${the(f, true)} ${verb(f, 'falters', 'falter')} before ${short(pc)}’s voice and will lose ${f.def.plural ? 'their' : 'its'} next turn.`, 'hit'); }
       else B.log(`${the(f, true)} ${verb(f, 'does', 'do')} not kneel.`, 'miss');
       renderFoes();
@@ -433,8 +478,9 @@ var Q = window.Q || (window.Q = {});
     }
     if (cmd.key === 'toxin') {
       const f = target();
-      const r = Q.test(pc.agility, Q.DR);
+      let r = Q.test(pc.agility, Q.DR);
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'It shatters on them' : 'It misses', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} hurls a ${name} at ${the(f)} · ${testText('Agility', r, pc.agility)}` });
+      r = await rescue(pc, r, pc.agility, 'Agility');
       if (!r.ok) { B.log(`The flask smashes on the flagstones. The floor hisses.`, 'miss'); return; }
       const dmg = d(4);
       await throwDice({ dice: [D(4, dmg, 'pink', 'Poison')], verdict: `${dmg} damage`, tone: 'good', text: 'Graveyard tincture · d4 now, d4 every round' });
@@ -486,9 +532,22 @@ var Q = window.Q || (window.Q = {});
     if (!pc) return;
     flash(f.el, 'lunge', 400);
     sfx('voice', { kind: f.kind, dist: 1 });
-    const res = Q.defend(pc, f.die, drAdd + (Q.has(pc, 'mirror') ? 1 : 0));
-    const verdict = { riposte: 'Riposte!', dodge: 'Dodged', wound: 'Hit', fumble: 'Fumble!' }[res.kind];
-    await throwDice({ dice: [D(20, res.r, 'yellow', 'Defence')], verdict, tone: res.kind === 'riposte' || res.kind === 'dodge' ? 'good' : 'bad', text: `${the(f, true)} ${verb(f, 'attacks', 'attack')} ${short(pc)} · ${testText('Agility', res, pc.agility)}${why ? ` · ${why}` : ''}` });
+    const defDR = drAdd + (Q.has(pc, 'mirror') ? 1 : 0);
+    let res = Q.defend(pc, f.die, defDR);
+    const verdictOf = (k) => ({ riposte: 'Riposte!', dodge: 'Dodged', wound: 'Hit', fumble: 'Fumble!' }[k]);
+    const toneOf = (k) => (k === 'riposte' || k === 'dodge' ? 'good' : 'bad');
+    await throwDice({ dice: [D(20, res.r, 'yellow', 'Defence')], verdict: verdictOf(res.kind), tone: toneOf(res.kind), text: `${the(f, true)} ${verb(f, 'attacks', 'attack')} ${short(pc)} · ${testText('Agility', res, pc.agility)}${why ? ` · ${why}` : ''}` });
+    if (res.kind === 'wound' || res.kind === 'fumble') {
+      const close = res.kind === 'wound' && res.total + 4 >= res.dr;
+      const payer = await omen(pc, close ? 'Omen: lower the DR by 4 and dodge' : 'Omen: roll again');
+      if (payer) {
+        if (res.brokeArmor) { pc.armor.tier += 1; pc.armor.name = Q.ARMOR[pc.armor.tier].name; } // the fumble never happened
+        B.log(`<b class="yellow">Omen:</b> ${short(payer)} ${close ? 'bends fate a little' : 'spits on the dice'}.`, 'hit');
+        if (close) res = { ...res, kind: 'dodge', ok: true, dr: res.dr - 4 };
+        else res = Q.defend(pc, f.die, defDR);
+        await throwDice({ dice: [D(20, res.r, 'yellow', 'Defence')], verdict: verdictOf(res.kind), tone: toneOf(res.kind), text: `${close ? 'Omen: DR −4' : 'Omen: rolled again'} · ${testText('Agility', res, pc.agility)}` });
+      }
+    }
     if (res.kind === 'riposte') {
       B.log(`${short(pc)} slips the blow and strikes back!`, 'hit');
       await swing(pc, f, true);
@@ -518,8 +577,9 @@ var Q = window.Q || (window.Q = {});
       await wait(500);
       return true;
     }
-    const r = Q.test(pc.presence, presDR(pc, Q.DR));
+    let r = Q.test(pc.presence, presDR(pc, Q.DR));
     await throwDice({ dice: [D(20, r.r, 'yellow', 'Presence')], verdict: r.ok ? `${short(pc)} withstands it` : `${short(pc)} is struck`, tone: r.ok ? 'good' : 'bad', text: `${text} ${short(pc)} · ${testText('Presence', r, pc.presence)}` });
+    r = await rescue(pc, r, pc.presence, 'Presence');
     return r.ok;
   }
 
@@ -630,6 +690,17 @@ var Q = window.Q || (window.Q = {});
 
   // Damage to a wretch: at 0 HP they are Broken, below 0 they are dead.
   async function hurt(pc, dmg, cause) {
+    if (dmg > 0 && pc.hp - dmg <= 0) {
+      const payer = await omen(pc, `Omen: lower the wound by d6`);
+      if (payer) {
+        const r = d(6);
+        const before = dmg;
+        dmg = Math.max(0, dmg - r);
+        B.log(`<b class="yellow">Omen:</b> the wound to ${short(pc)} is lessened by ${r}.`, 'hit');
+        await throwDice({ dice: [D(6, r, 'yellow', 'Omen')], verdict: dmg ? `${short(pc)} −${dmg} HP` : 'No harm done', tone: dmg ? 'neutral' : 'good', text: `Omen: ${before} − d6 (${r}) = ${dmg}` });
+        if (!dmg) { renderParty(); return; }
+      }
+    }
     pc.hp -= dmg;
     flash(pc.el, 'hurt', 500);
     if (B.onHurt) B.onHurt();
@@ -641,6 +712,11 @@ var Q = window.Q || (window.Q = {});
         b = Q.broken(pc);
       }
       await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: `${short(pc)} is Broken · d4 · ${esc(b.text)}` });
+      if (b.dead && await omen(pc, 'Omen: roll the d4 again')) {
+        b = Q.broken(pc);
+        B.log('<b class="yellow">Omen:</b> death is asked to roll again.', 'hit');
+        await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: `Omen: rolled again · ${esc(b.text)}` });
+      }
       B.log(`<b>${short(pc)} is Broken.</b> ${esc(b.text)}`, 'hurt');
       if (b.dead) return kill(pc, cause);
       if (b.lostTurn) pc.dazed = true;
@@ -667,7 +743,7 @@ var Q = window.Q || (window.Q = {});
   Q.hurtWretch = async (pc, dmg, cause, hooks) => {
     // used outside battle (pits, fonts, falls): same rules, no battle screen
     const prev = B;
-    B = { party: [pc], foes: [], log: hooks.log, onHurt: hooks.onHurt, onChange: hooks.onChange };
+    B = { party: hooks.party || [pc], foes: [], log: hooks.log, onHurt: hooks.onHurt, onChange: hooks.onChange };
     try { await hurt(pc, dmg, cause); } finally { B = prev; }
   };
 
@@ -715,9 +791,14 @@ var Q = window.Q || (window.Q = {});
       B.log(`The Hand of Glory flares in ${short(glory)}’s grip: you move first.`, 'hit');
       await hurt(glory, 1, 'the Hand of Glory');
     } else {
-      const init = d(6);
+      let init = d(6);
       theyFirst = init <= 3;
       await throwDice({ dice: [D(6, init, 'bone', 'Initiative')], verdict: theyFirst ? 'They strike first' : 'You are quicker', tone: theyFirst ? 'bad' : 'good', text: 'd6: on 1–3 the enemy acts first' });
+      if (theyFirst && await omen(null, 'Omen: roll initiative again')) {
+        init = d(6);
+        theyFirst = init <= 3;
+        await throwDice({ dice: [D(6, init, 'bone', 'Initiative')], verdict: theyFirst ? 'They strike first' : 'You are quicker', tone: theyFirst ? 'bad' : 'good', text: 'Omen: rolled again' });
+      }
     }
     let outcome = B.party.every((p) => p.dead) ? 'lost' : B.foes.some((f) => f.hp > 0) ? null : 'won';
     for (let round = 1; !outcome; round++) {
@@ -794,6 +875,7 @@ var Q = window.Q || (window.Q = {});
   window.addEventListener('keydown', (e) => {
     if (!B || $('battle').hidden) return;
     if (!chooser) {
+      if (e.key.toLowerCase() === 'o' && Q.Dice) { e.preventDefault(); Q.Dice.accept(); return; }
       if ([' ', 'enter'].includes(e.key.toLowerCase()) && Q.Dice) { e.preventDefault(); Q.Dice.skip(); }
       return;
     }
@@ -821,6 +903,13 @@ var Q = window.Q || (window.Q = {});
     if (alive.length === 2 && alive[0].row === alive[1].row) { alive[0].row = 'front'; alive[1].row = 'back'; }
   }
   Q.fixRows = fixRows;
+
+  // A failed test outside battle (a pit): the same Omen offer.
+  Q.rescueTest = async (party, pc, t, mod, Ab, hooks) => {
+    const prev = B;
+    B = { party, foes: [], log: hooks.log, onChange: hooks.onChange };
+    try { return await rescue(pc, t, mod, Ab); } finally { B = prev; }
+  };
 
   Q.Battle = { run, active: () => !!B };
 })();

@@ -20,7 +20,8 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 |---|---|---|
 | Walk and strafe | drag the left half of the screen (a joystick appears) | W A S D |
 | Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
-| Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–5 |
+| Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–7 |
+| Spend an Omen when one is offered | tap the yellow button on the dice | O |
 | Pick a target | tap the foe | ← / → and Enter |
 | Hurry the dice | tap the dice | Space or Enter |
 | Map, party | the buttons at the bottom (or tap the mini-map) | M, P |
@@ -36,7 +37,7 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their
 - **Each floor has its own look**: the Undercroft is rough stone, ossuary walls and carved saints. The Weeping Vault is pale marble running with black tar, burial niches, a stone face that weeps, grave slabs underfoot, a ribbed vault overhead, black iron doors, and a colder, violet dark.
 - **Sound**: footsteps (wet in the Vault), dripping water, a low drone and moaning air below, wind and a far bell in town. A monster that spots you gives a dissonant sting and its own cry (squeaks, a groan, a rattle, a chant, a wail), and keeps calling while it hunts you, from the side it's on. Battles crunch, whoosh, ring on a critical and toll for the dead, and the dice clatter. Everything is made on the spot with Web Audio; there are no sound files.
 - **Monsters** wander the halls as groups. Once they see you, they hunt you; zombies are slow, rats are fast, and doors stop them all.
-- **Touching a group** shatters the screen into a turn-based battle, Final Fantasy style. Initiative is a d6; then each wretch picks Attack, their class ability, Scroll, Poultice, Omen, a change of row, or Flee, and the foes answer. Fleeing leaves the group stunned for a moment so you can get away, but it costs a day.
+- **Touching a group** shatters the screen into a turn-based battle, Final Fantasy style. Initiative is a d6; then each wretch picks Attack, their class ability, Scroll, Poultice, a change of row, or Flee, and the foes answer. Omens are spent after the dice land, not before (see the rules below). Fleeing leaves the group stunned for a moment so you can get away, but it costs a day.
 - **Rows**: one wretch stands in front, one behind. Foes go for the front wretch three times in four, and a melee attack from the back row is at DR +2. Swap in battle (it takes the turn) or from the party sheet.
 - **Monsters have tricks**: rats ignore the rows and swarm (each other pack of rats makes them harder to dodge), cultists curse anyone with Comet's Wrath (no armor helps) or heal each other, skeletons raise their fallen allies, and the Pale Abbess wakes at half HP: she tears off her crown, loses her armor, acts twice a round, tolls the Bell-Tongue at the whole party, and calls her dead guards back up.
 - **The Calendar of Nechrubel**: every night's sleep and every flight from a battle is a day lost. When the days run out a Misery comes to pass and makes the world worse (fatter rats, faster dead, dearer shops, fewer Omens, nastier wounds, a bloody gutter). The seventh Misery ends the world. The count is on the HUD (☄) and in town.
@@ -97,7 +98,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | Armor | Soaks d2 / d4 / d6. Some foes have armor too |
 | Initiative | d6 when a battle starts: 1–3 and they strike first |
 | Morale | Rats and cultists roll 2d6 against their morale when badly hurt, and may flee |
-| Omens | Spend one for maximum damage on your next hit, or to turn aside your next wound. Back to d2 after sleeping |
+| Omens | Spent after you see the roll, as in the rulebook. When a roll goes wrong and someone has an Omen, a button sits on the dice for two seconds (tap anywhere else, or wait, to carry on): a failed attack, Defence or test is rolled again, or its DR lowered by 4 if that's enough to pass; a hit that maximum damage would turn into a kill can deal maximum damage; a wound that would drop you to 0 is lowered by d6; a Dead result on the Broken table, or losing initiative, is rolled again. The wretch who rolled pays if they can, otherwise their partner. Back to d2 after sleeping |
 | Scrolls | Presence test DR 12, Presence + d4 uses a day. A failure leaves you unable to read more until you sleep |
 | 0 HP | Broken: d4 for blacking out, a broken bone or lost eye, haemorrhaging (bleeding), or death |
 | Below 0 HP | Dead. Hire a replacement at the inn; if both die, the save is gone |

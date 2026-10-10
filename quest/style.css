@@ -465,3 +465,15 @@ body.in-battle .hands { opacity: 0; }
 .title-small { gap: 8px; }
 .title-small button { margin-top: 10px; min-height: 36px; font-size: 13px; }
 #btnSound { margin-top: 10px; }
+
+/* ---------- an Omen, offered on the dice just thrown ---------- */
+.throw { flex-wrap: wrap; justify-content: center; }
+.omen-offer { flex: 1 0 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 6px; position: relative; }
+.omen-btn {
+  min-height: 46px; padding: 6px 16px; background: var(--yellow); color: var(--ink); box-shadow: 4px 4px 0 var(--pink);
+  font-weight: 900; text-transform: none; letter-spacing: 0.01em; font-size: 16px; animation: omenin 0.18s ease-out;
+}
+.omen-btn small { display: block; font-weight: 600; font-size: 11.5px; opacity: 0.8; }
+.omen-bar { display: block; height: 4px; width: min(16rem, 80%); background: var(--yellow); transform-origin: left; animation: omenbar linear forwards; }
+@keyframes omenbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes omenin { from { transform: scale(0.8); opacity: 0; } }

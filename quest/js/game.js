@@ -485,8 +485,9 @@
     if (t === 'p') {
       g[y][x] = '.';
       const pc = alive()[Math.floor(Math.random() * alive().length)];
-      const r = Q.test(pc.agility, Q.DR);
+      let r = Q.test(pc.agility, Q.DR);
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? `${short(pc)} leaps clear` : 'The floor gives way!', tone: r.ok ? 'good' : 'bad', text: `A hidden pit under ${short(pc)} · ${Q.testText('Agility', r, pc.agility)}` });
+      r = await Q.rescueTest(S.party, pc, r, pc.agility, 'Agility', { log, onChange: renderHud });
       if (r.ok) log(`The flagstone tilts. ${short(pc)} leaps clear.`);
       else {
         const dmg = d(6);
@@ -606,7 +607,7 @@
 
   async function hurt(pc, dmg, cause) {
     sfx('hurt');
-    await Q.hurtWretch(pc, dmg, cause, { log, onHurt: flashHurt, onChange: renderHud });
+    await Q.hurtWretch(pc, dmg, cause, { log, onHurt: flashHurt, onChange: renderHud, party: S.party });
     renderHud();
     if (!alive().length) gameOver(cause);
   }
@@ -875,6 +876,7 @@
       if (!S || S.where !== 'crawl') return;
       const k = e.key.toLowerCase();
       if (busy) {
+        if (k === 'o' && Q.Dice && !Q.Battle.active()) { e.preventDefault(); Q.Dice.accept(); }
         if ((k === ' ' || k === 'enter') && Q.Dice && !Q.Battle.active()) { e.preventDefault(); Q.Dice.skip(); }
         return;
       }

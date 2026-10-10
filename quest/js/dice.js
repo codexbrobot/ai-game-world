@@ -1,6 +1,8 @@
 // Dice that tumble onto the dungeon view and land on what was really rolled.
 // Q.Dice.roll(spec) throws them and resolves once the result has been on screen long enough to read;
 // a tap on the dice (or Q.Dice.skip()) hurries them along.
+// Q.Dice.offer(options) puts a button or two on the dice just thrown (an Omen) for a moment; it resolves
+// to the one tapped, or -1 if the moment passes or the player taps anywhere else.
 'use strict';
 var Q = window.Q || (window.Q = {});
 
@@ -24,6 +26,7 @@ var Q = window.Q || (window.Q = {});
 
   let layer = null;
   let current = null; // the throw in progress: { finish }
+  let offering = null; // an offer on the table: { done }
 
   const speed = () => (Q.speed === undefined ? 1 : Q.speed);
   const reduced = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -133,13 +136,61 @@ var Q = window.Q || (window.Q = {});
     });
   }
 
-  // Hurry the current throw: the dice land at once and the result shows briefly.
+  // Hurry the current throw: the dice land at once and the result shows briefly. With an offer
+  // on the table, a tap anywhere else turns it down.
   function skip() {
+    if (offering) { offering.done(-1); return; }
     if (current) current.finish(160 * speed());
+  }
+
+  // A reaction to the dice on the table: options are [{ label }]. A bar runs down; when it empties the
+  // offer is gone. Resolves to the index tapped, or -1.
+  const OFFER_MS = 2000;
+  function offer(options, ms = OFFER_MS) {
+    if (offering) offering.done(-1);
+    if (!layer || layer.hidden || !options.length) return Promise.resolve(-1);
+    if (speed() === 0) return Promise.resolve(Q.autoOmen ? 0 : -1); // tests
+    const throwEl = layer.querySelector('.throw');
+    if (!throwEl) return Promise.resolve(-1);
+    const box = document.createElement('div');
+    box.className = 'omen-offer';
+    const bar = document.createElement('i');
+    bar.className = 'omen-bar';
+    bar.style.animationDuration = ms + 'ms';
+    return new Promise((resolve) => {
+      let timer = null;
+      const done = (i) => {
+        if (!offering || offering.done !== done) return;
+        offering = null;
+        clearTimeout(timer);
+        box.remove();
+        layer.classList.remove('rolling', 'offering');
+        resolve(i);
+      };
+      options.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'omen-btn';
+        b.innerHTML = o.label;
+        b.addEventListener('click', (e) => { e.stopPropagation(); done(i); });
+        box.appendChild(b);
+      });
+      box.appendChild(bar);
+      throwEl.appendChild(box);
+      layer.classList.add('rolling', 'offering');
+      offering = { done };
+      timer = setTimeout(() => done(-1), ms);
+      if (Q.Sound) Q.Sound.play('land');
+    });
+  }
+  // The keyboard's way to take the first option.
+  function accept() {
+    if (offering) offering.done(0);
   }
 
   // Take the dice off the table.
   function clear() {
+    if (offering) offering.done(-1);
     if (!layer || layer.hidden) return;
     if (current) current.finish(0);
     layer.classList.add('leaving');
@@ -152,5 +203,5 @@ var Q = window.Q || (window.Q = {});
     }, 220 * speed());
   }
 
-  Q.Dice = { init, roll, skip, clear };
+  Q.Dice = { init, roll, skip, clear, offer, accept, get offering() { return !!offering; } };
 })();
