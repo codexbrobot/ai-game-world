@@ -83,9 +83,9 @@ ART = {
                        prompt=f'a colossal statue of a veiled nun saint in heavy hooded robes covering her whole body, carved from white salt, '
                               f'arms raised over her head holding up a rock ceiling, solemn face, pickaxe gouges in the base, front view, {ISOLATED}, {STYLE}'),
     'bell': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
-                 prompt=f'a huge cracked bronze church bell fallen on its side on the ground, front view, {ISOLATED}, {STYLE}'),
+                 prompt=f'a single large old bronze bell lying on its side, cracked, its clapper hanging out, close-up still life of one object, {ISOLATED}, {STYLE}'),
     'saltcart': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
-                     prompt=f'an old wooden mine cart on iron rails heaped with glittering rock salt, front view, {ISOLATED}, {STYLE}'),
+                     prompt=f'a small iron minecart heaped with white rock salt crystals, on rails, close-up still life of one object, {ISOLATED}, {STYLE}'),
     # Skarnvik's harbor at night: the drowned walking up out of the sea, looking for their houses
     'drowned': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                     prompt=f'full body illustration of a bloated drowned fisherman risen from the sea, tangled in a torn fishing net, '
@@ -294,7 +294,7 @@ SEEDS = {
     'facade-timber': 1, 'front-inn': 1, 'facade-stone': 3, 'front-stall': 3, 'npc-stranger': 2, 'facade-derelict': 1, 'gallows': 2, 'board': 1, 'npc-preacher': 2, 'npc-fisher': 1,
     'front-church': 1, 'front-manor': 3, 'front-home': 1, 'npc-priest': 1, 'front-watchhouse': 1, 'front-crypthouse': 2, 'front-exchange': 1, 'npc-watchman': 2, 'npc-beggar': 3, 'npc-gravedigger': 2, 'tombstones': 1, 'dead-tree': 2,
     'drowned': 2, 'npc-freed': 3, 'npc-widow': 1,
-    'overseer': 2,
+    'overseer': 2, 'cutter': 2, 'saltwight': 1, 'front-belldoor': 2,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,

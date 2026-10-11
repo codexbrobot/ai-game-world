@@ -580,7 +580,7 @@ He leans close. <em>“The salt down there is warm. Salt isn’t warm. Think abo
           { key: 'force', label: 'Force it', note: 'Strength DR 16' },
           { key: 'go', label: 'Leave it' },
         ];
-        const key = opts[await dm.say('A little door in the hill', `Behind the graves, half under ivy, a low iron door is set into the hill itself, with a bell carved in the stone above it. Rust has run down from the hinges like old blood.
+        const key = opts[await dm.say('A little door in the hill', `Behind the graves, half under ivy, an old arched door is set into the stone of the hill itself. Rust has run down from its hinges like old blood.
 
 It doesn’t move.${dm.flag('seekAgne') ? ' <em>The bell-ringers’ way into Church Hill.</em>' : ''}`, opts)].key;
         if (key === 'go') return;
