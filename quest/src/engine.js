@@ -887,7 +887,8 @@ export function createWorld(container, hooks) {
       light.position.y = 1.1;
       g.add(light);
     }
-    // a prop can shine: { color, power, at } (at: how far up it, in its own heights)
+    // a prop can glow (a saint of white salt in the dark) and shine: { color, power, at } (at: how far up it)
+    if (u && u.prop && u.prop.glow) mesh.material.emissive.setHex(u.prop.glow);
     if (u && u.prop && u.prop.light) {
       const L = u.prop.light;
       const light = new THREE.PointLight(L.color, L.power || 4, L.range || 9, 1.2);

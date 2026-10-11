@@ -345,13 +345,13 @@ var Q = window.Q || (window.Q = {});
       theme: {
         walls: [['wall-stone', 4], ['wall-ossuary', 3], ['wall-relief', 2]],
         riser: 'wall-stone', floor: 'floor', ceiling: 'ceiling', door: 'door',
-        sky: 0x6a5f58, ground: 0x0c0a0a, fog: 0x050404, ceilingTint: 0x8a8070,
+        sky: 0x6a5f58, ground: 0x0c0a0a, fog: 0x050404, ceilingTint: 0x8a8070, fogNear: 4, fogFar: 26,
         water: -1.3, waterTint: 0x0a0607,
         // below the descent, everything is salt
         zones: [{ rect: [0, 9, 29, 23], walls: [['wall-salt', 5], ['wall-stone', 1]], floor: 'floor-salt', ceiling: 'wall-salt', riser: 'wall-salt' }],
       },
       uses: {
-        A: { prop: { art: 'saint-agne', h: 5.9, aspect: 0.5, light: { color: 0xffd9e4, power: 7, range: 16, at: 0.55 } }, name: 'Saint Agne', scene: 'agne', mark: '✝' },
+        A: { prop: { art: 'saint-agne', h: 5.9, aspect: 0.5, glow: 0xc8beb0, light: { color: 0xffd9e4, power: 9, range: 18, at: 0.55 } }, name: 'Saint Agne', scene: 'agne', mark: '✝' },
         B: { prop: { art: 'bell', h: 1.5, aspect: 4 / 3 }, name: 'The bell-ringers’ bell', scene: 'bell', mark: '◉' },
         Y: { prop: { art: 'saltcart', h: 1.3, aspect: 4 / 3 }, name: 'A cart of salt', scene: 'cart' },
       },

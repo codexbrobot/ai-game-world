@@ -79,10 +79,11 @@ ART = {
     'overseer': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                      prompt=f'full body illustration of a huge brutal mine overseer in a long pale coat, a lantern on a pole in one hand and '
                             f'a coiled whip in the other, a rolled writ with a red wax seal in his belt, standing, facing the viewer, {ISOLATED}, {STYLE}'),
-    'saint-agne': dict(kind='sprite', size=(384, 768), out=(384, 768), seed=None,
-                       prompt=f'a colossal statue of a veiled nun saint in heavy hooded robes covering her whole body, carved from white salt, '
-                              f'arms raised over her head holding up a rock ceiling, solemn face, pickaxe gouges in the base, front view, {ISOLATED}, {STYLE}'),
-    'bell': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
+    # drawn first as a column with arms raised to a slab of rock, so she comes out a pillar, not a pin-up
+    'saint-agne': dict(kind='sprite', size=(384, 768), out=(384, 768), seed=None, init='saint', strength=0.62,
+                       prompt=f'a tall statue of a hooded nun saint in a long straight robe like a stone column, arms raised holding up '
+                              f'a slab of rock, carved from white salt, the base hacked with pickaxe marks, front view, {ISOLATED}, {STYLE}'),
+    'bell': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None, rotate=-100,
                  prompt=f'a single large old bronze bell lying on its side, cracked, its clapper hanging out, close-up still life of one object, {ISOLATED}, {STYLE}'),
     'saltcart': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
                      prompt=f'a small iron minecart heaped with white rock salt crystals, on rails, close-up still life of one object, {ISOLATED}, {STYLE}'),
@@ -141,9 +142,9 @@ ART = {
     'gaol-door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='celldoor', strength=0.6,
                       prompt=f'close-up of a heavy iron prison cell door with rivets and a small barred window, in a stone wall, {FLAT}'),
     # Saint Agne's Hollow, under Church Hill: rock salt that bleeds pink where it's cut, and a salt floor.
-    'wall-salt': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='salt', strength=0.6, veins=4, mid=0.42,
+    'wall-salt': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='salt', strength=0.6, veins=4, mid=0.3, k=3.2, light=BONE,
                       prompt=f'close-up of a white salt mine wall with wavy layered strata and pickaxe marks, {FLAT}'),
-    'floor-salt': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='saltfloor', strength=0.58, veins=2, mid=0.45,
+    'floor-salt': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='saltfloor', strength=0.58, veins=2, mid=0.35, k=3.5, light=BONE,
                        prompt=f'close-up of a trampled floor of grey white rock salt with cracks and grit, {FLAT}'),
     # --- Skarnvik, the city ---
     # House fronts, one per street square: drawn as a flat layout (storeys, timber, door, windows, roof),
@@ -294,7 +295,7 @@ SEEDS = {
     'facade-timber': 1, 'front-inn': 1, 'facade-stone': 3, 'front-stall': 3, 'npc-stranger': 2, 'facade-derelict': 1, 'gallows': 2, 'board': 1, 'npc-preacher': 2, 'npc-fisher': 1,
     'front-church': 1, 'front-manor': 3, 'front-home': 1, 'npc-priest': 1, 'front-watchhouse': 1, 'front-crypthouse': 2, 'front-exchange': 1, 'npc-watchman': 2, 'npc-beggar': 3, 'npc-gravedigger': 2, 'tombstones': 1, 'dead-tree': 2,
     'drowned': 2, 'npc-freed': 3, 'npc-widow': 1,
-    'overseer': 2, 'cutter': 2, 'saltwight': 1, 'front-belldoor': 2,
+    'overseer': 2, 'cutter': 2, 'saltwight': 1, 'front-belldoor': 2, 'wall-salt': 5, 'floor-salt': 5, 'bell': 5, 'saltcart': 4, 'saint-agne': 9,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
@@ -637,6 +638,26 @@ def layout(kind, size, seed_name):
             ln = rnd.uniform(10, 34)
             a = rnd.uniform(-1.2, -0.6) if rnd.random() < 0.6 else rnd.uniform(0.6, 1.2)
             d.line([(x, y), (x + math.cos(a) * ln, y + math.sin(a) * ln)], fill=rnd.randint(40, 90), width=rnd.randint(2, 4))
+    elif kind == 'saint':
+        d.rectangle([0, 0, w, h], fill=238)
+        d.polygon([(w * 0.04, h * 0.02), (w * 0.96, h * 0.03), (w * 0.92, h * 0.1), (w * 0.08, h * 0.09)], fill=105)   # the rock she holds
+        for side in (-1, 1):                                                                                   # arms up, in sleeves
+            cx = w * 0.5
+            d.polygon([(cx + side * w * 0.12, h * 0.3), (cx + side * w * 0.22, h * 0.29), (cx + side * w * 0.33, h * 0.1), (cx + side * w * 0.24, h * 0.09)], fill=165)
+            d.ellipse([cx + side * w * 0.285 - 16, h * 0.075, cx + side * w * 0.285 + 16, h * 0.115], fill=200)    # hands on the rock
+        d.ellipse([w * 0.38, h * 0.14, w * 0.62, h * 0.29], fill=150)                                          # the hood
+        d.ellipse([w * 0.43, h * 0.17, w * 0.57, h * 0.27], fill=205)                                          # the face
+        d.polygon([(w * 0.33, h * 0.27), (w * 0.67, h * 0.27), (w * 0.7, h * 0.88), (w * 0.3, h * 0.88)], fill=178)  # the robe, a column
+        for k in range(7):                                                                                     # straight folds
+            x = w * (0.35 + 0.05 * k)
+            d.line([(x, h * 0.32), (x + (k - 3) * 2, h * 0.86)], fill=135, width=4)
+        pts = [(w * 0.3, h * 0.88)]                                                                            # hacked away below
+        for k in range(1, 9):
+            pts.append((w * (0.3 + 0.05 * k), h * (0.86 + (0.05 if k % 2 else 0.0) + rnd.uniform(-0.01, 0.01))))
+        d.polygon(pts + [(w * 0.7, h * 0.88), (w * 0.7, h * 0.97), (w * 0.3, h * 0.97)], fill=190)
+        for _ in range(10):                                                                                    # pick gouges
+            x, y = rnd.uniform(w * 0.3, w * 0.7), rnd.uniform(h * 0.8, h * 0.96)
+            d.line([(x, y), (x + rnd.uniform(-14, 14), y + rnd.uniform(6, 16))], fill=80, width=4)
     elif kind == 'rat':
         d.rectangle([0, 0, w, h], fill=242)
         cy = h * 0.62
@@ -1088,10 +1109,14 @@ def grade(name, img, seed=None):
         bbox = res.getchannel('A').point(lambda a: 255 if a > 24 else 0).getbbox()
         if bbox:
             res = res.crop(bbox)
+        if spec.get('rotate'):
+            # laid down: a fallen bell
+            res = res.rotate(spec['rotate'], expand=True, resample=Image.BICUBIC)
+            res = res.crop(res.getchannel('A').point(lambda a: 255 if a > 24 else 0).getbbox())
         return _fit(res, spec['out'], anchor='bottom')
     if kind == 'texture':
-        t = _contrast(lum, k=6.5, mid=spec.get('mid', 0.55), gamma=1.15)
-        out = _duotone(t, INK, STONE)
+        t = _contrast(lum, k=spec.get('k', 6.5), mid=spec.get('mid', 0.55), gamma=1.15)
+        out = _duotone(t, INK, spec.get('light', STONE))
         out = _accents(rgb, out, 0.8)
         if spec.get('drips') or spec.get('tears'):
             out = _drips(out, spec, seed)
