@@ -233,6 +233,7 @@ Nobody else is going to mourn ${n}.`, [
           await dm.say(`The cell of ${n}`, 'You back out into the corridor. The water closes over the footprints you made.', [{ label: 'Go on' }]);
           return;
         }
+        dm.flag(pick === 0 ? 'mourned' : 'tookBoots', true);
         if (pick === 0) {
           const pc = dm.party.slice().sort((a, b) => a.omens - b.omens)[0];
           dm.omen(pc);
@@ -260,6 +261,7 @@ A hand comes through the grille, grey and shaking.`, [
           { label: 'Leave him' },
         ]);
         if (pick === 2) {
+          dm.flag('leftHim', true);
           await dm.say('A voice from the cell', 'You walk away. His voice follows you down the corridor for a long time, cursing you by name, and then by the names of your mothers.', [{ label: 'Go on' }]);
           return;
         }
@@ -385,7 +387,9 @@ Then he straightens up and starts screaming again.`, [{ label: 'Go on' }]);
           { key: 'eel', label: 'Buy a smoked eel', note: '2s: 1 HP each', disabled: dm.silverLeft < 2 },
           { key: 'go', label: 'Walk on' },
         ];
-        const pick = await dm.say('A fishwife', first
+        const pick = await dm.say('A fishwife', dm.hour === 'night'
+          ? 'The fishwife is hauling her boat up the street on a rope, fast, looking back over her shoulder at the water. <em>“Are you mad? Get indoors! They’re up!”</em>'
+          : first
           ? `A fishwife stands shin-deep in what used to be the fish market, gutting something that is still moving. <em>“Three streets,”</em> she says, without looking up. <em>“The sea’s come up three streets since spring. And the Salt Lords say it’s the tide.”</em>`
           : '<em>“You again. Buying, or gawping?”</em>', opts);
         const key = opts[pick].key;
@@ -405,16 +409,24 @@ Then he straightens up and starts screaming again.`, [{ label: 'Go on' }]);
       id: 'gallows', floor: 'skarnvik',
       async run(dm) {
         const sung = dm.flag('hangedSong');
+        const name = dm.flag('livingName');
+        const left = dm.flag('sawDawn') && (dm.flag('promised') || dm.flag('leftHim')) && !dm.flag('freed');
+        const third = !left ? ''
+          : dm.flag('hangedLaid') ? '\n\nThe third rope is gone. Somebody burned it, and the ash has washed away.'
+            : dm.hour === 'night' ? '\n\nThe third rope hangs empty, swinging, and the noose has been cut. From the inside.'
+              : dm.party.some((p) => p.gaol)
+                ? `\n\nOn a third rope, new since you came up out of the Brine: <em>${name}</em>. The Salt Lords’ men went down after you got out, and found him where you left him.`
+                : '\n\nOn a third rope, new: a man with shackle-scars on his wrists. They say he was the last one left alive in the Brine.';
         const opts = [
           ...(sung ? [] : [{ key: 'listen', label: 'Listen to the humming', note: 'Presence DR 12' }]),
           { key: 'posters', label: 'Read the posters nailed to the gallows' },
           { key: 'go', label: 'Walk on' },
         ];
         const pick = await dm.say('The gallows', sung
-          ? 'The hanged men turn in the rain. The one on the right is silent now, and his face is turned toward the harbor.'
+          ? 'The hanged men turn in the rain. The one on the right is silent now, and his face is turned toward the harbor.' + third
           : `Two hanged men turn slowly in the rain, and a crow works at one of them. The ropes creak.
 
-The one on the right is <em>humming</em>, very softly: a work song you half remember from the cells, the one the old miners sang.`, opts);
+The one on the right is <em>humming</em>, very softly: a work song you half remember from the cells, the one the old miners sang.${third}`, opts);
         const key = opts[pick].key;
         if (key === 'listen') {
           const pc = dm.best('presence');
@@ -522,6 +534,126 @@ He leans close. <em>“The salt down there is warm. Salt isn’t warm. Think abo
           '<em>SAINT AGNE’S BELL-RINGER. THE BELL IS SILENT NOW.</em>',
         ];
         await dm.say('Old graves', lines[dm.d(lines.length) - 1], [{ label: 'Step back' }]);
+      },
+    },
+    // ---------- what the Brine Gaol left behind ----------
+    {
+      // the one you broke out of his cell, hiding in the Gutter (js/data.js: only once he's freed)
+      id: 'freed', floor: 'skarnvik',
+      async run(dm, first) {
+        const name = dm.flag('freed');
+        const knows = dm.party.some((p) => p.gaol);
+        const opts = [
+          { key: 'know', label: 'Ask what he knows' },
+          ...(dm.flag('freedPaid') ? [] : [{ key: 'stash', label: knows ? '“You said you owed us.”' : 'Ask about the two who got him out' }]),
+          ...(dm.deadSlot ? [{ key: 'join', label: 'Ask him to come with you', note: 'he takes the dead one’s place' }] : []),
+          { key: 'go', label: 'Walk on' },
+        ];
+        const intro = !first ? `${name} is still in his corner of the Gutter, out of the rain, with his rat on a string.`
+          : knows ? `A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: <em>${name}</em>, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.
+
+<em>“You got out! I knew you would. I told everyone you would. Nobody believed me, because there’s nobody up here who was ever down there.”</em>`
+            : `A man in a stolen cloak watches you from a corner of the Gutter. Shackle-scars on both wrists. <em>“You’re asking about the two who came up out of the Brine,”</em> he says. <em>“They got me out. They’re dead now, aren’t they.”</em>
+
+He spits. <em>“I’m ${name}. If you’re finishing what they started, I’ll help.”</em>`;
+        const key = opts[await dm.say(first && !knows ? 'A man in a stolen cloak' : name, intro, opts)].key;
+        if (key === 'know') {
+          dm.flag('bellStair', true);
+          await dm.say(name, `<em>“I said I know where they put everything. I do.”</em> He counts on his fingers.
+
+<em>“One: the Brine is where they put the diggers from the Deep Mine, once the diggers started talking. About the salt, and what was singing under it.”</em>${dm.flag('ledger') ? ' It is what the Gaol ledger said.' : ''}
+
+<em>“Two: the saints. They took the old saint out of her tomb behind the basilica last spring, out the front, with a wagon. But the bell-ringers had their own way into that hill, older than the tomb: <b>the bell-ringer’s stair</b>. Nobody watches it. Nobody remembers it but old lags like me.”</em>`, [{ label: 'Go on' }]);
+        } else if (key === 'stash') {
+          dm.flag('freedPaid', true);
+          await dm.say(name, `<em>“Before they took me, I hid something where the watch would never look: in the watch-house wall.”</em> He is gone a long time, and comes back with something wrapped in a rag.
+
+<em>“${knows ? 'For getting me out.' : 'For them. For you, then.'}”</em>`, [{ label: 'Unwrap it' }]);
+          await dm.item('relic');
+        } else if (key === 'join') {
+          const pc = dm.recruit(name, 'scum');
+          dm.flag('freedJoined', true);
+          await dm.say(name, `<em>“Thought you’d never ask.”</em> He finishes the bottle and keeps the rat. ${pc ? dm.name(pc) : name} takes the dead one’s place.`, [{ label: 'Go on' }]);
+          dm.refreshCity();
+        }
+      },
+    },
+    {
+      // the family of the one you knew across the corridor, waiting at her door in Lantern Row
+      id: 'kin', floor: 'skarnvik',
+      async run(dm) {
+        const n = dm.flag('knownName');
+        const he = dm.flag('knownShe') === 'he';
+        const [He, heL, his, him] = he ? ['He', 'he', 'his', 'him'] : ['She', 'she', 'her', 'her'];
+        const rel = { 'Old Sigrun': 'daughter', 'Matthis the Cook': 'wife', 'Little Ragna': 'mother', 'Grey Ottar': 'sister' }[n] || 'sister';
+        const title = `${n}’s ${rel}`;
+        const knew = dm.party.some((p) => p.gaol);
+        if (dm.flag('kinDone')) {
+          await dm.say(title, dm.flag('kinCursed') ? `${title} watches you pass from her doorway, and doesn’t blink until you’re gone.` : `${title} is at her door with her candle, as always. She nods to you.`, [{ label: 'Walk on' }]);
+          return;
+        }
+        const clue = async () => {
+          dm.flag('kinDone', true);
+          dm.flag('saltBleeds', true);
+          await dm.say(title, `<em>“${He} dug in the Deep Mine, before. Came home white with salt and wouldn’t sleep. Said the salt down there was warm, and it bled when you cut it, and at night it sang. ${He} said so to the wrong people. That’s why they put ${him} in the Brine.”</em>`, [{ label: 'Go on' }]);
+        };
+        if (!knew) {
+          const pick = await dm.say('A woman in mourning black', `A woman in mourning black stands at her door with a lit candle. <em>“They say two came up out of the Brine Gaol. Did they say anything about ${n}? ${He} was my ${{ daughter: 'mother', wife: 'husband', mother: 'child', sister: 'brother' }[rel] || 'family'}.”</em>`,
+            [{ label: 'Tell her what you heard' }, { label: 'Walk on' }]);
+          if (pick !== 0) return;
+          await dm.say(title, `<em>“${He} drowned in ${his} chains.”</em> She nods. She already knew. She wanted somebody to say it.`, [{ label: 'Go on' }]);
+          await clue();
+          return;
+        }
+        const opts = [
+          dm.flag('mourned') ? { key: 'eyes', label: `Tell her how you closed ${his} eyes` } : { key: 'dead', label: `Tell her ${heL} is dead` },
+          { key: 'go', label: 'Say nothing, and walk on' },
+        ];
+        const key = opts[await dm.say('A woman in mourning black', `A woman in mourning black stands at her door with a lit candle, as if she has been waiting there a long time. She looks at your faces, and then at your wrists.
+
+<em>“You came up out of the Brine. Everyone knows. Did you know ${n}? I’m ${his} ${rel}.”</em>`, opts)].key;
+        if (key === 'go') return;
+        if (key === 'eyes') {
+          const pc = dm.party.slice().sort((a, b) => a.omens - b.omens)[0];
+          await dm.say(title, `You tell her all of it: the cell, the chains, the water to the chin, the eyes you closed. You leave out what happened after.
+
+She weeps without a sound. <em>“Then ${heL} wasn’t alone.”</em> She presses something into ${dm.name(pc)}’s hand: the one thing of ${his} she kept.`, [{ label: 'Take it' }]);
+          await dm.item('relic');
+          await clue();
+          return;
+        }
+        if (!dm.flag('tookBoots')) {
+          await dm.say(title, `<em>“${He} drowned in ${his} chains.”</em> She already knew. She has been in black since the spring. But she wanted somebody to say it.`, [{ label: 'Go on' }]);
+          await clue();
+          return;
+        }
+        const back = await dm.say(title, `<em>“${He} drowned in ${his} chains.”</em> She looks down. At your feet. At the boots.
+
+<em>“I made those boots,”</em> she says. <em>“I made those boots for ${him}.”</em>`, [{ label: 'Give them back' }, { label: 'Walk away' }]);
+        if (back === 0) {
+          dm.flag('bootsBack', true);
+          await dm.say(title, 'You take them off and stand in the rain in your bare feet while she holds them like a child. Then, because you gave them back, she tells you why they took her.', [{ label: 'Go on' }]);
+          await clue();
+          return;
+        }
+        dm.flag('kinDone', true);
+        dm.flag('kinCursed', true);
+        for (const pc of dm.party) dm.loseOmen(pc);
+        await dm.say(title, 'She says a word after you, an old word, from before the Salt Lords. Something in the rain hears it. <em>Each of you loses an Omen.</em>', [{ label: 'Walk on' }]);
+      },
+    },
+    {
+      // the one you left in the Brine, hanged for it, come down off the gallows at night (js/game.js: meet)
+      id: 'hangedman', floor: 'skarnvik',
+      async run(dm) {
+        const name = dm.flag('livingName');
+        const knew = dm.party.some((p) => p.gaol);
+        const words = !knew ? '<em>“Where are they?”</em> he says, with no breath at all. <em>“The two who left me. Where are they?”</em> He doesn’t wait for an answer.'
+          : dm.flag('promised') ? '<em>“You said you’d come back,”</em> he says, with no breath at all. <em>“You said.”</em>'
+            : '<em>“You walked away,”</em> he says, with no breath at all. <em>“I heard you walk away.”</em>';
+        await dm.say(name, `Out of the rain comes a man with a rope round his neck and the cut end dragging behind him. His face is black. His bare feet point the wrong way.
+
+It is ${name}, from the cell down the corridor in the Brine. ${words}`, [{ label: 'Fight' }]);
       },
     },
     {

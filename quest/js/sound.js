@@ -169,6 +169,24 @@ var Q = window.Q || (window.Q = {});
     },
   };
 
+  Object.assign(VOICES, {
+    // the harbor dead: a throat full of the sea, bubbling
+    drowned(d, t) {
+      tone(d, t, { type: 'sawtooth', f: rnd(70, 85), f2: rnd(55, 62), glide: 1.4, d: 1.3, a: 0.2, gain: 0.16, lp: 450, q: 8, vib: 9, vibDepth: 0.08 });
+      for (let i = 0; i < 7; i++) tone(d, t + 0.15 + i * rnd(0.07, 0.14), { type: 'sine', f: rnd(260, 520), f2: rnd(600, 900), glide: 0.04, d: 0.05, gain: 0.07 });
+    },
+    // the watch: a bark, and mail shifting
+    watch(d, t) {
+      tone(d, t, { type: 'square', f: rnd(150, 175), f2: rnd(120, 135), d: 0.32, a: 0.02, gain: 0.08, lp: 900, q: 3 });
+      for (let i = 0; i < 5; i++) noise(d, t + 0.3 + i * rnd(0.03, 0.06), { filter: 'highpass', f: rnd(3000, 5000), d: 0.03, gain: 0.12 });
+    },
+    // the hanged man: the rope creaks, and a voice with no breath behind it
+    hanged(d, t) {
+      for (let i = 0; i < 3; i++) tone(d, t + i * 0.22, { type: 'sawtooth', f: rnd(330, 380), f2: rnd(280, 300), d: 0.18, a: 0.05, gain: 0.05, lp: 1400, q: 12 });
+      noise(d, t + 0.7, { filter: 'bandpass', f: 900, q: 6, d: 1.1, a: 0.3, gain: 0.14 });
+    },
+  });
+
   const FX = {
     // footsteps: a scuff and a thump; wet in the Vault
     step(o) {

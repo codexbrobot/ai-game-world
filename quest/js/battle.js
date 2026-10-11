@@ -47,7 +47,7 @@ var Q = window.Q || (window.Q = {});
       card.dataset.i = i;
       const marks = `${f.stunned ? ' · kneels' : ''}${f.poison ? ' · poisoned' : ''}${f.raised && f.hp > 0 ? ' · risen' : ''}`;
       const health = Q.anyHas(B.party, 'eye') ? `${f.hp}/${f.maxHp} HP` : Q.healthWord(f.hp, f.maxHp);
-      card.innerHTML = `<img src="${Q.assetUrl(f.kind)}" alt=""><span class="foe-label"><b>${esc(f.name)}</b><small>${f.hp > 0 ? health + marks : f.fled ? 'Fled' : 'Dead'}</small></span>`;
+      card.innerHTML = `<img src="${Q.assetUrl(f.def.art || f.kind)}" alt=""><span class="foe-label"><b>${esc(f.name)}</b><small>${f.hp > 0 ? health + marks : f.fled ? 'Fled' : 'Dead'}</small></span>`;
       card.disabled = f.hp <= 0;
       card.addEventListener('click', () => pick('foe', i));
       row.appendChild(card);
@@ -266,7 +266,7 @@ var Q = window.Q || (window.Q = {});
     // a unique weapon's quirks, when it's the weapon doing the work (not a Bite)
     const usesWeapon = !opts.die;
     const perk = usesWeapon ? pc.weapon.key : null;
-    const undead = ['zombie', 'skeleton', 'abbess', 'guard', 'prisoner', 'warden'].includes(f.kind);
+    const undead = ['zombie', 'skeleton', 'abbess', 'guard', 'prisoner', 'warden', 'drowned', 'hanged'].includes(f.kind);
     if (perk === 'saint' && undead && !opts.bonusDie) opts = { ...opts, bonusDie: 6 };
     if (perk === 'plank' && !opts.bonusDie) opts = { ...opts, bonusDie: 4 };
     if (perk === 'gorgh') opts = { ...opts, ignoreArmor: true };

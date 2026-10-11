@@ -215,6 +215,10 @@ var Q = window.Q || (window.Q = {});
         y: { prop: { art: 'dead-tree', h: 4.4 } },
         l: { prop: { lamp: true } },
         G: { decal: 'grate', name: 'The sewer grate', act: 'grate', mark: '▦' },
+        // what the Brine Gaol left: the one you freed (only if you did, and until he goes with you), and the
+        // family of the one you knew, waiting for news
+        j: { prop: { art: 'npc-freed', h: 1.8 }, name: 'A man in a stolen cloak', scene: 'freed', mark: '●', only: 'freed', unless: 'freedJoined' },
+        k: { prop: { art: 'npc-widow', h: 1.75 }, name: 'A woman in mourning black', scene: 'kin', mark: '●' },
       },
       rows: [
         '########################################',
@@ -236,7 +240,7 @@ var Q = window.Q || (window.Q = {});
         '###..............l.........>######l..###',
         '###.#####.##l#######..########....#..###',
         '###.......##########..########.......###',
-        '###.......##########..########....#..###',
+        '###.....k.##########..########....#..###',
         '##l.#####.##########..#############..l##',
         '#.............######..#############..###',
         '#####.###########I##..#############..###',
@@ -245,7 +249,7 @@ var Q = window.Q || (window.Q = {});
         '##.##.................................##',
         '##.#####.##b#.................N.......##',
         '##Z#####.#W##.........................##',
-        '########...........l.........l........##',
+        '########j..........l.........l........##',
         '#############.........................##',
         '########################################',
       ],
@@ -353,6 +357,20 @@ var Q = window.Q || (window.Q = {});
     c: {
       kind: 'cultist', name: 'Comet Cultist', hp: () => d(3) + 2, die: 6, dr: 12, armor: 0, morale: 7, sight: 7, speed: 2.3,
       silver: () => roll(2, 10), desc: 'Hooded, branded with the comet, smiling.',
+    },
+    // Skarnvik's streets: the drowned walk up out of the harbor at night, the Salt Lords' watch walks them by
+    // day, and a man you left behind in the Brine comes down off the gallows looking for you
+    drowned: {
+      kind: 'drowned', name: 'Harbor Dead', hp: () => d(4) + 2, die: 6, dr: 10, armor: 0, morale: 0, sight: 5, speed: 1.4,
+      silver: () => d(4), desc: 'Drowned fisherfolk, walking up out of the sea to find houses that are under it now.',
+    },
+    watch: {
+      kind: 'watch', art: 'npc-watchman', name: 'Salt Lords’ Watchman', hp: () => d(4) + 3, die: 6, dr: 12, armor: 2, morale: 8, sight: 6, speed: 2.0,
+      silver: () => d(10) + 4, desc: 'Salt-white tabard, a halberd, and orders.',
+    },
+    hanged: {
+      kind: 'hanged', art: 'prisoner', name: 'The Hanged Man', hp: () => 7, die: 6, dr: 11, armor: 0, morale: 0, sight: 9, speed: 1.9,
+      silver: () => 0, desc: 'Cut down from the gallows, or he cut himself down.',
     },
     w: {
       kind: 'abbess', name: 'The Pale Abbess', hp: () => 8 + d(4), die: 8, dr: 14, armor: 2, morale: 0, sight: 6, speed: 1.6,

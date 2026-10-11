@@ -62,6 +62,7 @@
     setupFonts();
     // the Gaol keeps your things until you find them: femurs and rags until then
     for (const p of party) {
+      p.gaol = true; // shackle-scars: the watch, and the people the Brine took from, know them
       p.stash = { weapon: p.weapon, armor: p.armor, silver: p.silver };
       p.weapon = { name: 'Femur', die: 4 };
       p.armor = { name: 'Rags', tier: 0 };
@@ -136,6 +137,8 @@
       get party() { return living(); },
       get font() { return floor().font; },
       get silverLeft() { return S.silver; },
+      get hour() { return hourNow(); },
+      get deadSlot() { return S.party.some((p) => p.dead); },
       say,
       name: (pc) => esc(pc.name.split(' ')[0]),
       d: (n) => d(n),
@@ -152,6 +155,23 @@
       heal(pc, n) { pc.hp = Math.min(pc.maxHp, pc.hp + n); sfx('heal'); log(`${short(pc)} <b>+${n} HP</b>.`, 'hit'); renderHud(); },
       async hurt(pc, n, cause) { await hurt(pc, n, cause); },
       omen(pc) { pc.omens += 1; sfx('gain'); log(`${short(pc)} <b>+1 Omen</b>.`, 'hit'); renderHud(); },
+      loseOmen(pc) { if (pc.omens > 0) { pc.omens -= 1; log(`${short(pc)} <b>−1 Omen</b>.`, 'hurt'); renderHud(); } },
+      // someone from the story takes a dead wretch's place
+      recruit(name, cls) {
+        const slot = S.party.findIndex((p) => p.dead);
+        if (slot < 0) return null;
+        const pc = rollBeside(cls, S.party[1 - slot]);
+        pc.name = name;
+        pc.gaol = true;
+        delete pc.silver; delete pc.poultices; delete pc.scrolls;
+        pc.row = S.party[slot].row;
+        S.party[slot] = pc;
+        Q.fixRows(S.party);
+        renderHud();
+        return pc;
+      },
+      // who stands in the street changed: build it again around you
+      refreshCity() { if (S.floorIx === cityIx()) enterFloor(S.floorIx, null, world.pose()); },
       silver(n) { S.silver = Math.max(0, S.silver + n); if (n > 0) { sfx('gain'); log(`<b>+${n}s</b>.`, 'hit'); } renderHud(); },
       item(kind) {
         const key = Q.rollItem(S, lootDepth(), kind);
@@ -511,8 +531,136 @@
   const cityIx = () => floorIndex('skarnvik');
   function enterCity(arriveOn) { enterFloor(cityIx(), arriveOn); }
   const usesHere = () => (S && Q.FLOORS[S.floorIx].uses) || {};
+
+  // ---------- the hour ----------
+  // Skarnvik's day goes by in steps walked in its streets: dawn, day, dusk, night, and dawn again. A night's
+  // sleep brings the next dawn (walking the night through does too, and heals nothing). After the fourth
+  // Misery noon is black as midnight, and the dead walk all day.
+  const HOURS = {
+    dawn: { next: 'day', steps: 30, name: 'Dawn', says: 'Dawn comes up grey over the harbor.' },
+    day: { next: 'dusk', steps: 170, name: 'Day', says: 'Day. The Salt Lords’ watch is out in the streets.' },
+    dusk: { next: 'night', steps: 35, name: 'Dusk', says: 'Dusk. The basilica’s bell tolls, and the fishwives haul their boats up off the quay.' },
+    night: { next: 'dawn', steps: 170, name: 'Night', says: 'Night. Down at the harbor, something is coming up out of the water.' },
+  };
+  const blackNoon = () => S.calendar.misery >= 4;
+  const hourNow = () => (blackNoon() ? 'night' : S.clock ? S.clock.phase : 'night');
+  const hourName = () => (blackNoon() && S.clock && S.clock.phase !== 'night' ? 'Black noon' : HOURS[hourNow()].name);
+  const inCity = () => S.floorIx === cityIx() && S.where === 'crawl' && !!world;
+  function setHour(phase, left, snap) {
+    S.clock = { phase, left: left === undefined ? HOURS[phase].steps : left };
+    if (phase !== 'night') S.flags.sawDawn = true; // a day has passed up here since the Brine
+    if (world) world.setDaylight(hourNow(), snap);
+    cityStreets();
+    renderHud();
+  }
+  // a step in the street
+  function tickHour() {
+    if (!S.escaped || S.floorIx !== cityIx()) return;
+    if (!S.clock) S.clock = { phase: 'night', left: 25, spawned: true };
+    S.clock.left -= 1;
+    if (S.clock.left > 0) return;
+    const next = HOURS[S.clock.phase].next;
+    setHour(next);
+    if (next === 'dusk') sfx('toll', { f: 147 });
+    log(blackNoon() && next !== 'night' ? 'The hour turns, and the sky stays black.' : HOURS[next].says, 'dim');
+  }
+
+  // Who is out at this hour: the drowned walk up out of the harbor at night (and the hanged man, if you
+  // left him in the Brine), the Salt Lords' watch by day. Once an hour; they go home when it turns.
+  const NIGHT_GROUND = [[22, 23, 38, 29], [29, 12, 37, 21]];
+  const DAY_GROUND = [[15, 11, 27, 16], [29, 2, 37, 7], [20, 17, 21, 21]];
+  const hangedWalks = () => !!(S.flags.sawDawn && (S.flags.promised || S.flags.leftHim) && !S.flags.freed && !S.flags.hangedLaid);
+  function cityStreets() {
+    const ix = cityIx();
+    if (ix < 0 || !S.escaped || !S.clock) return;
+    const cf = S.floors[ix];
+    const live = inCity();
+    const h = hourNow();
+    for (const g of cf.groups) {
+      if (g.alive && ((g.night && h !== 'night') || (g.day && h !== 'day'))) { g.alive = false; if (live) world.removeGroup(g); }
+    }
+    cf.groups = cf.groups.filter((g) => g.alive);
+    const add = [];
+    if (!S.clock.spawned) {
+      S.clock.spawned = true;
+      if (h === 'night') add.push(...spawn(cf, NIGHT_GROUND, 5 - cf.groups.filter((g) => g.night && !g.hanged).length, () => Array.from({ length: d(2) }, () => ({ key: 'drowned' })), { night: true }));
+      if (h === 'day') add.push(...spawn(cf, DAY_GROUND, 3, () => [{ key: 'watch' }, { key: 'watch' }], { day: true }));
+    }
+    if (h === 'night' && hangedWalks() && !cf.groups.some((g) => g.hanged)) {
+      add.push(...spawn(cf, [[20, 13, 25, 15]], 1, () => [{ key: 'hanged', name: S.flags.livingName }], { night: true, hanged: true }, 3));
+    }
+    cf.groups.push(...add);
+    if (live) for (const g of add) world.addGroup(g);
+  }
+  function spawn(cf, grounds, n, band, tags, near = 7) {
+    if (n <= 0) return [];
+    const p = inCity() ? world.mapPose() : { x: -99, y: -99 };
+    const taken = new Set(cf.groups.map((g) => `${Math.floor(g.x / CELL)},${Math.floor(g.z / CELL)}`));
+    const cells = [];
+    for (const [x0, y0, x1, y1] of grounds) {
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        if (cf.grid[y] && cf.grid[y][x] === '.' && Math.hypot(x - p.x, y - p.y) > near && !taken.has(`${x},${y}`)) cells.push([x, y]);
+      }
+    }
+    const out = [];
+    for (let i = 0; i < n && cells.length; i++) {
+      const [x, y] = cells.splice(Math.floor(Math.random() * cells.length), 1)[0];
+      S.spawned = (S.spawned || 0) + 1;
+      out.push({ id: `street-${S.spawned}`, x: (x + 0.5) * CELL, z: (y + 0.5) * CELL, members: band(), alive: true, alert: false, ...tags });
+    }
+    return out;
+  }
+  // Who stands where depends on the story: the one you freed hides in the Gutter (until he comes with you).
+  // A use with only/unless names the flag.
+  function cityPeople() {
+    const ix = cityIx(), f = Q.FLOORS[ix], grid = S.floors[ix].grid;
+    f.rows.forEach((row, y) => [...row].forEach((t, x) => {
+      const u = f.uses[t];
+      if (u && (u.only || u.unless)) grid[y][x] = (!u.only || S.flags[u.only]) && (!u.unless || !S.flags[u.unless]) ? t : '.';
+    }));
+  }
+
+  // Something in the street reaches you. Most things just fight; the watch talk first, and the hanged man
+  // has something to say.
+  async function meet(g) {
+    const key = g.members[0].key;
+    if (key === 'watch') return patrol(g);
+    if (key === 'hanged') {
+      await playScene(Q.SCENES.find((x) => x.id === 'hangedman'), true);
+      if (!alive().length) return;
+    }
+    return battle(g);
+  }
+  const TOLL = 5;
+  async function patrol(g) {
+    const dm = makeDM();
+    const gaol = alive().some((p) => p.gaol);
+    const dr = gaol ? 14 : 12;
+    const opts = [
+      { label: `Pay the street toll (${TOLL}s)`, disabled: S.silver < TOLL },
+      { label: 'Talk your way past', note: `Presence DR ${dr}` },
+      { label: 'Fight them' },
+    ];
+    const pick = await say('The Salt Lords’ watch', gaol
+      ? `Two watchmen in salt-white step into your way, halberds down. One of them holds up a wanted poster, wet through, and looks from it to your faces, and to your wrists.
+
+<em>“Gaol-pale,”</em> he says. <em>“Where did you two crawl up from?”</em>`
+      : `Two watchmen in salt-white step into your way, halberds down. <em>“Seal? No seal. Then it’s the street toll: ${TOLL} silver, by order of the Salt Lords.”</em>`, opts);
+    let pass = pick === 0;
+    if (pass) { S.silver -= TOLL; log(`The watch takes <b>${TOLL}s</b>.`, 'dim'); renderHud(); }
+    if (pick === 1) pass = await dm.test(dm.best('presence'), 'presence', dr, 'talks to the watch');
+    if (pass) {
+      g.alive = false;
+      world.removeGroup(g);
+      await say('The Salt Lords’ watch', pick === 0 ? 'The silver goes into a tabard. <em>“Move along.”</em>'
+        : '<em>“...Fine. Move along. And wash, for the saints’ sake.”</em> They go off down the street with their halberds on their shoulders.', [{ label: 'Move along' }]);
+      return;
+    }
+    if (pick === 1) await say('The Salt Lords’ watch', '<em>“Liar.”</em> The halberds come up.', [{ label: 'Fight' }]);
+    await battle(g);
+  }
   function goal() {
-    return S.flags.strangerTold ? 'Something is pulling the island down. (The story continues in the next update.)'
+    return S.flags.strangerTold ? `Something is pulling the island down.${S.flags.bellStair ? ' The bell-ringer’s stair goes down into Church Hill.' : ''} (The story continues in the next update.)`
       : S.flags.deepStair ? 'Tell the Stranger, by the gallows, what the water is doing under the square.'
         : S.metStranger ? 'Go down the crypt stair at the edge of the square, into the Undercroft, and see what the water is doing.'
           : 'A stranger in the shadow of the gallows is watching you.';
@@ -614,6 +762,7 @@
     { id: 'rats', title: 'Rats in the drains', text: 'The rats are coming up out of the Undercroft into the cellars. 5s a pack, 3 packs.', kind: 'rats', need: 3, pay: 15 },
     { id: 'dead', title: 'The dead won’t lie down', text: 'Somebody’s grandmother walked out of the crypts. Put down two of the rotting dead.', kind: 'zombie', need: 2, pay: 24 },
     { id: 'bones', title: 'Bones on the crypt stair', text: 'The gravediggers won’t go down while the skeletons walk. Break two.', kind: 'skeleton', need: 2, pay: 30 },
+    { id: 'harbor', title: 'The harbor dead', text: 'The fishwives want their streets back after dark. Put three of the drowned back in the sea.', kind: 'drowned', need: 3, pay: 24, always: true },
     { id: 'mouths', title: 'Silence the Bright Mouths', text: 'Comet cultists preach drowning under the square. The Salt Lords pay for quiet. Two of them.', kind: 'cultist', need: 2, pay: 40 },
   ];
   // Work goes up for what still lives below (and what you've taken stays up).
@@ -621,7 +770,7 @@
     const b = S.bounties || (S.bounties = { posted: [], taken: {} });
     const under = S.floors[floorIndex('undercroft')];
     const living = new Set(under.groups.filter((g) => g.alive).flatMap((g) => g.members.map((m) => Q.MONSTERS[m.key].kind)));
-    b.posted = BOUNTIES.filter((x) => b.taken[x.id] !== undefined || living.has(x.kind)).map((x) => x.id).slice(0, 3);
+    b.posted = BOUNTIES.filter((x) => b.taken[x.id] !== undefined || x.always || living.has(x.kind)).map((x) => x.id).slice(0, 4);
   }
   function showBoard() {
     if (!S.bounties) postBounties();
@@ -737,6 +886,7 @@
     lines.push(`<span class="pink">☄ ${days === 1 ? 'A day is' : `${days} days are`} gone. ${miseries.length ? 'Something is wrong with the sky.' : calendarText() + '.'}</span>`);
     rollCurios();
     postBounties();
+    setHour('dawn', undefined, true);
     save();
     renderTown();
     modal(bed === true ? 'Morning' : bed === 'home' ? 'Morning, at home' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
@@ -793,6 +943,16 @@
     ]);
   }
 
+  const ledgerTalk = () => (S.flags.ledger && !S.flags.ledgerTold ? [{ label: 'Tell him about the Gaol ledger', action: strangerLedger }] : []);
+  function strangerLedger() {
+    S.flags.ledgerTold = true;
+    S.silver += 10;
+    save();
+    renderHud();
+    modal('The Stranger', `${art('stranger')}
+      <p>“Fennick.” The Stranger says the name the way you would spit out a tooth. “The diggers from the Deep Mine: <i>not to be released, not to be named</i>. So they did find something down there, and the Salt Lords buried it in the Brine with the men who found it.”</p>
+      <p>He presses ten silver into your hand. “For your memory. Keep it sharp.”</p>`, [{ label: 'Take the silver' }]);
+  }
   function visitStranger() {
     if (S.flags.deepStair && !S.flags.strangerTold) {
       S.flags.strangerTold = true;
@@ -809,7 +969,7 @@
       modal('The Stranger', `${art('stranger')}
         <p>The Stranger hasn’t moved from the gallows’ shadow.</p>
         <p>“Something is pulling the island down. Get stronger. When you’re ready to hear the rest, I’ll be here.”</p>
-        <p class="small">(The story continues in the next update.)</p>`, [{ label: 'Nod' }]);
+        <p class="small">(The story continues in the next update.)</p>`, [...ledgerTalk(), { label: 'Nod' }]);
       return;
     }
     const first = !S.metStranger;
@@ -820,12 +980,13 @@
       ${first ? '<p>A stranger with a sewn-shut eye takes your wrists in a cold grip, one each, and turns them over. Shackle-scars.</p><p>“Gaol-pale. You came up out of the Brine, didn’t you? Nobody comes up out of the Brine.”</p>' : '<p>The Stranger hasn’t moved from the gallows’ shadow.</p>'}
       <p>“The island is sinking, and the Salt Lords say it isn’t. Ask yourself why they aren’t afraid.”</p>
       <p>“Go under the basilica, into the <b>Undercroft</b>. Go all the way down. Tell me what the water is doing down there.”</p>
-      <p class="small">The crypt stair is at the edge of the square. Rest at the Drowned Lamb, buy what you can at Thrumm’s, and hire a new wretch there if one of you falls.</p>`, [{ label: 'Nod' }]);
+      <p class="small">The crypt stair is at the edge of the square. Rest at the Drowned Lamb, buy what you can at Thrumm’s, and hire a new wretch there if one of you falls.</p>`, [...ledgerTalk(), { label: 'Nod' }]);
   }
 
   // Out through the grate: the city, at last. From here on, the dead are replaced, not the story.
   async function escapeGaol() {
     S.escaped = true;
+    S.clock = { phase: 'night', left: 25, spawned: true };
     for (const pc of alive()) if (pc.stash) { pc.weapon = pc.stash.weapon; pc.armor = pc.stash.armor; S.silver += pc.stash.silver; delete pc.stash; }
     enterCity('G');
     save();
@@ -865,7 +1026,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       onDrip: (pan, dist) => sfx('drip', { pan, gain: Math.max(0.08, 0.4 - dist * 0.05) }),
       onAlert: (kind, dist, pan) => sfx('alert', { kind, dist, pan }),
       onVoice: (kind, dist, pan) => sfx('voice', { kind, dist, pan }),
-      onContact: (g) => run(() => battle(g)),
+      onContact: (g) => run(() => meet(g)),
       onLocked: (x, y) => run(() => lockedDoor(x, y)),
       onFall: () => run(fall),
       explored: () => (S && S.where === 'crawl' ? floor().explored : null),
@@ -884,11 +1045,14 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     w.showHands(true);
     const f = Q.FLOORS[ix];
     const grid = floor().grid;
+    if (ix === cityIx()) cityPeople();
+    w.setDaylight(hourNow());
     w.load({ grid, heights: f.heights, ceil: f.ceil, theme: f.theme, uses: f.uses, groups: floor().groups.filter((g) => g.alive), opened: floor().opened });
     let p = pose;
     if (!p) grid.forEach((row, y) => row.forEach((t, x) => { if (t === arriveOn && !p) p = w.cellPose(x, y); }));
     w.place(p);
     S.pose = p;
+    if (ix === cityIx()) cityStreets();
     const v = $('viewport');
     v.classList.remove('fade-in');
     void v.offsetWidth;
@@ -925,6 +1089,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
 
   async function enterCell(x, y, t) {
     const g = floor().grid;
+    tickHour();
     // a place the DM has something to say about, the first time you walk in
     const scene = Q.SCENES.find((sc) => sc.floor === floor().id && sc.area && !S.scenes[sc.id]
       && x >= sc.area[0] && x <= sc.area[2] && y >= sc.area[1] && y <= sc.area[3]);
@@ -1084,7 +1249,13 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       // cultists carry relics; skeletons, strange weapons
       const kinds = g.members.map((m) => Q.MONSTERS[m.key].kind);
       let drop = null;
-      if (kinds.includes('cultist') && d(2) === 1) drop = Q.rollItem(S, lootDepth(), 'relic');
+      if (kinds.includes('hanged')) {
+        S.flags.hangedLaid = true;
+        log(`${esc(S.flags.livingName || 'The hanged man')} lies still in the street at last.`, 'hit');
+        S.dropIntro = 'In his fist, the one thing he kept from the guards:';
+        drop = Q.rollItem(S, 2, 'relic');
+      }
+      if (drop) { /* already found */ } else if (kinds.includes('cultist') && d(2) === 1) drop = Q.rollItem(S, lootDepth(), 'relic');
       else if ((kinds.includes('skeleton') || kinds.includes('guard')) && d(3) === 1) drop = Q.rollItem(S, lootDepth(), 'weapon');
       if (drop) S.pendingDrop = drop;
     } else if (result.outcome === 'fled') {
@@ -1106,7 +1277,9 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     const after = () => {
       const key = S.pendingDrop;
       S.pendingDrop = null;
-      if (key && !S.over) offerItem(key, { title: 'Among the dead', intro: `Something falls from the ${esc(Q.ITEMS[key].kind === 'relic' ? 'cultist’s rags' : 'dead hand')}:` });
+      const intro = S.dropIntro || (key && `Something falls from the ${Q.ITEMS[key].kind === 'relic' ? 'cultist’s rags' : 'dead hand'}:`);
+      S.dropIntro = null;
+      if (key && !S.over) offerItem(key, { title: 'Among the dead', intro });
     };
     const miseries = S.pendingMiseries.splice(0);
     if (miseries.length && !S.over) showMiseries(miseries, after);
@@ -1162,7 +1335,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       return `<button type="button" class="chip${pc.dead ? ' dead' : ''}" data-sheet="${S.party.indexOf(pc)}" aria-label="${esc(pc.name)}’s character sheet"><img src="${Q.portraitUrl(pc.name)}" alt="">
         <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span></span></button>`;
     }).join('') + `<div class="purse">${S.silver}s</div><div class="purse comet" title="Calendar of Nechrubel: ${calendarText()}">☄ ${S.calendar.days}</div>`;
-    $('hudPlace').textContent = S.where === 'crawl' ? placeName() : '';
+    $('hudPlace').textContent = S.where === 'crawl' ? placeName() + (S.escaped && S.floorIx === cityIx() ? ` · ${hourName()}` : '') : '';
     if (world) {
       // the front wretch's weapon is the one in the right hand
       const front = alive().find((p) => p.row !== 'back') || alive()[0];
@@ -1367,7 +1540,9 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       // they wake at the front one's home
       const front = S.party.find((p) => p.row === 'front') || S.party[0];
       S.home = HOMES[front.cls] ? { cls: front.cls } : null;
+      S.flags.heirs = (S.flags.heirs || 0) + 1;
       log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> pick up where the dead left off.`);
+      setHour('dawn', undefined, true);
       goHome();
       save();
       const wake = S.home ? HOMES[S.home.cls].wake : 'You wake in Skarnvik, where you have always lived.';
@@ -1393,8 +1568,18 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     Q.applyMiseries(S.calendar.misery);
     renderLog();
     // a save from before the city had a floor of its own: add it
-    for (const f of buildFloors()) if (!S.floors.some((x) => x.id === f.id)) S.floors.push(f);
-    if (S.where === 'crawl' && S.pose) enterFloor(S.floorIx, null, S.pose);
+    const fresh = buildFloors();
+    for (const f of fresh) if (!S.floors.some((x) => x.id === f.id)) S.floors.push(f);
+    let moved = false;
+    const city = fresh.find((f) => f.id === 'skarnvik'), cf = S.floors[cityIx()];
+    if (city && cf) {
+      moved = cf.grid.length !== city.grid.length || cf.grid[0].length !== city.grid[0].length;
+      if (moved) cf.explored = city.explored;
+      cf.grid = city.grid;
+    }
+    // saves from before the watch knew the two who came up out of the Brine
+    if (S.escaped && !S.flags.heirs && S.party.every((p) => p.gaol === undefined)) for (const p of S.party) p.gaol = true;
+    if (S.where === 'crawl' && S.pose && !(moved && S.floorIx === cityIx())) enterFloor(S.floorIx, null, S.pose);
     else goHome();
   }
 
@@ -1444,6 +1629,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
   Q.debug = () => S;
   Q.debugWorld = () => world;
   Q.debugEnter = (ix, pose) => enterFloor(ix, null, pose);
+  Q.debugHour = (phase, left) => setHour(phase, left, true);
   Q.debugDie = (cause) => { for (const p of S.party) { p.hp = 0; p.dead = true; } gameOver(cause); };
 
   if (Q.Dice) Q.Dice.init($('dice'));

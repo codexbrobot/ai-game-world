@@ -69,6 +69,11 @@ ART = {
                    prompt=f'full body illustration of a huge bloated drowned prison warden in a long black coat with brass buttons, '
                           f'an iron mask over his face, a great ring of iron keys and a lantern on his belt, barnacles and seaweed, '
                           f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    # Skarnvik's harbor at night: the drowned walking up out of the sea, looking for their houses
+    'drowned': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                    prompt=f'full body illustration of a bloated drowned fisherman risen from the sea, tangled in a torn fishing net, '
+                           f'seaweed and barnacles on his oilskin coat, water streaming off him, white dead eyes, arms reaching, '
+                           f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
     # --- things on the floor ---
     'remains': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
                     prompt=f'a pile of human bones and a skull with rotten rags lying on the ground, {ISOLATED}, {STYLE}'),
@@ -182,6 +187,12 @@ ART = {
     'npc-beggar': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                        prompt=f'full body illustration of a ragged blind old beggar wrapped in a filthy blanket holding out a wooden bowl, '
                               f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-freed': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                      prompt=f'full body illustration of a gaunt escaped prisoner with a shaved scarred head and raw shackle scars on his wrists, '
+                             f'wrapped in a stolen hooded cloak, grinning nervously, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-widow': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                      prompt=f'full body illustration of a gaunt woman in black mourning clothes and a black shawl holding a lit candle, '
+                             f'grief-stricken face, standing, facing the viewer, {ISOLATED}, {STYLE}'),
     'tombstones': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
                        prompt=f'a cluster of three crooked old gravestones and a leaning stone cross in the mud, front view, {ISOLATED}, {STYLE}'),
     'dead-tree': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
@@ -257,6 +268,7 @@ SEEDS = {
     'guard': 2, 'prisoner': 1, 'warden': 3, 'gaol-wall': 3, 'gaol-bars': 2, 'gaol-door': 2,
     'facade-timber': 1, 'front-inn': 1, 'facade-stone': 3, 'front-stall': 3, 'npc-stranger': 2, 'facade-derelict': 1, 'gallows': 2, 'board': 1, 'npc-preacher': 2, 'npc-fisher': 1,
     'front-church': 1, 'front-manor': 3, 'front-home': 1, 'npc-priest': 1, 'front-watchhouse': 1, 'front-crypthouse': 2, 'front-exchange': 1, 'npc-watchman': 2, 'npc-beggar': 3, 'npc-gravedigger': 2, 'tombstones': 1, 'dead-tree': 2,
+    'drowned': 2, 'npc-freed': 3, 'npc-widow': 1,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,

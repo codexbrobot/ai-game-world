@@ -28,7 +28,7 @@ function heightOf(c) {
 }
 
 // Monster billboards: height in world units.
-const SPRITE_HEIGHT = { rats: 0.62, zombie: 1.85, skeleton: 1.9, cultist: 1.9, abbess: 2.5, guard: 1.95, prisoner: 1.8, warden: 2.4 };
+const SPRITE_HEIGHT = { rats: 0.62, zombie: 1.85, skeleton: 1.9, cultist: 1.9, abbess: 2.5, guard: 1.95, prisoner: 1.8, warden: 2.4, drowned: 1.9, watch: 1.95, hanged: 1.85 };
 
 export function createWorld(container, hooks) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -126,6 +126,46 @@ export function createWorld(container, hooks) {
     water: 0.32, waterTint: 0x0b0906, // how high the flood stands, in world units above level ground
   };
   let theme = DEFAULT_THEME;
+  // Outdoors the light follows the hour (the game says which: setDaylight). Night is the floor's own theme;
+  // the rest is how far the overcast day sky has come in (dome), its tint, and how lamps and torch burn.
+  const DAYLIGHT = {
+    dawn: { fog: 0x5c4b4d, sky: 0xd2b2aa, ground: 0x2e2620, hemi: 1.45, moon: 0.5, near: 9, far: 56, lamps: 0.4, torch: 0.75, dome: 0.85, tint: 0xf4b9a6 },
+    day: { fog: 0x666a70, sky: 0xd0d2d8, ground: 0x3b372f, hemi: 1.75, moon: 0.45, near: 10, far: 62, lamps: 0, torch: 0.5, dome: 1, tint: 0xffffff },
+    dusk: { fog: 0x4a3129, sky: 0xc08a72, ground: 0x251b15, hemi: 1.3, moon: 0.55, near: 8, far: 50, lamps: 0.9, torch: 1, dome: 0.78, tint: 0xe58a58 },
+  };
+  let daylight = 'night';
+  const lightNow = {}; // what is showing now, easing toward lightGoal()
+  function lightGoal() {
+    const night = { fog: theme.fog, sky: theme.sky, ground: theme.ground, hemi: theme.hemi || 0.5, moon: theme.outdoor ? theme.moon || 0.7 : 0,
+      near: theme.fogNear || 2, far: theme.fogFar || 16, lamps: 1, torch: 1, dome: 0, tint: 0xffffff };
+    return theme.outdoor && DAYLIGHT[daylight] ? DAYLIGHT[daylight] : night;
+  }
+  const COLOR_KEYS = ['fog', 'sky', 'ground', 'tint'];
+  const colors = {};
+  const colorOf = (hex) => colors[hex] || (colors[hex] = new THREE.Color(hex));
+  function easeLight(dt, snap) {
+    const goal = lightGoal();
+    const k = snap ? 1 : Math.min(1, dt * 0.7);
+    for (const [key, v] of Object.entries(goal)) {
+      if (COLOR_KEYS.includes(key)) {
+        if (!lightNow[key] || snap) lightNow[key] = colorOf(v).clone();
+        else lightNow[key].lerp(colorOf(v), k);
+      } else lightNow[key] = lightNow[key] === undefined || snap ? v : lightNow[key] + (v - lightNow[key]) * k;
+    }
+    scene.fog.color.copy(lightNow.fog);
+    renderer.setClearColor(lightNow.fog);
+    hemi.color.copy(lightNow.sky);
+    hemi.groundColor.copy(lightNow.ground);
+    hemi.intensity = lightNow.hemi;
+    cometLight.intensity = lightNow.moon;
+    if (!wasUnder) { scene.fog.near = lightNow.near; scene.fog.far = lightNow.far; }
+    if (daySky) {
+      daySky.material.opacity = lightNow.dome;
+      daySky.material.color.copy(lightNow.tint);
+      daySky.visible = lightNow.dome > 0.01;
+    }
+    if (lampMats.glass) lampMats.glass.color.setHex(0x4a4234).lerp(LAMP_GLASS, Math.min(1, lightNow.lamps * 1.4));
+  }
   // What a floor's own letters are (js/data.js, a floor's uses): a front (a building's face, a wall you
   // walk into to go in), a prop (someone or something standing in the street: solid, a billboard), or a
   // decal (a grate in the street). Walking into a front or prop, or onto a decal, asks the game.
@@ -187,14 +227,6 @@ export function createWorld(container, hooks) {
     theme = { ...DEFAULT_THEME, ...(floor.theme || {}) };
     uses = floor.uses || {};
     const outdoor = !!theme.outdoor;
-    scene.fog.color.setHex(theme.fog);
-    scene.fog.near = theme.fogNear || 2;
-    scene.fog.far = theme.fogFar || 16;
-    renderer.setClearColor(theme.fog);
-    hemi.color.setHex(theme.sky);
-    hemi.groundColor.setHex(theme.ground);
-    hemi.intensity = theme.hemi || 0.5;
-    cometLight.intensity = outdoor ? theme.moon || 0.7 : 0;
     const grid = floor.grid;
     const H = grid.length, W = grid[0].length;
     const h = floor.heights.map((row) => [...row].map(heightOf));
@@ -275,6 +307,7 @@ export function createWorld(container, hooks) {
     buildWater();
     buildSky();
     buildRain();
+    easeLight(0, true);
     needRender = true;
   }
 
@@ -347,12 +380,54 @@ export function createWorld(container, hooks) {
     texCache[key] = t;
     return t;
   }
+  // By day an overcast lid comes over it: low grey cloud, the sea pewter, and the comet a pale smear you
+  // can still see at noon.
+  let daySky = null;
+  function dayTexture() {
+    if (texCache.daySky) return texCache.daySky;
+    const W = 1024, H = 512;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    let gr = g.createLinearGradient(0, 0, 0, H / 2);
+    gr.addColorStop(0, '#3e4146'); gr.addColorStop(0.55, '#5c6066'); gr.addColorStop(1, '#6a6e74');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H / 2);
+    gr = g.createLinearGradient(0, H / 2, 0, H);
+    gr.addColorStop(0, '#6a6e74'); gr.addColorStop(0.05, '#3c4044'); gr.addColorStop(1, '#22252a');
+    g.fillStyle = gr; g.fillRect(0, H / 2, W, H / 2);
+    for (let i = 0; i < 140; i++) {
+      const x = Math.random() * W, y = H * (0.05 + Math.pow(Math.random(), 0.7) * 0.42), r = 30 + Math.random() * 110;
+      const dark = Math.random() < 0.55;
+      const cg = g.createRadialGradient(x, y, 0, x, y, r);
+      cg.addColorStop(0, dark ? 'rgba(40,42,46,0.35)' : 'rgba(140,144,150,0.22)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = cg;
+      g.beginPath(); g.ellipse(x, y, r * 2.2, r * 0.45, 0, 0, Math.PI * 2); g.fill();
+    }
+    const cx = W * 0.25, cy = H * 0.31;
+    g.save(); g.translate(cx, cy); g.rotate(-0.42); g.filter = 'blur(6px)';
+    const fan = g.createLinearGradient(0, 0, -260, 0);
+    fan.addColorStop(0, 'rgba(230,226,200,0.32)'); fan.addColorStop(1, 'rgba(230,226,200,0)');
+    g.fillStyle = fan;
+    g.beginPath(); g.moveTo(3, 0); g.quadraticCurveTo(-120, -7, -260, -55); g.lineTo(-260, 30); g.quadraticCurveTo(-120, 11, 3, 0); g.fill();
+    g.restore();
+    const head = g.createRadialGradient(cx, cy, 0, cx, cy, 14);
+    head.addColorStop(0, 'rgba(245,242,225,0.8)'); head.addColorStop(1, 'rgba(245,242,225,0)');
+    g.fillStyle = head; g.fillRect(cx - 14, cy - 14, 28, 28);
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    texCache.daySky = t;
+    return t;
+  }
   function buildSky() {
     if (sky) { scene.remove(sky); sky = null; }
+    if (daySky) { scene.remove(daySky); daySky = null; }
     if (!theme.outdoor) return;
     sky = new THREE.Mesh(new THREE.SphereGeometry(45, 48, 24), new THREE.MeshBasicMaterial({ map: skyTexture(), side: THREE.BackSide, fog: false, depthWrite: false }));
-    sky.renderOrder = -1;
+    sky.renderOrder = -2;
     scene.add(sky);
+    daySky = new THREE.Mesh(new THREE.SphereGeometry(44, 48, 24), new THREE.MeshBasicMaterial({ map: dayTexture(), side: THREE.BackSide, fog: false, depthWrite: false, transparent: true, opacity: 0 }));
+    daySky.renderOrder = -1;
+    scene.add(daySky);
   }
 
   // Rain: short grey streaks falling round you, slanted by the wind off the sea, gone when they hit the
@@ -683,10 +758,11 @@ export function createWorld(container, hooks) {
 
   // A street lamp: an iron post, a lantern burning yellow, and its light on the wet stones.
   const lampMats = {};
+  const LAMP_GLASS = new THREE.Color(0xffd34a);
   function buildLamp(x, y) {
     if (!lampMats.post) {
       lampMats.post = new THREE.MeshLambertMaterial({ color: 0x1c1a16 });
-      lampMats.glass = new THREE.MeshBasicMaterial({ color: 0xffd34a });
+      lampMats.glass = new THREE.MeshBasicMaterial({ color: LAMP_GLASS.clone() });
     }
     const g = new THREE.Group();
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.1, 0.12), lampMats.post);
@@ -709,14 +785,15 @@ export function createWorld(container, hooks) {
       lampTimer = 0;
     }
     lampTimer -= dt;
-    if (lampTimer > 0) return;
+    if (lampTimer > 0 && Math.abs((lightNow.lamps || 0) - (level.lampsAt || 0)) < 0.02) return;
+    level.lampsAt = lightNow.lamps;
     lampTimer = 0.3;
     const near = level.lamps.map((p) => [p, Math.hypot(p.x - player.x, p.z - player.z)]).sort((a, b) => a[1] - b[1]);
     level.lampLights.forEach((l, i) => {
       const n = near[i];
       if (!n) { l.intensity = 0; return; }
       l.position.copy(n[0]);
-      l.intensity = 7;
+      l.intensity = 7 * (lightNow.lamps === undefined ? 1 : lightNow.lamps);
     });
   }
   // A notice board: two posts and a plank backing, the notices (a picture) nailed to its face, turned to
@@ -815,9 +892,10 @@ export function createWorld(container, hooks) {
   function addGroup(group) {
     const g = new THREE.Group();
     group.members.forEach((m, i) => {
-      const kind = Q.MONSTERS[m.key].kind;
+      const def = Q.MONSTERS[m.key];
+      const kind = def.kind;
       const hh = SPRITE_HEIGHT[kind] || 1.9;
-      const tex = texture(kind, false);
+      const tex = texture(def.art || kind, false);
       const aspect = kind === 'rats' ? 4 / 3 : 2 / 3;
       const mesh = billboard(tex, hh * aspect, hh, 4);
       mesh.userData.slot = i;
@@ -1142,11 +1220,12 @@ export function createWorld(container, hooks) {
     if (under !== wasUnder) {
       wasUnder = under;
       container.classList.toggle('underwater', under);
-      if (under) { addRipple(player.x, player.z, 2); scene.fog.near = 0.1; scene.fog.far = 3.5; } else { scene.fog.near = theme.fogNear || 2; scene.fog.far = theme.fogFar || 16; }
+      if (under) { addRipple(player.x, player.z, 2); scene.fog.near = 0.1; scene.fog.far = 3.5; } else { scene.fog.near = lightNow.near; scene.fog.far = lightNow.far; }
     }
     if (sky) sky.position.copy(camera.position);
+    if (daySky) daySky.position.copy(camera.position);
     const f = flicker(now);
-    torch.intensity = 12.2 + f * 2.4;
+    torch.intensity = (12.2 + f * 2.4) * (lightNow.torch === undefined ? 1 : lightNow.torch);
     torch.position.x = 0.2 + (f - 0.5) * 0.08;
     drawHands(now, f);
     // billboards turn to face you; groups spread out across your view
@@ -1203,8 +1282,12 @@ export function createWorld(container, hooks) {
     cultist: (u, v, s) => [v < 0.42 ? s * 0.045 * (1 - v / 0.42) : -s * 0.012 * v, s > 0 ? -0.01 * v : 0],
     // a scurry: stretched low, then bunched up
     rats: (u, v, s) => [(u - 0.5) * (s > 0 ? 0.12 : -0.08), (s > 0 ? -0.1 : 0.08) * v],
+    // the harbor dead wade up the streets heavy with water; the watch march; the hanged sway as they walk
+    drowned: (u, v, s) => [s * 0.05 * v * v, v < 0.3 && (u - 0.5) * s > 0 ? 0.04 * (1 - v / 0.3) : -0.018 * v],
+    watch: (u, v, s) => [s * 0.025 * v, v < 0.28 && (u - 0.5) * s > 0 ? 0.045 * (1 - v / 0.28) : 0],
+    hanged: (u, v, s) => [s * 0.08 * v * v, v < 0.2 && (u - 0.5) * s > 0 ? 0.02 * (1 - v / 0.2) : -0.01 * v],
   };
-  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55, prisoner: 1.7, guard: 1.2, warden: 1.9 }; // walk units per frame
+  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55, prisoner: 1.7, guard: 1.2, warden: 1.9, drowned: 1.7, watch: 1.1, hanged: 2.0 }; // walk units per frame
   function shamble(entry, now) {
     const moving = entry.lastStep !== entry.step;
     entry.lastStep = entry.step;
@@ -1447,6 +1530,7 @@ export function createWorld(container, hooks) {
     placeCamera(now);
     updateWater(dt);
     updateRain(dt);
+    easeLight(dt);
     updateLamps(dt);
     renderer.render(scene, camera);
   }
@@ -1568,6 +1652,22 @@ export function createWorld(container, hooks) {
         g.def = Q.MONSTERS[g.members[0].key];
         addGroup(g);
       }
+    },
+    // Something comes onto the floor while you're on it (the drowned at nightfall), or leaves it.
+    addGroup(g) {
+      g.def = Q.MONSTERS[g.members[0].key];
+      addGroup(g);
+    },
+    removeGroup(g) {
+      const i = level.groups.findIndex((e) => e.group === g);
+      if (i < 0) return;
+      level.root.remove(level.groups[i].mesh);
+      level.groups.splice(i, 1);
+    },
+    // The hour, outdoors: 'night', 'dawn', 'day' or 'dusk'. It comes on over a few seconds, unless snap.
+    setDaylight(name, snap) {
+      daylight = name;
+      if (snap && level) easeLight(0, true);
     },
     // Stand the wretches at a world position, facing angle a (0 faces east).
     place(pose) {
