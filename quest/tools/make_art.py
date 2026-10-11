@@ -118,6 +118,40 @@ ART = {
                       prompt=f'close-up of a prison cell front of rusted vertical iron bars set in a stone frame, darkness behind the bars, {FLAT}'),
     'gaol-door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='celldoor', strength=0.6,
                       prompt=f'close-up of a heavy iron prison cell door with rivets and a small barred window, in a stone wall, {FLAT}'),
+    # --- Skarnvik, the city ---
+    # House fronts, one per street square: drawn as a flat layout (storeys, timber, door, windows, roof),
+    # painted over in ink, then cut out along the roofline so the sky shows above them, with some windows lit.
+    'facade-timber': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:timber', strength=0.62,
+                          prompt=f'front view of a narrow crooked medieval timber-framed house with a steep gable roof, dark wooden beams, '
+                                 f'a heavy wooden door, small leaded windows, flat facade, {FLAT}'),
+    'facade-stone': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:stone', strength=0.62,
+                         prompt=f'front view of a narrow old stone townhouse with a chimney, shuttered windows, an iron-banded door, '
+                                f'flat facade, {FLAT}'),
+    'facade-derelict': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:derelict', strength=0.64,
+                            prompt=f'front view of a derelict waterlogged fisherman house with a stepped gable, windows boarded up with planks, '
+                                   f'cracked plaster, slimy stains, flat facade, {FLAT}'),
+    'front-inn': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:inn', strength=0.6,
+                      prompt=f'front view of a crooked medieval tavern with a steep gable roof, a wide arched door, glowing windows, '
+                             f'a wooden sign with a drowned lamb hanging from an iron bracket, flat facade, {FLAT}'),
+    'front-stall': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:stall', strength=0.62,
+                        prompt=f'front view of a cramped medieval weapon shop with a ragged striped awning over an open counter, '
+                               f'axes and swords hanging, a flat roof with a chimney, flat facade, {FLAT}'),
+    # Skarnvik's people and things, cut out like the monsters.
+    'npc-stranger': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                         prompt=f'full body illustration of a tall gaunt stranger in a long hooded black cloak, one eye sewn shut with '
+                                f'thick black thread, thin cruel smile, hands folded, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-preacher': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                         prompt=f'full body illustration of a wild-eyed ragged doomsday preacher in a torn robe, both arms raised to the sky, '
+                                f'a crude yellow comet painted on his chest, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-fisher': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                       prompt=f'full body illustration of a weathered old fishwife in a shawl and a stained apron holding a basket of '
+                              f'dead fish, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'gallows': dict(kind='sprite', size=(512, 640), out=(448, 560), seed=None,
+                    prompt=f'a wooden gallows with two hanged corpses dangling from ropes and a crow on the beam, front view, '
+                           f'{ISOLATED}, {STYLE}'),
+    'board': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
+                  prompt=f'a weathered wooden notice board on two posts covered in nailed paper notices and wanted posters, '
+                         f'a skull nailed on top, front view, {ISOLATED}, {STYLE}'),
     # --- the wretches' hands, seen in first person like Doom's weapons ---
     # Asked for a hand, the model paints a whole figure; so each starts from a drawn arm and fist entering
     # from the bottom of the frame, gripping the thing (init 'held:...'). The torch is drawn unlit; the game
@@ -184,6 +218,7 @@ SEEDS = {
     'town': 2, 'title': 1, 'inn': 1, 'stall': 1, 'stranger': 2, 'stair': 2, 'grave': 2,
     'vault-wall': 1, 'vault-niches': 2, 'vault-face': 2, 'vault-floor': 1, 'vault-ceiling': 2, 'vault-door': 2,
     'guard': 2, 'prisoner': 1, 'warden': 3, 'gaol-wall': 3, 'gaol-bars': 2, 'gaol-door': 2,
+    'facade-timber': 1, 'front-inn': 1, 'facade-stone': 3, 'front-stall': 3, 'npc-stranger': 2, 'facade-derelict': 1, 'gallows': 2, 'board': 1, 'npc-preacher': 2, 'npc-fisher': 1,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
@@ -191,6 +226,117 @@ SEEDS = {
 
 
 # ---------------- layouts for image-to-image ----------------
+# What a facade layout drew, for grading: its outline (outside it is sky) and its windows (some lit).
+LAYOUT_INFO = {}
+
+
+def _facade(d, rnd, w, h, style):
+    roof = {'timber': 'gable', 'inn': 'gable', 'stone': 'flat', 'stall': 'flat', 'derelict': 'step'}[style]
+    eave = h * rnd.uniform(0.17, 0.21)
+    if roof == 'gable':
+        outline = [(0, h), (0, eave), (w * 0.5, h * rnd.uniform(0.02, 0.04)), (w, eave), (w, h)]
+    elif roof == 'step':
+        top, k = h * 0.04, 3
+        outline = [(0, h), (0, eave)]
+        for i in range(k):  # up the left side in steps
+            x = w * (0.08 + 0.13 * i)
+            y = eave - (eave - top) * (i + 1) / k
+            outline += [(x, outline[-1][1]), (x, y)]
+        outline += [(w - p[0], p[1]) for p in reversed(outline[2:])] + [(w, eave), (w, h)]
+    else:
+        top = eave * 0.6
+        cx0, cx1 = w * rnd.uniform(0.55, 0.65), 0
+        cx1 = cx0 + w * 0.16
+        outline = [(0, h), (0, top), (cx0, top), (cx0, h * 0.02), (cx1, h * 0.02), (cx1, top), (w, top), (w, h)]
+    wall = {'timber': 150, 'inn': 150, 'stone': 118, 'stall': 128, 'derelict': 135}[style]
+    d.polygon(outline, fill=wall)
+    # the roof: tiles above the eave, or a cornice
+    if roof == 'gable':
+        d.polygon(outline[1:4], fill=62)
+        for i in range(1, 9):
+            y = outline[2][1] + (eave - outline[2][1]) * i / 9
+            half = w * 0.5 * (y - outline[2][1]) / (eave - outline[2][1])
+            d.line([(w * 0.5 - half, y), (w * 0.5 + half, y)], fill=34, width=3)
+    elif roof == 'flat':
+        d.rectangle([0, eave * 0.6, w, eave * 0.6 + 14], fill=70)
+        d.rectangle([outline[2][0], outline[3][1], outline[4][0], eave * 0.6], fill=95)
+    storey = h * rnd.uniform(0.52, 0.58)
+    plinth = h * 0.95
+    d.rectangle([0, plinth, w, h], fill=80)
+    windows = []
+    if style in ('timber', 'inn'):
+        beam = 34
+        for x in (0, w - 14):
+            d.rectangle([x, eave, x + 14, plinth], fill=beam)
+        d.rectangle([0, storey - 8, w, storey + 8], fill=beam)
+        d.rectangle([0, eave, w, eave + 12], fill=beam)
+        d.line([(14, storey - 8), (w * 0.3, eave + 12)], fill=beam, width=10)
+        d.line([(w - 14, storey - 8), (w * 0.7, eave + 12)], fill=beam, width=10)
+    if style == 'stone':
+        for y in range(int(eave), int(plinth), 34):
+            d.line([(0, y), (w, y)], fill=88, width=3)
+    # upper windows
+    n = 1 if style in ('stall',) else rnd.choice([1, 2])
+    for i in range(n):
+        ww, wh = w * (0.3 if n == 1 else 0.24), h * rnd.uniform(0.12, 0.15)
+        x0 = (w - ww) / 2 if n == 1 else w * (0.16 + 0.44 * i)
+        y0 = eave + (storey - eave - wh) * 0.5
+        lit = style == 'inn' or rnd.random() < 0.45
+        d.rectangle([x0, y0, x0 + ww, y0 + wh], fill=225 if lit else 18)
+        d.line([(x0 + ww / 2, y0), (x0 + ww / 2, y0 + wh)], fill=60, width=4)
+        d.line([(x0, y0 + wh / 2), (x0 + ww, y0 + wh / 2)], fill=60, width=4)
+        if style == 'derelict':
+            lit = False
+            for k in range(3):
+                yy = y0 + wh * (0.2 + 0.3 * k)
+                d.line([(x0 - 8, yy + rnd.uniform(-10, 10)), (x0 + ww + 8, yy + rnd.uniform(-10, 10))], fill=120, width=14)
+        windows.append((x0 / w, y0 / h, (x0 + ww) / w, (y0 + wh) / h, lit))
+    # the ground floor
+    if style == 'stall':
+        ox0, ox1, oy0, oy1 = w * 0.08, w * 0.92, storey + h * 0.06, plinth - h * 0.12
+        d.rectangle([ox0, oy0, ox1, oy1], fill=16)
+        d.rectangle([ox0 - 6, oy1, ox1 + 6, oy1 + 18], fill=110)                     # the counter
+        for k in range(8):                                                            # the awning
+            x = ox0 - 10 + (ox1 - ox0 + 20) * k / 8
+            d.polygon([(x, storey + 4), (x + (ox1 - ox0 + 20) / 8, storey + 4),
+                       (x + (ox1 - ox0 + 20) / 8 + 6, oy0 + 10), (x + 6, oy0 + 10)], fill=200 if k % 2 else 70)
+        for k in range(3):                                                            # hanging axes
+            x = ox0 + (ox1 - ox0) * (0.22 + 0.28 * k)
+            d.line([(x, oy0 + 14), (x, oy0 + 90)], fill=170, width=6)
+            d.polygon([(x, oy0 + 70), (x + 26, oy0 + 60), (x + 26, oy0 + 96), (x, oy0 + 90)], fill=190)
+    else:
+        dw = w * (0.44 if style == 'inn' else 0.32)
+        dx0 = (w - dw) / 2 if style == 'inn' else rnd.choice([w * 0.14, (w - dw) / 2, w * 0.54])
+        dy0 = plinth - h * (0.27 if style == 'inn' else 0.23)
+        d.rectangle([dx0, dy0 + dw * 0.3, dx0 + dw, plinth], fill=38)
+        d.ellipse([dx0, dy0, dx0 + dw, dy0 + dw * 0.6], fill=38)
+        for k in range(1, 4):
+            x = dx0 + dw * k / 4
+            d.line([(x, dy0 + dw * 0.15), (x, plinth)], fill=22, width=3)
+        if style == 'derelict':
+            d.line([(dx0 - 10, dy0 + 60), (dx0 + dw + 10, dy0 + 140)], fill=120, width=16)
+        # a ground-floor window beside the door
+        if style != 'derelict':
+            gw, gh = w * 0.22, h * 0.09
+            gx0 = w * 0.62 if dx0 < w * 0.4 else w * 0.12
+            if style == 'inn':
+                gx0 = None
+            if gx0 is not None:
+                lit = rnd.random() < 0.5
+                gy0 = storey + h * 0.07
+                d.rectangle([gx0, gy0, gx0 + gw, gy0 + gh], fill=225 if lit else 18)
+                d.line([(gx0 + gw / 2, gy0), (gx0 + gw / 2, gy0 + gh)], fill=60, width=4)
+                windows.append((gx0 / w, gy0 / h, (gx0 + gw) / w, (gy0 + gh) / h, lit))
+        if style == 'inn':
+            # the sign of the Drowned Lamb on its bracket
+            d.line([(14, storey + 30), (w * 0.42, storey + 30)], fill=30, width=6)
+            sx0, sy0 = w * 0.1, storey + 40
+            d.rectangle([sx0, sy0, sx0 + w * 0.3, sy0 + h * 0.08], fill=170)
+            d.ellipse([sx0 + w * 0.06, sy0 + 14, sx0 + w * 0.24, sy0 + h * 0.065], fill=235)
+    LAYOUT_INFO[style] = {'outline': [(x / w, y / h) for x, y in outline], 'windows': windows}
+
+
+
 def _blocks(d, rnd, w, h, rows, tone=(95, 150), mortar=28, x0=0, y0=0):
     y = y0
     row_h = (h - y0) / rows
@@ -421,6 +567,10 @@ def layout(kind, size, seed_name):
             x = gx0 + 10 + k * (gx1 - gx0 - 20) / 3
             d.rectangle([x - 4, gy0, x + 4, gy1], fill=160)
         d.rectangle([w * 0.72, h * 0.55, w * 0.78, h * 0.65], fill=160)
+    elif kind.startswith('facade:'):
+        d.rectangle([0, 0, w, h], fill=20)  # night sky behind the roofline
+        _facade(d, rnd, w, h, kind.split(':')[1])
+        LAYOUT_INFO[seed_name] = LAYOUT_INFO.pop(kind.split(':')[1])
     elif kind.startswith('held:'):
         _held(d, rnd, w, h, kind.split(':')[1])
     elif kind == 'weeping':
@@ -700,9 +850,11 @@ def _subject_mask(img):
     return np.asarray(mask.convert('L')).astype(np.float32) / 255.0
 
 
-def grade(name, img):
+def grade(name, img, seed=None):
     spec = ART[name]
     kind = spec['kind']
+    if kind == 'facade':
+        return _grade_facade(name, img, seed)
     if spec.get('crop'):
         # keep the middle of the picture
         k = spec['crop']
@@ -758,6 +910,41 @@ def grade(name, img):
     return res
 
 
+def _grade_facade(name, img, seed):
+    """A house front: inked like a wall, its lit windows glowing yellow, cut out along the roofline."""
+    from PIL import ImageDraw
+    spec = ART[name]
+    w, h = img.size
+    layout(spec['init'], (w, h), f'{name}-{seed}')
+    info = LAYOUT_INFO[f'{name}-{seed}']
+    rgb = _arr(img)
+    lum = rgb @ np.array([0.299, 0.587, 0.114], np.float32)
+    t = _contrast(lum, k=6.0, mid=0.5, gamma=1.05)
+    out = _duotone(t, INK, (186, 176, 150))
+    out = _accents(rgb, out, 0.6)
+    # lit windows: where the model painted the panes bright, near where the layout put a lit window (the
+    # model moves windows about a little; a pane it painted dark stays dark)
+    near = Image.new('L', (w, h), 0)
+    gd = ImageDraw.Draw(near)
+    for x0, y0, x1, y1, lit in info['windows']:
+        if lit:
+            px, py = (x1 - x0) * w * 0.35, (y1 - y0) * h * 0.35
+            gd.rectangle([x0 * w - px, y0 * h - py, x1 * w + px, y1 * h + py], fill=255)
+    near = np.asarray(near, np.float32) / 255.0
+    bright = np.clip((lum - 0.7) / 0.15, 0, 1)
+    glow = Image.fromarray((near * bright * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.5))
+    glow = np.asarray(glow, np.float32)[..., None] / 255.0
+    yellow = np.array(YELLOW, np.float32) / 255
+    # lit panes: yellow where the ink is light, the ink's dark lines (mullions, grime) still showing
+    out = out * (1 - glow) + (yellow * (0.35 + 0.65 * t[..., None])) * glow
+    out = _grain(out, 0.06, sum(map(ord, name)))
+    mask = Image.new('L', (w, h), 0)
+    ImageDraw.Draw(mask).polygon([(x * w, y * h) for x, y in info['outline']], fill=255)
+    rgba = np.dstack([out, np.asarray(mask, np.float32) / 255.0])
+    res = Image.fromarray((rgba * 255).astype(np.uint8), 'RGBA')
+    return res.resize(spec['out'], Image.LANCZOS)
+
+
 def _fit(img, size, anchor='bottom'):
     """Scale a cut-out into a fixed canvas, keeping its proportions, feet on the bottom edge."""
     W, H = size
@@ -782,7 +969,7 @@ def contact_sheet(name, seeds, out_dir):
     tiles = []
     for seed in seeds:
         raw = generate(name, seed)
-        graded = grade(name, raw).convert('RGBA')
+        graded = grade(name, raw, seed).convert('RGBA')
         bgc = Image.new('RGBA', graded.size, (40, 36, 30, 255))
         bgc.alpha_composite(graded)
         tiles.append((raw.resize(graded.size), bgc.convert('RGB')))
@@ -825,7 +1012,7 @@ def main(argv):
             if seed is None:
                 print(f'skip {name}: no seed chosen', flush=True)
                 continue
-            print(save(name, grade(name, generate(name, seed))), flush=True)
+            print(save(name, grade(name, generate(name, seed), seed)), flush=True)
 
 
 if __name__ == '__main__':

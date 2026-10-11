@@ -374,6 +374,9 @@ var Q = window.Q || (window.Q = {});
       });
     } else if (where === 'town') {
       bed({ filter: 'bandpass', f: 500, q: 0.8, gain: 0.1, rate: 0.12, wobble: 0.6 });
+      // rain on the stones and the water: a steady hiss, and now and then a gust of it
+      bed({ filter: 'highpass', f: 2600, gain: 0.05, rate: 0.08, wobble: 0.35 });
+      bed({ filter: 'bandpass', f: 1200, q: 0.6, gain: 0.03, rate: 0.05, wobble: 0.5 });
       every(18, 34, () => { const d = out({ bus: ambBus, gain: 0.35, verb: 1, pan: rnd(-0.6, 0.6) }); bell(d, now(), 196, 4, 0.12); });
       every(9, 20, () => { const d = out({ bus: ambBus, gain: 0.3, verb: 0.5, pan: rnd(-1, 1) }); for (let i = 0; i < 2; i++) noise(d, now() + i * 0.32, { f: 1400, f2: 900, q: 4, d: 0.22, gain: 0.25 }); });
     }

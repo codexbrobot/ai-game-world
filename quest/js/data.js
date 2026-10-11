@@ -20,6 +20,7 @@ var Q = window.Q || (window.Q = {});
     {
       id: 'gaol',
       name: 'The Brine Gaol',
+      depth: 1,
       // You wake in the cell at @. C: a cell door that won't open on its own; J: the Warden's hall, locked.
       // G here is the sewer grate out into Skarnvik.
       theme: {
@@ -87,6 +88,8 @@ var Q = window.Q || (window.Q = {});
     {
       id: 'undercroft',
       name: 'The Undercroft',
+      depth: 2,
+      up: 'skarnvik', // its G is the crypt stair up into Gallows Square
       groups: { r: ['r', 'r'], z: ['z'], s: ['s'], c: ['c', 'r'] },
       rows: [
         '################',
@@ -141,6 +144,85 @@ var Q = window.Q || (window.Q = {});
         '................',
         '................',
         '................',
+      ],
+    },
+    {
+      id: 'skarnvik',
+      name: 'Skarnvik',
+      // The city, walked like a dungeon but under the sky. Its own letters are in uses: house fronts you walk
+      // into (T Thrumm's stall, I the Drowned Lamb), people and things standing in the street (X the
+      // Stranger, Y the gallows, B the bounty board, P the comet preacher, N a fishwife, l a lamp) and
+      // G, the sewer grate you came up through. > is the crypt stair down to the Undercroft; @ is the inn door.
+      depth: 0,
+      down: 'undercroft',
+      areas: [{ name: 'Gallows Square', rows: [0, 6] }, { name: 'Rope Street', rows: [7, 8] }, { name: 'The Harbor', rows: [9, 13] }],
+      theme: {
+        outdoor: true, rain: true, sea: true, wallHeight: 5.2,
+        walls: [['facade-timber', 4], ['facade-stone', 3], ['facade-derelict', 1]],
+        zones: [{ rows: [8, 13], walls: [['facade-derelict', 3], ['facade-timber', 2], ['facade-stone', 1]] }],
+        riser: 'wall-stone', floor: 'floor', door: 'door',
+        sky: 0x8c8e98, ground: 0x1d1b16, hemi: 0.95, moon: 0.75, fog: 0x1a1d21, fogNear: 7, fogFar: 38,
+        water: -0.2, waterTint: 0x080a0b,
+      },
+      uses: {
+        T: { front: 'front-stall', name: 'Thrumm’s Stall', act: 'shop', mark: '⚒' },
+        I: { front: 'front-inn', name: 'The Drowned Lamb', act: 'inn', mark: '⌂' },
+        X: { prop: { art: 'npc-stranger', h: 1.95 }, name: 'The Stranger', act: 'stranger', mark: '●' },
+        Y: { prop: { art: 'gallows', h: 4.3, aspect: 0.8 }, name: 'The gallows', scene: 'gallows', mark: '†' },
+        B: { prop: { art: 'board', h: 1.25, aspect: 0.75, posts: true }, name: 'The bounty board', act: 'board', mark: '▤' },
+        P: { prop: { art: 'npc-preacher', h: 1.9 }, name: 'The comet preacher', scene: 'preacher', mark: '●' },
+        N: { prop: { art: 'npc-fisher', h: 1.75 }, name: 'A fishwife', scene: 'fishwife', mark: '●' },
+        l: { prop: { lamp: true } },
+        G: { decal: 'grate', name: 'The sewer grate', mark: '▦' },
+      },
+      rows: [
+        '####################',
+        '#####T##############',
+        '###l.......P...l####',
+        '###.............####',
+        '##>....X.Y......####',
+        '###...G......B..####',
+        '###l............####',
+        '#########..#########',
+        '#####I###..#########',
+        '##l..@...........l##',
+        '##................##',
+        '##.............N..##',
+        '##................##',
+        '####################',
+      ],
+      heights: [
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '.........aa.........',
+        '.........bb.........',
+        '..bbbbbbbbbbbbbbbb..',
+        '..bbbbbbbbbbbbbbbb..',
+        '..bbbbbbbbbbbbbbbb..',
+        '..cccccccccccccccc..',
+        '....................',
+      ],
+      // the quay's wall to the sea is only a parapet: you look out over it
+      ceil: [
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '....................',
+        '..LLLLLLLLLLLLLLLL..',
+        '....................',
       ],
     },
   ];

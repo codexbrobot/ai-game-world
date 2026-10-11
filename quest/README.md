@@ -37,7 +37,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their class, Toughness + a class HP die, Omens, random weapon, armor and silver. Skarnvik, the island-city they come from, is sinking, and the Salt Lords say it isn't.
 
 - **It starts in a cell.** Your wretches wake in the **Brine Gaol** with the sea coming in under the door and nothing but a femur each (d4) and rags. Their own weapons, armor and silver were taken when they were thrown in. Get out of the cell, find your things in the evidence room, take the key to the Warden's hall, get past **the Drowned Warden**, and climb out through the sewer grate into the city. Nobody up there recognises you.
-- **Then the bigger thing.** In Skarnvik the Stranger notices your shackle scars and sends you down into the Undercroft to see what the water is doing. That is as far as the story goes for now.
+- **Then the city.** You come up through the sewer grate into **Skarnvik**, at night, in the rain, and walk it like a dungeon (see below). The Stranger by the gallows notices your shackle scars and sends you down the crypt stair into the Undercroft to see what the water is doing. That is as far as the main story goes for now. The grate stays where it is: step on it and your wretches refuse to go back down.
 - **Wretches don't last.** Die in the Gaol and that's it: new prisoners, from the start. But once you have made it out into the city, a death is not the end of the run: you roll new wretches, people of Skarnvik who heard what the dead learned, and they carry on with the same story, the same Calendar and the same Miseries.
 
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a chasm on the second floor with a single bridge. Step off the edge and both wretches fall (d6 each) and are hauled back up.
@@ -53,8 +53,11 @@ You lead two wretches, rolled up from the gutter: 3d6 abilities shifted by their
 - **Rows**: one wretch stands in front, one behind. Foes go for the front wretch three times in four, and a melee attack from the back row is at DR +2. Swap in battle (it takes the turn) or from the party sheet.
 - **Monsters have tricks**: drowned guards' truncheons can daze you (lose a turn, unless you pass Toughness DR 12), rats ignore the rows and swarm (each other pack of rats makes them harder to dodge), cultists curse anyone with Comet's Wrath (no armor helps) or heal each other, and skeletons raise their fallen allies. The Drowned Warden bellows you back to roll-call (a wretch freezes for a turn), and at half HP the DM stops the fight to tell you what happens next: he tears off his mask, loses his armor, hits with a d10, acts twice a round, swings his ring of keys at the whole party and calls his dead guards back to their feet at half strength.
 - **The Calendar of Nechrubel**: every night's sleep and every flight from a battle is a day lost. When the days run out a Misery comes to pass and makes the world worse (fatter rats, faster dead, dearer shops, fewer Omens, nastier wounds, a bloody gutter). The seventh Misery ends the world. The count is on the HUD (☄) and in town.
-- **Skarnvik**: the Stranger (the quest), the Drowned Lamb (sleep, heal, Get Better, and hire a new wretch for 20s when one of yours has died) and Thrumm's Stall (weapons, armor, poultices; you choose who gets them).
-- **The Brine Gaol** holds rats, drowned guards and prisoners, remains to search, a scroll, and the Warden. **The Undercroft**, below the city, holds remains, a black font, hidden pits, a scroll, zombies, skeletons and cultists, and a stair down that is drowned to the ceiling.
+- **Skarnvik** is walked in first person like the dungeons, under an open sky: a black night with the comet low over the harbor, rain falling (and ringing the flooded streets), rows of crooked house fronts with lit windows and gabled roofs against the sky, street lamps, and the black sea past the harbor wall, where the comet glitters. Walk into a building or a person to use them, or tap the name that appears when you face them. The HUD names the district you stand in. Three districts so far:
+  - **Gallows Square**, where you come up: the Stranger in the shadow of the gallows (the main quest), Thrumm's Stall (weapons, armor, poultices, curios), the **bounty board** (take up to two jobs killing what lives in the Undercroft, then come back for your pay; new work every morning, for whatever still lives down there), the comet preacher, the gallows (one of the hanged men is humming), and the crypt stair down to the Undercroft.
+  - **Rope Street**, down to the harbor.
+  - **The Harbor**, half under the sea: the Drowned Lamb (sleep, heal, Get Better, and hire a new wretch for 20s when one of yours has died; new wretches start at its door) and a fishwife with rumors and smoked eel.
+- **The Brine Gaol** holds rats, drowned guards and prisoners, remains to search, a scroll, and the Warden. **The Undercroft**, below Gallows Square, holds remains, a black font, hidden pits, a scroll, zombies, skeletons and cultists, and a stair down that is drowned to the ceiling.
 - If both wretches die in the Gaol, the save is gone. If they die after the escape, new wretches pick up the run in Skarnvik.
 
 ## Story scenes
@@ -73,6 +76,9 @@ The scenes live in `js/story.js`, one short script each.
 | The evidence room | Your sacks: your own weapon, armor and silver. Each wretch rolls a d6: on a 1 the guards spent half the silver; on a 6 the sack beside yours holds something strange. Two poultices, and the key to the Warden's hall |
 | The Warden's hall door | Locked until you have the key |
 | The sewer grate | Padlocked: the key is on the Warden's ring. Then out into Skarnvik |
+| Skarnvik: the comet preacher | Ask who the Bright Mouths are; toss him a coin for a blessing (+1 Omen, once) |
+| Skarnvik: the gallows | Listen to the humming hanged man (Presence DR 12): a line of the miners' song about the saints in the salt; read the wanted posters (your faces, washed away) |
+| Skarnvik: the fishwife | The Salt Lords and the Deep Mine nobody comes back from; the drowned who walk the harbor at night; a smoked eel for 2s (1 HP each) |
 | Arriving in the Undercroft | Listen at the dark (Presence DR 10): every monster on the floor shows on your map |
 | The black font | Pink liquid in a black basin. Its nature (saint's tears that heal, comet water that gives an Omen, or lye that burns) is decided when the run begins. Taste a drop (Presence DR 12) to learn which before you drink; look under the basin (Strength DR 12) to find a secret niche with a relic in it |
 | The rat-saint's dais | Read the words at her feet (Presence DR 12): an Omen, or a letter crawls into your eye |
@@ -149,7 +155,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | `js/rules.js` | Dice, character generation, attacks, defence, Broken, morale, Getting Better |
 | `js/story.js` | The DM's scenes: narration, choices, tests, secrets |
 | `js/items.js` | Unique weapons and relics, wearing and wielding, the Codex |
-| `js/data.js` | The floor maps (the Brine Gaol, the Undercroft) (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
+| `js/data.js` | The floor maps (the Brine Gaol, the Undercroft, Skarnvik) (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
 | `js/art.js` | The town picture, the map, and the grain overlay |
 | `js/dice.js` | The dice thrown on screen for every roll in a battle |
 | `js/sound.js` | Every sound, synthesized with Web Audio: effects, ambience per place, mute |
@@ -158,7 +164,7 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | `tools/make_art.py` | Generates and grades the pictures |
 | `tools/build_page.py` | Bundles the game into one page for publishing |
 
-Edit the maps in `js/data.js` (the key is at the top of the file). Each floor has three layers of the same size: `rows` (walls, doors, stairs and so on), `heights` (`.` is ground level, `1`–`9` raise the floor by a quarter step each, `a`–`h` sink it, `x` is a chasm) and `ceil` (`.` normal, `H` high, `L` low). You can climb up to two quarter steps at a time.
+Edit the maps in `js/data.js` (the key is at the top of the file). A floor can bring its own letters in `uses`: a `front` (a building's face, a wall you walk into), a `prop` (someone or something standing in the street) or a `decal` (a grate on the ground), each with a name and what it does. A floor whose theme is `outdoor` has no ceiling: its `ceil` layer says how tall the walls stand instead (`L` a low parapet), and it gets the sky, rain (`rain`) and open sea past its last row (`sea`). Each floor has three layers of the same size: `rows` (walls, doors, stairs and so on), `heights` (`.` is ground level, `1`–`9` raise the floor by a quarter step each, `a`–`h` sink it, `x` is a chasm) and `ceil` (`.` normal, `H` high, `L` low). You can climb up to two quarter steps at a time.
 
 ### Dice
 
@@ -171,6 +177,7 @@ The pictures in `assets/` (monsters, walls, floor, ceiling, the town, portraits)
 - Image model: [LCM Dreamshaper v7](https://huggingface.co/SimianLuo/LCM_Dreamshaper_v7) (MIT licence), 8 steps per image on the CPU.
 - Walls, door, floor, ceiling and the rat start from a simple flat layout drawn in code (stone blocks, rows of skulls, planks, a crouching rat), which the model paints over (image-to-image). Asked directly, the model paints whole corridors instead of a flat wall, and rat-men instead of rats.
 - The hands work the same way: an arm and fist drawn coming up from the bottom of the frame, gripping a torch or one of the eight weapons. Asked directly, the model paints a whole person holding the thing.
+- Skarnvik's house fronts start from drawn layouts too (storeys, timber, a door, windows, a gable, a chimney or a stepped roof). After grading, each is cut out along its roofline so the sky shows above it, and the panes the model painted bright near the layout's lit windows glow yellow.
 - The Gaol's walls, bars, cell doors and drain floor start from drawn layouts too (bricks with a shackle ring and tally marks, a cell front of bars, a riveted door with a grille, flagstones around a round grate).
 - The town prints in black and acid yellow; everything else in black and bone.
 - Cut-outs: [rembg](https://github.com/danielgatis/rembg) with the ISNet general-use model (Apache 2.0).

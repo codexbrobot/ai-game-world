@@ -40,22 +40,6 @@
   </div>
 </section>
 
-<!-- town -->
-<section id="town" class="screen" hidden>
-  <div class="town-wrap">
-    <div class="town-art"><canvas id="townArt" aria-label="Skarnvik at night: crooked houses, a gallows and the comet"></canvas><h2>Skarnvik</h2></div>
-    <p id="townStatus" class="status"></p>
-    <p id="townGoal" class="goal"></p>
-    <div class="places">
-      <button id="goStranger" type="button" class="place-stranger"><span class="label"><b>The Stranger</b><small>by the dry well</small></span></button>
-      <button id="goInn" type="button" class="place-inn"><span class="label"><b>The Drowned Lamb</b><small>sleep, heal, get better</small></span></button>
-      <button id="goShop" type="button" class="place-stall"><span class="label"><b>Thrumm’s Stall</b><small>weapons, armor, poultices</small></span></button>
-      <button id="goCrypt" type="button" class="place-stair danger"><span class="label"><b>The Crypt Stair</b><small>down into the Undercroft</small></span></button>
-    </div>
-    <button id="goSheet" type="button" class="ghost small-btn">Your party</button>
-  </div>
-</section>
-
 <!-- crawl -->
 <section id="crawl" hidden>
   <div id="viewport" class="viewport">
@@ -77,6 +61,7 @@
         </div>
       </div>
     </div>
+    <button type="button" id="facing" class="facing" hidden></button>
     <p id="hint" class="hint">Left thumb: walk · Right thumb: look<br>Tap a portrait for its character sheet<br><span>Keyboard: W A S D to move, arrows or Q E to turn, drag to look</span></p>
     <div id="battle" class="battle" hidden>
       <div id="foes" class="foes"></div>

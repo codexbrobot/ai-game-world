@@ -347,5 +347,93 @@ ${dm.flag('knowsEvidence') ? 'The key hangs in the evidence room, through the in
 Between you and the light, keys ringing at every step, <em>the Warden is making his rounds.</em>`, [{ label: 'Go in' }]);
       },
     },
+    // ---------- Skarnvik: the people in the street (a floor's uses name these by id) ----------
+    {
+      id: 'preacher', floor: 'skarnvik',
+      async run(dm, first) {
+        const opts = [
+          { key: 'mouths', label: 'Ask who the Bright Mouths are' },
+          ...(dm.flag('preacherBlessed') ? [] : [{ key: 'coin', label: 'Toss him a coin', note: '1s', disabled: dm.silverLeft < 1 }]),
+          { key: 'go', label: 'Walk on' },
+        ];
+        const pick = await dm.say('The comet preacher', first
+          ? `A man in a torn robe stands on an upturned salt barrel with his arms raised to the comet. A yellow comet is daubed on his chest in paint, or worse.
+
+<em>“IT IS A BAPTISM,”</em> he screams at nobody. <em>“THE SEA COMES UP TO WASH SKARN CLEAN. THE BRIGHT MOUTHS WILL SING YOU UNDER!”</em>`
+          : 'The preacher is still on his barrel, still screaming at the comet. His voice is going.', opts);
+        const key = opts[pick].key;
+        if (key === 'mouths') {
+          dm.flag('brightMouths', true);
+          await dm.say('The comet preacher', `He leans down, suddenly quiet, and his breath smells of salt. <em>“The comet’s own. They gather under the square, where the water is coming up from below. They are waiting for it. Go down and see. Go down and drown.”</em>
+
+Then he straightens up and starts screaming again.`, [{ label: 'Go on' }]);
+        } else if (key === 'coin') {
+          dm.silver(-1);
+          dm.flag('preacherBlessed', true);
+          const pc = dm.party.slice().sort((a, b) => a.omens - b.omens)[0];
+          dm.omen(pc);
+          await dm.say('The comet preacher', `He bites the coin, weeps, and lays a hand on ${dm.name(pc)}’s head. The blessing is in a language that hurts the teeth. <em>+1 Omen.</em>`, [{ label: 'Go on' }]);
+        }
+      },
+    },
+    {
+      id: 'fishwife', floor: 'skarnvik',
+      async run(dm, first) {
+        const opts = [
+          { key: 'lords', label: 'Ask about the Salt Lords' },
+          { key: 'night', label: 'Ask about the harbor' },
+          { key: 'eel', label: 'Buy a smoked eel', note: '2s: 1 HP each', disabled: dm.silverLeft < 2 },
+          { key: 'go', label: 'Walk on' },
+        ];
+        const pick = await dm.say('A fishwife', first
+          ? `A fishwife stands shin-deep in what used to be the fish market, gutting something that is still moving. <em>“Three streets,”</em> she says, without looking up. <em>“The sea’s come up three streets since spring. And the Salt Lords say it’s the tide.”</em>`
+          : '<em>“You again. Buying, or gawping?”</em>', opts);
+        const key = opts[pick].key;
+        if (key === 'lords') {
+          dm.flag('deepMineRumor', true);
+          await dm.say('A fishwife', `<em>“They pay double for men to dig the Deep Mine now. My Henrik went for the wages at midsummer.”</em> She cuts the head off the thing in her hands. <em>“Nobody comes back from the Deep Mine. Nobody. And the salt keeps coming up out of it, finer every year.”</em>`, [{ label: 'Go on' }]);
+        } else if (key === 'night') {
+          await dm.say('A fishwife', '<em>“Don’t come down here after dark. The drowned walk up out of the water at night, looking for their houses. Knocking on doors that are under the sea.”</em>', [{ label: 'Go on' }]);
+        } else if (key === 'eel') {
+          dm.silver(-2);
+          for (const pc of dm.party) dm.heal(pc, 1);
+          await dm.say('A fishwife', 'It is black and greasy and tastes of smoke and the bottom of the sea. It is the best thing you have eaten in years.', [{ label: 'Go on' }]);
+        }
+      },
+    },
+    {
+      id: 'gallows', floor: 'skarnvik',
+      async run(dm) {
+        const sung = dm.flag('hangedSong');
+        const opts = [
+          ...(sung ? [] : [{ key: 'listen', label: 'Listen to the humming', note: 'Presence DR 12' }]),
+          { key: 'posters', label: 'Read the posters nailed to the gallows' },
+          { key: 'go', label: 'Walk on' },
+        ];
+        const pick = await dm.say('The gallows', sung
+          ? 'The hanged men turn in the rain. The one on the right is silent now, and his face is turned toward the harbor.'
+          : `Two hanged men turn slowly in the rain, and a crow works at one of them. The ropes creak.
+
+The one on the right is <em>humming</em>, very softly: a work song you half remember from the cells, the one the old miners sang.`, opts);
+        const key = opts[pick].key;
+        if (key === 'listen') {
+          const pc = dm.best('presence');
+          if (await dm.test(pc, 'presence', 12, 'listens to the hanged man')) {
+            dm.flag('hangedSong', true);
+            await dm.say('The gallows', `${dm.name(pc)} stands close, under his feet, and the words come through the rain:
+
+<em>“...down the white stair, down below the Exchange, where the saints lie in the salt, and the saints are singing too...”</em>
+
+The humming stops. The dead face turns, very slowly, toward ${dm.name(pc)}. The crow flies off.`, [{ label: 'Step back' }]);
+          } else {
+            await dm.say('The gallows', 'Whatever the words are, the rain drowns them out. The humming goes on.', [{ label: 'Step back' }]);
+          }
+        } else if (key === 'posters') {
+          await dm.say('The gallows', `<em>WANTED, by order of the Salt Lords: the escaped prisoners of the Brine Gaol. Dead will do.</em>
+
+Under it, faces, washed by the rain to nothing at all. One of them could be yours. Nobody in the square is looking at them, or at you.`, [{ label: 'Step back' }]);
+        }
+      },
+    },
   ];
 })();

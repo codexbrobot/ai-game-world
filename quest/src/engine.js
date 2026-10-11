@@ -45,6 +45,10 @@ export function createWorld(container, hooks) {
   scene.add(camera);
   const hemi = new THREE.HemisphereLight(0x5a5346, 0x0a0806, 0.5);
   scene.add(hemi);
+  // outdoors, the comet lights the city from over the harbor (the south, +z), as the sky shows it
+  const cometLight = new THREE.DirectionalLight(0xdcd2ab, 0);
+  cometLight.position.set(0, 16.8, 24.9);
+  scene.add(cometLight);
   // the torch you carry: warm bone-white, flickering
   const torch = new THREE.PointLight(0xffe7c2, 13, 18, 1.15);
   torch.position.set(0.2, 0.25, 0.9); // carried a little behind, so walls you face up close don't burn white
@@ -106,8 +110,12 @@ export function createWorld(container, hooks) {
     };
     return m;
   }
+  const isFacade = (name) => /^(facade|front)-/.test(name);
   function mat(name, extra) {
-    if (!matCache[name]) matCache[name] = wetStone(lambert(texture(name, !/door/.test(name)), extra));
+    if (!matCache[name]) {
+      const facade = isFacade(name);
+      matCache[name] = wetStone(lambert(texture(name, !/door/.test(name) && !facade), facade ? { ...extra, alphaTest: 0.5 } : extra));
+    }
     return matCache[name];
   }
   // The Undercroft's look, used by any floor that doesn't bring its own.
@@ -118,6 +126,12 @@ export function createWorld(container, hooks) {
     water: 0.32, waterTint: 0x0b0906, // how high the flood stands, in world units above level ground
   };
   let theme = DEFAULT_THEME;
+  // What a floor's own letters are (js/data.js, a floor's uses): a front (a building's face, a wall you
+  // walk into to go in), a prop (someone or something standing in the street: solid, a billboard), or a
+  // decal (a grate in the street). Walking into a front or prop, or onto a decal, asks the game.
+  let uses = {};
+  const useOf = (t) => uses[t] || null;
+  const blocks = (t) => t === '#' || !!(uses[t] && (uses[t].front || uses[t].prop));
   const materials = new Proxy({}, {
     get(_, key) {
       if (key in matCache) return matCache[key];
@@ -145,7 +159,7 @@ export function createWorld(container, hooks) {
   const doorAt = (cx, cy) => level.doors.get(cx + ',' + cy);
   function solid(cx, cy) {
     const t = tile(cx, cy);
-    if (t === '#') return true;
+    if (blocks(t)) return true;
     const d = doorAt(cx, cy);
     return !!d && d.open < 0.8;
   }
@@ -153,27 +167,40 @@ export function createWorld(container, hooks) {
   // ---------- building a floor ----------
   // Walls pick a picture by a fixed hash of their cell, weighted by the theme.
   function wallMaterialFor(cx, cy) {
-    const total = theme.walls.reduce((n, [, w]) => n + w, 0);
+    // a zone of the floor (the harbor's rotting houses, say) can bring its own mix
+    const zone = (theme.zones || []).find((z) => cy >= z.rows[0] && cy <= z.rows[1]);
+    const walls = zone ? zone.walls : theme.walls;
+    const total = walls.reduce((n, [, w]) => n + w, 0);
     let k = (((cx * 7 + cy * 13) % total) + total) % total;
-    for (const [name, w] of theme.walls) {
+    for (const [name, w] of walls) {
       if (k < w) return name;
       k -= w;
     }
-    return theme.walls[0][0];
+    return walls[0][0];
   }
 
   function build(floor) {
     if (level) scene.remove(level.root);
     if (water) { water.mesh.dispose(); water = null; }
     theme = { ...DEFAULT_THEME, ...(floor.theme || {}) };
+    uses = floor.uses || {};
+    const outdoor = !!theme.outdoor;
     scene.fog.color.setHex(theme.fog);
+    scene.fog.near = theme.fogNear || 2;
+    scene.fog.far = theme.fogFar || 16;
     renderer.setClearColor(theme.fog);
     hemi.color.setHex(theme.sky);
     hemi.groundColor.setHex(theme.ground);
+    hemi.intensity = theme.hemi || 0.5;
+    cometLight.intensity = outdoor ? theme.moon || 0.7 : 0;
     const grid = floor.grid;
     const H = grid.length, W = grid[0].length;
     const h = floor.heights.map((row) => [...row].map(heightOf));
-    const c = floor.ceil.map((row, y) => [...row].map((ch, x) => Math.max(CEILINGS[ch] || 3.2, h[y][x] + 2.4)));
+    // outdoors there is no ceiling: the layer says how tall the walls round a square stand ('L' a low
+    // parapet, 'H' a tall front), from its own floor up
+    const c = floor.ceil.map((row, y) => [...row].map((ch, x) => (outdoor
+      ? h[y][x] + (ch === 'L' ? 1.1 : (theme.wallHeight || 5.2) * (ch === 'H' ? 1.35 : 1))
+      : Math.max(CEILINGS[ch] || 3.2, h[y][x] + 2.4))));
     level = { grid, h, c, W, H, root: new THREE.Group(), doors: new Map(), items: new Map(), groups: [], lights: [] };
     scene.add(level.root);
 
@@ -193,39 +220,43 @@ export function createWorld(container, hooks) {
       { dx: 0, dy: 1, p: (x, y) => [[x + 1, y + 1], [x, y + 1]] },
       { dx: -1, dy: 0, p: (x, y) => [[x, y + 1], [x, y]] },
     ];
-    const vface = (mat, e, x, y, y0, y1) => {
+    // stretch: one picture over the whole face (a house front), not tiled every two units
+    const vface = (mat, e, x, y, y0, y1, stretch) => {
       if (y1 - y0 < 0.01) return;
       const [[ax, az], [bx, bz]] = e.p(x, y);
       const A = [ax * CELL, y0, az * CELL], B = [bx * CELL, y0, bz * CELL];
       const C = [bx * CELL, y1, bz * CELL], D = [ax * CELL, y1, az * CELL];
-      const v0 = y0 / 2, v1 = y1 / 2;
+      const v0 = stretch ? 0 : y0 / 2, v1 = stretch ? 1 : y1 / 2;
       quad(mat, A, B, C, D, [0, v0, 1, v0, 1, v1, 0, v1]);
     };
 
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const t = grid[y][x];
-        if (t === '#') continue;
+        if (t === '#' || (uses[t] && uses[t].front)) continue;
         const fy = h[y][x], cy = c[y][x];
         const x0 = x * CELL, x1 = (x + 1) * CELL, z0 = y * CELL, z1 = (y + 1) * CELL;
         // floor (a hole for the stair down) and ceiling
         if (t === '>') buildStairDown(x, y, fy);
         else quad(fy <= CHASM + 0.01 ? 'abyss' : 'floor', [x0, fy, z1], [x1, fy, z1], [x1, fy, z0], [x0, fy, z0], [x, -(y + 1), x + 1, -(y + 1), x + 1, -y, x, -y]);
-        quad('ceiling', [x0, cy, z0], [x1, cy, z0], [x1, cy, z1], [x0, cy, z1], [x, y, x + 1, y, x + 1, y + 1, x, y + 1]);
+        if (!outdoor) quad('ceiling', [x0, cy, z0], [x1, cy, z0], [x1, cy, z1], [x0, cy, z1], [x, y, x + 1, y, x + 1, y + 1, x, y + 1]);
         for (const e of EDGES) {
           const nx = x + e.dx, ny = y + e.dy;
           const nt = (grid[ny] && grid[ny][nx]) || '#';
-          if (nt === '#') {
-            vface(wallMaterialFor(nx, ny), e, x, y, fy, cy);
+          const front = uses[nt] && uses[nt].front;
+          if (nt === '#' || front) {
+            // outdoors a wall is a whole house front, stretched up to its roofline; a low one is a parapet
+            if (outdoor && cy - fy > 2) vface(front || wallMaterialFor(nx, ny), e, x, y, fy, cy, true);
+            else vface(outdoor ? 'riser' : front || wallMaterialFor(nx, ny), e, x, y, fy, cy);
             continue;
           }
           // a step down to the neighbour shows its riser from this side; a lower ceiling next door shows a lintel
           const nf = h[ny][nx], nc = c[ny][nx];
           if (nf > fy) vface('riser', e, x, y, fy, nf);
-          if (nc < cy) vface('riser', e, x, y, nc, cy);
+          if (!outdoor && nc < cy) vface('riser', e, x, y, nc, cy);
         }
         if (t === 'D' || t === 'C' || t === 'J') buildDoor(x, y, fy, cy, t !== 'D');
-        if (t === 'G' || t === '<') buildDaylight(x, y, fy);
+        if (((t === 'G' && !outdoor) || t === '<')) buildDaylight(x, y, fy);
       }
     }
     for (const [mat, B] of Object.entries(buckets)) {
@@ -239,7 +270,125 @@ export function createWorld(container, hooks) {
     // things on the floor
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) placeItem(x, y);
     buildWater();
+    buildSky();
+    buildRain();
     needRender = true;
+  }
+
+  // ---------- outdoors: the sky, the comet, the rain ----------
+  // The sky is a dome around the camera, painted once: ink overhead, the fog's grey at the horizon, the
+  // black sea below it, stars, low rags of cloud, and the comet over the harbor (+z) with its tail
+  // burning from acid yellow to pink and its glitter on the water.
+  let sky = null;
+  function skyTexture() {
+    const key = 'sky:' + theme.fog;
+    if (texCache[key]) return texCache[key];
+    const W = 2048, H = 1024;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    const fog = '#' + new THREE.Color(theme.fog).getHexString();
+    let gr = g.createLinearGradient(0, 0, 0, H / 2);
+    gr.addColorStop(0, '#030406'); gr.addColorStop(0.6, '#0a0c0f'); gr.addColorStop(1, fog);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H / 2);
+    gr = g.createLinearGradient(0, H / 2, 0, H);
+    gr.addColorStop(0, fog); gr.addColorStop(0.06, '#0a0c0d'); gr.addColorStop(1, '#020303');
+    g.fillStyle = gr; g.fillRect(0, H / 2, W, H / 2);
+    for (let i = 0; i < 1500; i++) {
+      const y = Math.pow(Math.random(), 1.5) * H * 0.45;
+      const a = (1 - y / (H * 0.45)) * (0.2 + Math.random() * 0.8);
+      g.fillStyle = `rgba(235,228,208,${a.toFixed(2)})`;
+      const sz = Math.random() < 0.04 ? 2 : 1;
+      g.fillRect(Math.random() * W, y, sz, sz);
+    }
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * W, y = H * (0.28 + Math.random() * 0.2), r = 60 + Math.random() * 170;
+      const cg = g.createRadialGradient(x, y, 0, x, y, r);
+      cg.addColorStop(0, 'rgba(5,6,8,0.6)'); cg.addColorStop(1, 'rgba(5,6,8,0)');
+      g.fillStyle = cg;
+      g.beginPath(); g.ellipse(x, y, r * 1.9, r * 0.42, 0, 0, Math.PI * 2); g.fill();
+    }
+    const cx = W * 0.25, cy = H * 0.31;
+    g.save();
+    g.translate(cx, cy);
+    g.rotate(-0.42);
+    g.globalCompositeOperation = 'lighter';
+    // the tail: a soft fan widening away from the head, then a few faint strands in it
+    const fan = g.createLinearGradient(0, 0, -520, 0);
+    fan.addColorStop(0, 'rgba(255,236,140,0.32)'); fan.addColorStop(0.25, 'rgba(255,225,26,0.12)');
+    fan.addColorStop(0.65, 'rgba(255,61,139,0.05)'); fan.addColorStop(1, 'rgba(255,61,139,0)');
+    g.fillStyle = fan;
+    g.filter = 'blur(10px)';
+    g.beginPath(); g.moveTo(6, 0); g.quadraticCurveTo(-240, -14, -520, -110); g.lineTo(-520, 60); g.quadraticCurveTo(-240, 22, 6, 0); g.fill();
+    g.filter = 'none';
+    for (let i = 0; i < 26; i++) {
+      const len = 200 + Math.random() * 300, end = -100 + Math.random() * 150;
+      const tg = g.createLinearGradient(0, 0, -len, end * (len / 520));
+      tg.addColorStop(0, 'rgba(255,240,170,0.06)'); tg.addColorStop(1, 'rgba(255,61,139,0)');
+      g.strokeStyle = tg; g.lineWidth = 1 + Math.random() * 2;
+      g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-len * 0.5, end * 0.1, -len, end * (len / 520)); g.stroke();
+    }
+    g.restore();
+    const head = g.createRadialGradient(cx, cy, 0, cx, cy, 40);
+    head.addColorStop(0, 'rgba(255,255,240,1)'); head.addColorStop(0.12, 'rgba(255,242,150,0.9)');
+    head.addColorStop(0.4, 'rgba(255,225,26,0.18)'); head.addColorStop(1, 'rgba(255,225,26,0)');
+    g.fillStyle = head; g.fillRect(cx - 40, cy - 40, 80, 80);
+    for (let i = 0; i < 110; i++) {
+      const y = H / 2 + 3 + Math.pow(Math.random(), 2) * H * 0.2;
+      const x = cx + (Math.random() - 0.5) * (16 + (y - H / 2) * 0.6);
+      g.fillStyle = `rgba(255,225,26,${(0.55 * Math.random() * (1 - (y - H / 2) / (H * 0.2))).toFixed(2)})`;
+      g.fillRect(x, y, 6 + Math.random() * 16, 1.5);
+    }
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    texCache[key] = t;
+    return t;
+  }
+  function buildSky() {
+    if (sky) { scene.remove(sky); sky = null; }
+    if (!theme.outdoor) return;
+    sky = new THREE.Mesh(new THREE.SphereGeometry(45, 48, 24), new THREE.MeshBasicMaterial({ map: skyTexture(), side: THREE.BackSide, fog: false, depthWrite: false }));
+    sky.renderOrder = -1;
+    scene.add(sky);
+  }
+
+  // Rain: short grey streaks falling round you, slanted by the wind off the sea, gone when they hit the
+  // ground or the water (where they ring it: see updateWater).
+  let rain = null;
+  function dropAt(d, anywhere) {
+    d.x = player.x + (Math.random() - 0.5) * 26;
+    d.z = player.z + (Math.random() - 0.5) * 26;
+    d.y = player.y + (anywhere ? Math.random() * 11 - 3 : 6 + Math.random() * 4);
+  }
+  function buildRain() {
+    rain = null;
+    if (!theme.rain) return;
+    const N = 1100;
+    const pos = new Float32Array(N * 6);
+    const drops = Array.from({ length: N }, () => ({ x: 0, y: 0, z: 0, v: 9 + Math.random() * 4 }));
+    drops.forEach((d) => dropAt(d, true));
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mesh = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xa3a8ad, transparent: true, opacity: 0.3, depthWrite: false }));
+    mesh.frustumCulled = false;
+    level.root.add(mesh);
+    rain = { mesh, drops, pos };
+  }
+  function updateRain(dt) {
+    if (!rain) return;
+    const { drops, pos } = rain;
+    const wind = 1.3;
+    const surface = water ? water.y : -99;
+    for (let i = 0; i < drops.length; i++) {
+      const d = drops[i];
+      d.y -= d.v * dt;
+      d.x += wind * dt;
+      if (d.y < Math.max(floorH(cellOf(d.x), cellOf(d.z)), surface) || Math.abs(d.x - player.x) > 13 || Math.abs(d.z - player.z) > 13) dropAt(d, false);
+      const k = i * 6;
+      pos[k] = d.x; pos[k + 1] = d.y; pos[k + 2] = d.z;
+      pos[k + 3] = d.x - wind * 0.05; pos[k + 4] = d.y + 0.36; pos[k + 5] = d.z;
+    }
+    rain.mesh.geometry.attributes.position.needsUpdate = true;
   }
 
   // locked: a story door (C, a cell; J, the Warden's hall). Bumping it asks the game what happens.
@@ -405,11 +554,15 @@ export function createWorld(container, hooks) {
     const y = theme.water || 0;
     if (!waterOn || y <= -10) return;
     const { W, H, grid, h } = level;
-    const wet = (cx, cy) => grid[cy] && grid[cy][cx] && grid[cy][cx] !== '#' && h[cy][cx] < y;
+    // outdoors by the sea (theme.sea), the water runs on past the last row, out to the horizon
+    const SEA = theme.sea ? 26 : 0;
+    const open = (cx, cy) => SEA && cy >= H - 1 && (cy >= H || cx < 0 || cx >= W || grid[cy][cx] === '#');
+    const wall = (t) => t === '#' || !!(uses[t] && uses[t].front); // people and lamps stand in the water
+    const wet = (cx, cy) => open(cx, cy) || (grid[cy] && grid[cy][cx] && !wall(grid[cy][cx]) && h[cy][cx] < y);
     // depth at each grid corner: the deepest wet cell touching it, so the ink deepens smoothly
     const cornerDepth = (x, z) => {
       let dep = 0;
-      for (const [cx, cy] of [[x - 1, z - 1], [x, z - 1], [x - 1, z], [x, z]]) if (wet(cx, cy)) dep = Math.max(dep, y - h[cy][cx]);
+      for (const [cx, cy] of [[x - 1, z - 1], [x, z - 1], [x - 1, z], [x, z]]) if (wet(cx, cy)) dep = Math.max(dep, open(cx, cy) ? 3 : y - h[cy][cx]);
       return dep;
     };
     const pos = [], dep = [], idx = [];
@@ -423,8 +576,8 @@ export function createWorld(container, hooks) {
       }
       return corner.get(key);
     };
-    for (let cy = 0; cy < H; cy++) {
-      for (let cx = 0; cx < W; cx++) {
+    for (let cy = 0; cy < H + SEA; cy++) {
+      for (let cx = -SEA; cx < W + SEA; cx++) {
         if (!wet(cx, cy)) continue;
         const a = vert(cx, cy), b = vert(cx + 1, cy), c = vert(cx + 1, cy + 1), d = vert(cx, cy + 1);
         idx.push(a, d, b, b, d, c);
@@ -467,7 +620,12 @@ export function createWorld(container, hooks) {
     u.fogFar.value = scene.fog.far;
     // water drips from the ceiling somewhere near you
     dripIn -= dt;
-    if (dripIn <= 0) {
+    if (dripIn <= 0 && theme.rain) {
+      // rain: rings all over the water round you, too many to hear one by one
+      dripIn = 0.04 + Math.random() * 0.08;
+      const x = player.x + (Math.random() - 0.5) * 10, z = player.z + (Math.random() - 0.5) * 10;
+      if (waterDepth(cellOf(x), cellOf(z)) > 0 && !solid(cellOf(x), cellOf(z))) addRipple(x, z, 0.3);
+    } else if (dripIn <= 0) {
       dripIn = 0.7 + Math.random() * 2.2;
       for (let k = 0; k < 6; k++) {
         const x = player.x + (Math.random() - 0.5) * 9, z = player.z + (Math.random() - 0.5) * 9;
@@ -495,6 +653,9 @@ export function createWorld(container, hooks) {
   }
 
   function itemTexture(t) {
+    const u = uses[t];
+    if (u && u.prop && u.prop.art && !u.prop.posts) return [texture(u.prop.art, false), u.prop.h * (u.prop.aspect || 2 / 3), u.prop.h];
+    if (u) return null;
     if (t === 'L') return [texture('remains', false), 1.3, 0.98];
     if (t === 'S') {
       return [compositeTexture('remains+scroll', 'remains-scroll', (g, w, hh) => {
@@ -517,11 +678,85 @@ export function createWorld(container, hooks) {
     return null;
   }
 
+  // A street lamp: an iron post, a lantern burning yellow, and its light on the wet stones.
+  const lampMats = {};
+  function buildLamp(x, y) {
+    if (!lampMats.post) {
+      lampMats.post = new THREE.MeshLambertMaterial({ color: 0x1c1a16 });
+      lampMats.glass = new THREE.MeshBasicMaterial({ color: 0xffd34a });
+    }
+    const g = new THREE.Group();
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 3.1, 0.12), lampMats.post);
+    post.position.y = 1.55;
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.08), lampMats.post);
+    arm.position.set(0.22, 3.05, 0);
+    const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.36, 0.26), lampMats.glass);
+    lantern.position.set(0.42, 2.8, 0);
+    const light = new THREE.PointLight(0xffc96a, 7, 9, 1.25);
+    light.position.set(0.42, 2.7, 0);
+    g.add(post, arm, lantern, light);
+    return g;
+  }
+  // A notice board: two posts and a plank backing, the notices (a picture) nailed to its face, turned to
+  // face the way the floor says (face: radians, 0 is south).
+  function buildBoard(u) {
+    if (!lampMats.wood) lampMats.wood = new THREE.MeshLambertMaterial({ color: 0x3a3127 });
+    const g = new THREE.Group();
+    const w = u.prop.h * (u.prop.aspect || 0.75);
+    for (const x of [-w / 2 - 0.05, w / 2 + 0.05]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.5, 0.12), lampMats.wood);
+      post.position.set(x, 1.25, -0.06);
+      g.add(post);
+    }
+    const back = new THREE.Mesh(new THREE.BoxGeometry(w + 0.22, u.prop.h + 0.2, 0.08), lampMats.wood);
+    back.position.set(0, 0.9 + u.prop.h / 2, -0.06);
+    g.add(back);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(w, u.prop.h), new THREE.MeshLambertMaterial({ map: texture(u.prop.art, false), transparent: true, alphaTest: 0.4, emissive: 0x3a352c, emissiveMap: texture(u.prop.art, false) }));
+    face.position.set(0, 0.9 + u.prop.h / 2, 0);
+    g.add(face);
+    g.rotation.y = u.prop.face || 0;
+    return g;
+  }
+  // The sewer grate: iron bars over the black, drawn once.
+  function grateTexture() {
+    if (texCache.__grate) return texCache.__grate;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#2b2722'; g.beginPath(); g.arc(64, 64, 60, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#050505'; g.beginPath(); g.arc(64, 64, 50, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#3d3830';
+    for (let i = -4; i <= 4; i++) g.fillRect(64 + i * 11 - 3, 16, 6, 96);
+    g.fillRect(16, 61, 96, 6);
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    texCache.__grate = t;
+    return t;
+  }
+
   function placeItem(x, y) {
     const key = x + ',' + y;
     const old = level.items.get(key);
     if (old) { level.root.remove(old); level.items.delete(key); }
     const t = tile(x, y);
+    const u = uses[t];
+    if (u && (u.decal || (u.prop && (u.prop.lamp || u.prop.posts)))) {
+      let g;
+      if (u.prop && u.prop.posts) {
+        g = buildBoard(u);
+        g.position.set((x + 0.5) * CELL, floorH(x, y), (y + 0.5) * CELL);
+      } else if (u.decal) {
+        g = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.82, CELL * 0.82), new THREE.MeshLambertMaterial({ map: grateTexture(), transparent: true, alphaTest: 0.1 }));
+        g.rotation.x = -Math.PI / 2;
+        g.position.set((x + 0.5) * CELL, floorH(x, y) + 0.02, (y + 0.5) * CELL);
+      } else {
+        g = buildLamp(x, y);
+        g.position.set((x + 0.5) * CELL, floorH(x, y), (y + 0.5) * CELL);
+      }
+      level.root.add(g);
+      level.items.set(key, g);
+      return;
+    }
     const spec = itemTexture(t);
     if (!spec) return;
     const [map, w, hh] = spec;
@@ -569,7 +804,7 @@ export function createWorld(container, hooks) {
     const minY = cellOf(pz - RADIUS), maxY = cellOf(pz + RADIUS);
     for (let cy = minY; cy <= maxY; cy++) {
       for (let cx = minX; cx <= maxX; cx++) {
-        if (solid(cx, cy)) return { cx, cy, door: !!doorAt(cx, cy) };
+        if (solid(cx, cy)) return { cx, cy, door: !!doorAt(cx, cy), use: !!useOf(tile(cx, cy)) };
         if (floorH(cx, cy) - fromH > CLIMB) return { cx, cy, ledge: true };
       }
     }
@@ -636,6 +871,7 @@ export function createWorld(container, hooks) {
     const tx = cx + dx, tz = cz + dz;
     if (solid(tx, tz)) {
       if (doorAt(tx, tz)) touch({ cx: tx, cy: tz, door: true });
+      else if (useOf(tile(tx, tz))) touch({ cx: tx, cy: tz, use: true });
       else hooks.onBump && hooks.onBump();
       return;
     }
@@ -704,7 +940,13 @@ export function createWorld(container, hooks) {
   }
 
   // Bumping a closed door opens it; a locked one asks the game (no more than every couple of seconds).
+  const usedAt = new Map(); // when each front or prop last asked the game, so leaning on it doesn't spam
   function touch(b) {
+    if (b.use) {
+      const key = b.cx + ',' + b.cy, now = performance.now();
+      if (now - (usedAt.get(key) || 0) > 1800) { usedAt.set(key, now); hooks.onLocked && hooks.onLocked(b.cx, b.cy, tile(b.cx, b.cy)); }
+      return;
+    }
     if (!b.door) return;
     const d = doorAt(b.cx, b.cy);
     if (d && d.locked && !d.opening) {
@@ -862,8 +1104,9 @@ export function createWorld(container, hooks) {
     if (under !== wasUnder) {
       wasUnder = under;
       container.classList.toggle('underwater', under);
-      if (under) { addRipple(player.x, player.z, 2); scene.fog.near = 0.1; scene.fog.far = 3.5; } else { scene.fog.near = 2; scene.fog.far = 16; }
+      if (under) { addRipple(player.x, player.z, 2); scene.fog.near = 0.1; scene.fog.far = 3.5; } else { scene.fog.near = theme.fogNear || 2; scene.fog.far = theme.fogFar || 16; }
     }
+    if (sky) sky.position.copy(camera.position);
     const f = flicker(now);
     torch.intensity = 12.2 + f * 2.4;
     torch.position.x = 0.2 + (f - 0.5) * 0.08;
@@ -1165,6 +1408,7 @@ export function createWorld(container, hooks) {
     updateDoors(dt);
     placeCamera(now);
     updateWater(dt);
+    updateRain(dt);
     renderer.render(scene, camera);
   }
 
@@ -1317,6 +1561,17 @@ export function createWorld(container, hooks) {
       return { x: (cx + 0.5) * CELL, z: (cy + 0.5) * CELL, a };
     },
     pose: () => ({ x: player.x, z: player.z, a: player.a }),
+    // The building, person or thing just ahead that you could walk into (a use with a name), or null.
+    facing() {
+      if (!level) return null;
+      for (const k of [0.7, 1.2]) {
+        const cx = cellOf(player.x + Math.cos(player.a) * CELL * k), cy = cellOf(player.z + Math.sin(player.a) * CELL * k);
+        const t = tile(cx, cy), u = useOf(t);
+        if (u && u.name) return { x: cx, y: cy, t };
+        if (solid(cx, cy)) return null;
+      }
+      return null;
+    },
     // The wretches' place on the map, in cells, and their facing.
     mapPose: () => ({ x: player.x / CELL - 0.5, y: player.z / CELL - 0.5, a: player.a }),
     // Stop the world for a moment: the game pauses it on every square you walk into, to see what's there.

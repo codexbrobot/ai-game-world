@@ -180,16 +180,23 @@ var Q = window.Q || (window.Q = {});
       for (let gx = 0; gx < cols; gx++) {
         const t = grid[gy][gx];
         const px = ox + gx * cs, py = oy + gy * cs;
-        if (t === '#') {
-          // only walls next to explored floor are drawn
+        const use = view.uses && view.uses[t];
+        if (t === '#' || (use && use.front)) {
+          // only walls next to explored floor are drawn; a building you can go into is yellow
           let near = false;
-          for (const [dx, dy] of DIRS) if (seen(gx + dx, gy + dy) && grid[gy + dy][gx + dx] !== '#') near = true;
-          if (near) { ctx.fillStyle = '#3a352b'; ctx.fillRect(px, py, cs, cs); }
+          for (const [dx, dy] of DIRS) if (seen(gx + dx, gy + dy) && grid[gy + dy] && grid[gy + dy][gx + dx] !== '#') near = true;
+          if (near) {
+            ctx.fillStyle = use ? YELLOW : '#3a352b'; ctx.fillRect(px, py, cs, cs);
+            if (use && use.mark && cs >= 6) {
+              ctx.fillStyle = INK; ctx.font = `bold ${Math.floor(cs * 0.75)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+              ctx.fillText(use.mark, px + cs / 2, py + cs / 2 + 1);
+            }
+          }
           continue;
         }
         if (!seen(gx, gy)) continue;
         ctx.fillStyle = '#d9d1b8'; ctx.fillRect(px + 1, py + 1, cs - 2, cs - 2);
-        const mark = { D: '▮', G: '▲', '<': '▲', '>': '▼', L: '✚', S: '✚', F: '◍', R: '✶' }[t];
+        const mark = use ? use.mark : { D: '▮', G: '▲', '<': '▲', '>': '▼', L: '✚', S: '✚', F: '◍', R: '✶' }[t];
         if (mark) {
           ctx.fillStyle = t === 'R' ? PINK : INK;
           ctx.font = `bold ${Math.floor(cs * 0.7)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
