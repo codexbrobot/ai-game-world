@@ -161,7 +161,7 @@ var Q = window.Q || (window.Q = {});
   // Every die is reported (dmgRoll, armorRoll) so the dice on screen show what was really rolled.
   // opts: { ability, dr (overrides the foe's), drAdd, die (overrides the weapon), bonusDie, ignoreArmor, r (a d20 already rolled) }
   function attack(pc, foe, opts = {}) {
-    const t = test(pc[opts.ability || 'strength'], (opts.dr || foe.dr) + (opts.drAdd || 0), opts.r);
+    const t = test(pc[opts.ability || 'strength'], drOf(pc, opts.dr || foe.dr) + (opts.drAdd || 0), opts.r);
     if (t.fumble) return { kind: 'fumble', ...t };
     if (!t.ok) return { kind: 'miss', ...t };
     const die = opts.die || pc.weapon.die;
@@ -181,7 +181,7 @@ var Q = window.Q || (window.Q = {});
   // Natural 1 takes double damage and the armor drops a tier.
   // drAdd makes the dodge harder (a swarm comes from everywhere).
   function defend(pc, foeDie, drAdd = 0) {
-    const t = test(pc.agility, DR + (pc.armor.tier === 3 ? 2 : 0) + drAdd);
+    const t = test(pc.agility, drOf(pc, DR) + (pc.armor.tier === 3 ? 2 : 0) + drAdd);
     if (t.crit) return { kind: 'riposte', ...t };
     if (t.ok) return { kind: 'dodge', ...t };
     const dmgRoll = d(foeDie);
@@ -208,31 +208,31 @@ var Q = window.Q || (window.Q = {});
     return { kind: t.fumble ? 'fumble' : 'wound', ...t, dmg, dmgRoll, armorDie, armorRoll, absorbed, before, brokeArmor, warded, wardRoll };
   }
 
-  // At exactly 0 HP a wretch is Broken. Below 0 they are dead.
-  // r is the d4 rolled on the Broken table; title names the result.
-  function broken(pc) {
+  // MÖRK BORG: at exactly 0 HP a wretch is Broken (below 0 they are simply dead). The d4:
+  //   1  unconscious for d4 rounds, then wake with d4 HP
+  //   2  d6: 1–5 a broken or severed limb, 6 a lost eye; can't act for d4 rounds, then up with d4 HP
+  //   3  haemorrhage: death in d2 hours unless treated; every test DR 16 the first hour, DR 18 the last
+  //   4  dead
+  // This only rolls; js/battle.js applies it. The book leaves what a limb or an eye costs to the GM: here a
+  // point of Strength (an arm) or Agility (a leg), or of Presence (the eye), for good.
+  const LIMBS = [['left arm', 'strength'], ['right arm', 'strength'], ['left leg', 'agility'], ['right leg', 'agility']];
+  function broken() {
     const r = d(4);
-    if (r === 1) {
-      pc.hp = d(4);
-      return { r, title: 'Blacked out', text: 'You black out in the filth, then wake with ' + pc.hp + ' HP.', dead: false, lostTurn: true };
-    }
+    if (r === 1) return { r, kind: 'out', title: 'Unconscious', rounds: d(4), hp: d(4) };
     if (r === 2) {
-      pc.hp = d(4);
-      if (d(6) === 6) {
-        pc.presence = Math.max(-3, pc.presence - 1);
-        pc.lostEye = true;
-        return { r, title: 'An eye is lost', text: 'An eye is gone. Presence ' + fmt(pc.presence) + '. You rise with ' + pc.hp + ' HP.', dead: false };
-      }
-      pc.agility = Math.max(-3, pc.agility - 1);
-      return { r, title: 'A bone snaps', text: 'A bone snaps. Agility ' + fmt(pc.agility) + '. You rise with ' + pc.hp + ' HP.', dead: false };
+      const r6 = d(6);
+      if (r6 === 6) return { r, r6, kind: 'eye', title: 'An eye is lost', ability: 'presence', rounds: d(4), hp: d(4) };
+      const [limb, ability] = LIMBS[d(4) - 1];
+      return { r, r6, kind: 'limb', title: r6 <= 3 ? `A broken ${limb.split(' ')[1]}` : `A ${limb.split(' ')[1]} hacked half off`, limb, severed: r6 > 3, ability, rounds: d(4), hp: d(4) };
     }
-    if (r === 3) {
-      pc.hp = d(4);
-      pc.bleeding = true;
-      return { r, title: 'Haemorrhage', text: 'You haemorrhage. ' + pc.hp + ' HP, and bleeding until you are tended.', dead: false };
-    }
-    return { r, title: 'Dead', text: 'Your heart gives up in the dark.', dead: true };
+    if (r === 3) return { r, kind: 'bleed', title: 'Haemorrhage', hours: d(2) };
+    return { r, kind: 'dead', title: 'Dead', dead: true };
   }
+  // A haemorrhage counts down in steps walked: an hour is a twenty-fourth of Skarnvik's day (js/game.js).
+  const HOUR_STEPS = 17;
+  // Bleeding to death, every test is DR 16, and DR 18 in the last hour. Other modifiers go on top.
+  const haemDR = (pc) => (pc && pc.bleeding && pc.haem ? (pc.haem.left <= HOUR_STEPS ? 18 : 16) : 0);
+  const drOf = (pc, dr) => Math.max(dr, haemDR(pc));
 
   // A monster's morale: 2d6 over its morale and it flees.
   function morale(score) {
@@ -268,6 +268,6 @@ var Q = window.Q || (window.Q = {});
 
   Object.assign(Q, {
     DR, d, roll, pick, fmt, abilityFromRoll, WEAPONS, ARMOR, ARMOR_DIE, SCROLLS,
-    CLASSES, classOf, powersFor, rollWretch, healthWord, test, attack, defend, broken, morale, gettingBetter,
+    CLASSES, classOf, powersFor, rollWretch, healthWord, test, attack, defend, broken, morale, gettingBetter, HOUR_STEPS, haemDR, drOf,
   });
 })();

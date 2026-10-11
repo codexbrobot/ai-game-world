@@ -447,7 +447,7 @@
       <p class="trait">${esc(pc.trait)}</p>
       <div class="abs">${ab('Strength', pc.strength)}${ab('Agility', pc.agility)}${ab('Presence', pc.presence)}${ab('Toughness', pc.toughness)}</div>
       <dl class="gear">
-        <dt>HP</dt><dd>${Math.max(0, pc.hp)} / ${pc.maxHp}${pc.bleeding ? ' <em class="pink">bleeding</em>' : ''}</dd>
+        <dt>HP</dt><dd>${Math.max(0, pc.hp)} / ${pc.maxHp}${pc.bleeding ? ' <em class="pink">haemorrhaging</em>' : ''}</dd>
         <dt>Omens</dt><dd>${pc.omens}</dd>
         <dt>Weapon</dt><dd>${esc(pc.weapon.name)} (d${pc.weapon.die})${pc.weapon.key ? `<br><small>${esc(Q.ITEMS[pc.weapon.key].text)}</small>` : ''}</dd>
         ${pc.relic ? `<dt>Relic</dt><dd>${esc(Q.ITEMS[pc.relic].name)}${Q.ITEMS[pc.relic].cursed ? ' <em class="pink">cursed</em>' : ''}<br><small>${esc(Q.ITEMS[pc.relic].text)}</small></dd>` : ''}
@@ -476,7 +476,7 @@
     return n * 5;
   }
   // A test outside battle: the Liar's Tongue makes Presence harder.
-  const testDR = (pc, ab, dr) => dr + (ab === 'presence' && Q.has(pc, 'tongue') ? 2 : 0);
+  const testDR = (pc, ab, dr) => Q.drOf(pc, dr) + (ab === 'presence' && Q.has(pc, 'tongue') ? 2 : 0);
 
   function showSheet(i) {
     if (!S) return;
@@ -492,10 +492,13 @@
     const armorDie = Q.ARMOR_DIE[pc.armor.tier];
     const weapon = pc.weapon.key ? it(pc.weapon.key) : null;
     const relic = pc.relic ? it(pc.relic) : null;
-    const status = [pc.dead ? '<b class="pink">Dead.</b>' : '', pc.bleeding ? '<b class="pink">Bleeding</b>: loses 1 HP every turn in battle until bound with a poultice.' : '',
-      pc.dazed ? '<b class="pink">Dazed</b>: loses their next turn.' : ''].filter(Boolean).join(' ');
+    const status = [pc.dead ? '<b class="pink">Dead.</b>' : '',
+      pc.bleeding && pc.haem ? `<b class="pink">Haemorrhaging</b>: bleeds to death in ${pc.haem.left} steps unless treated (a black poultice, the basilica’s priests, a healing power). Every test is DR ${Q.haemDR(pc)}${Q.haemDR(pc) === 16 ? `, DR 18 once ${Q.HOUR_STEPS} steps are left` : ''}. One more wound at 0 HP is death.` : '',
+      pc.dazed ? '<b class="pink">Dazed</b>: loses their next turn.' : '',
+      pc.lostEye ? 'Lost an eye (Presence −1).' : '',
+      ...(pc.injuries || []).map((x) => `Lives with ${esc(x)}.`)].filter(Boolean).join(' ');
     const party = `<div class="carried"><h3>Carried by the party</h3>
-      <p><b>${S.silver}s</b> · <b>${S.poultices}</b> black poultice${S.poultices === 1 ? '' : 's'} (each heals d6 and stops bleeding)</p>
+      <p><b>${S.silver}s</b> · <b>${S.poultices}</b> black poultice${S.poultices === 1 ? '' : 's'} (each heals d6 and stops a haemorrhage)</p>
       ${S.scrolls.length ? S.scrolls.map((k) => `<p><b>${esc(Q.SCROLLS[k].name)}</b>: ${esc(Q.SCROLLS[k].text)} <small>Read with Presence DR 12, using one of the reader’s Powers.</small></p>`).join('') : '<p class="dim">No scrolls.</p>'}
       <p class="small">${S.kills} slain; ${Math.max(0, 5 - S.killsSinceBetter)} more before you can Get Better at the inn. <span class="pink">☄ ${calendarText()}.</span></p></div>`;
     const html = `<div class="char">
@@ -754,7 +757,7 @@
   function visitHome(u) {
     if (!isHome(u)) { modal(u.name, `<p>${esc(NOT_HOME[u.home] || 'The door stays shut.')}</p>`, [{ label: 'Walk on' }]); return; }
     const h = HOMES[u.home];
-    modal('Home', `<p>${esc(h.sleep)}</p><p class="small">Sleep here for nothing: ${h.rest === 'bed' ? 'all HP back' : h.rest === 'home' ? 'd6 HP each' : 'd4 HP each'}, and your Omens and Powers. It costs a day: <span class="pink">☄ ${calendarText()}</span>.</p>`, [
+    modal('Home', `<p>${esc(h.sleep)}</p><p class="small">Sleep here for nothing: ${h.rest === 'bed' ? 'all HP back' : h.rest === 'home' ? 'd6 HP each' : 'd4 HP each'}, and your Omens and Powers. It costs a day: <span class="pink">☄ ${calendarText()}</span>.</p>${bleedWarning()}`, [
       { label: 'Sleep', action: () => sleep(h.rest === 'bed' ? true : h.rest === 'home' ? 'home' : false) },
       { label: 'Leave', ghost: true },
     ]);
@@ -763,12 +766,12 @@
   const BLESSING = 10;
   function visitChurch() {
     const mine = S.home && S.home.cls === 'priest';
-    modal('The Basilica of the Two-Headed Basilisk', `<p>Candles, incense and damp. Over the altar, a basilisk of black iron with two heads, one looking up at the comet and one looking down. Along the nave, every saint’s niche is empty.</p>`, [
+    modal('The Basilica of the Two-Headed Basilisk', `<p>Candles, incense and damp. Over the altar, a basilisk of black iron with two heads, one looking up at the comet and one looking down. Along the nave, every saint’s niche is empty.</p>${alive().some((p) => p.bleeding) ? '<p class="pink">The priests can bind a haemorrhage: pay for a blessing.</p>' : ''}`, [
       { label: 'Ask about the empty niches', action: () => {
         S.flags.emptyNiches = true;
         modal('The empty niches', '<p>A priest with ash on his hands: <em>“Taken down for cleaning. By the Salt Lords’ men, in the spring, with a wagon. The saints’ days stopped the same week.”</em></p><p>He looks at the floor. <em>“They have not brought them back.”</em></p>', [{ label: 'Go on' }]);
       } },
-      { label: `Pay for a blessing (${BLESSING}s)`, note: 'the priests bind your wounds: d6 HP each, bleeding stops', disabled: S.silver < BLESSING || !alive().some((p) => p.hp < p.maxHp || p.bleeding), action: () => {
+      { label: `Pay for a blessing (${BLESSING}s)`, note: 'the priests bind your wounds: d6 HP each, a haemorrhage stops', disabled: S.silver < BLESSING || !alive().some((p) => p.hp < p.maxHp || p.bleeding), action: () => {
         S.silver -= BLESSING;
         const got = alive().map((pc) => { const n = d(6); pc.hp = Math.min(pc.maxHp, pc.hp + n); pc.bleeding = false; return `${esc(pc.name)} +${n} HP`; });
         sfx('heal'); log(`The priests mutter over your wounds. ${got.join(', ')}.`, 'hit'); save(); renderHud();
@@ -839,7 +842,7 @@
     const bed = mods().bed;
     modal('The Drowned Lamb', art('inn') + `
       <p>Damp straw, a bowl of grey gruel, a landlord who will not meet your eye. ${better ? '<br><b class="yellow">You have survived enough horror to change. Sleep and you will Get Better.</b>' : ''}</p>
-      <p class="small">A night's sleep restores Omens and Powers, but it costs a day: <span class="pink">☄ ${calendarText()}</span>. You have ${S.silver}s.</p>`, [
+      <p class="small">A night's sleep restores Omens and Powers, but it costs a day: <span class="pink">☄ ${calendarText()}</span>. You have ${S.silver}s.</p>${bleedWarning()}`, [
       { label: `Beds for the party (${bed}s): all HP back`, disabled: S.silver < bed, action: () => { S.silver -= bed; sleep(true); } },
       { label: mods().gutter ? 'The gutter (free): d4 HP each' : 'The gutter (free): it runs with blood, and heals nothing', action: () => sleep(false) },
       ...(dead >= 0 ? [{ label: `Hire a wretch from the taproom (${HIRE}s)`, disabled: S.silver < HIRE, action: () => hire(dead) }] : []),
@@ -867,6 +870,10 @@
   function sleep(bed) {
     const lines = [];
     const m = mods();
+    for (const pc of alive().filter((p) => p.bleeding)) {
+      bleedOut(pc, 'sleep');
+      lines.push(pc.dead ? `<span class="pink"><b>${esc(pc.name)}</b> bled to death in the night.</span>` : `<span class="yellow">The Pilgrim’s Shroud kept <b>${esc(pc.name)}</b> from bleeding to death in the night.</span>`);
+    }
     for (const pc of alive()) {
       if (bed === true) pc.hp = pc.maxHp;
       else if (bed === 'home') pc.hp = Math.min(pc.maxHp, pc.hp + d(6));
@@ -910,6 +917,10 @@
     setHour('dawn', undefined, true);
     save();
     renderTown();
+    if (!alive().length) {
+      modal('Morning', lines.map((l) => `<p>${l}</p>`).join(''), [{ label: 'Go on', action: () => gameOver('a haemorrhage') }], { closable: false });
+      return;
+    }
     modal(bed === true ? 'Morning' : bed === 'home' ? 'Morning, at home' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
       { label: 'Get up', action: miseries.length ? () => showMiseries(miseries, () => { save(); renderTown(); }) : null },
     ]);
@@ -1140,6 +1151,8 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   async function enterCell(x, y, t) {
     const g = floor().grid;
     tickHour();
+    await bleedTick();
+    if (S.over) return;
     // a place the DM has something to say about, the first time you walk in
     const scene = Q.SCENES.find((sc) => sc.floor === floor().id && sc.area && !S.scenes[sc.id]
       && x >= sc.area[0] && x <= sc.area[2] && y >= sc.area[1] && y <= sc.area[3]);
@@ -1161,7 +1174,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     if (t === 'p') {
       g[y][x] = '.';
       const pc = alive()[Math.floor(Math.random() * alive().length)];
-      let r = Q.test(pc.agility, Q.DR);
+      let r = Q.test(pc.agility, Q.drOf(pc, Q.DR));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? `${short(pc)} leaps clear` : 'The floor gives way!', tone: r.ok ? 'good' : 'bad', text: `A hidden pit under ${short(pc)} · ${Q.testText('Agility', r, pc.agility)}` });
       r = await Q.rescueTest(S.party, pc, r, pc.agility, 'Agility', { log, onChange: renderHud });
       if (r.ok) log(`The flagstone tilts. ${short(pc)} leaps clear.`);
@@ -1197,6 +1210,47 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       ask('Steps up', `<p>Back up to <b>${esc(S.floors[S.floorIx - 1].name)}</b>?</p>`, 'Climb', () => { enterFloor(S.floorIx - 1, '>'); log(`You climb back to <b>${esc(floor().name)}</b>.`); });
     }
   }
+
+  // A haemorrhage, untreated: an hour is Q.HOUR_STEPS steps. The last hour is worse; then death.
+  async function bleedTick() {
+    for (const pc of alive()) {
+      if (!pc.bleeding) { delete pc.haem; continue; }
+      if (!pc.haem) pc.haem = { left: Q.HOUR_STEPS, hours: 1 }; // bleeding from before the clock
+      pc.haem.left -= 1;
+      if (pc.haem.left === Q.HOUR_STEPS && pc.haem.hours > 1) log(`${short(pc)} is going grey. <b>The last hour</b>: every test is DR 18.`, 'hurt');
+      else if (pc.haem.left === 5) log(`${short(pc)} is bleeding to death: <b>5 steps</b> left.`, 'hurt');
+      if (pc.haem.left > 0) continue;
+      await bleedOut(pc, 'walking');
+      if (!alive().length) { gameOver('a haemorrhage'); return; }
+    }
+    renderHud();
+  }
+  async function bleedOut(pc, how) {
+    pc.bleeding = false;
+    delete pc.haem;
+    if (pc.relic === 'shroud') {
+      Q.takeOff(pc);
+      pc.hp = 1;
+      sfx('toll', { f: 196 });
+      if (how !== 'sleep') await say('Not yet', `${short(pc)} has bled out, and should be dead. The Pilgrim’s Shroud takes their place and falls to dust. <em>1 HP</em>, and the bleeding has stopped.`, [{ label: 'Go on' }]);
+      return;
+    }
+    pc.dead = true;
+    pc.hp = Math.min(pc.hp, 0);
+    pc.cause = 'a haemorrhage';
+    sfx('toll', { f: 98 });
+    log(`<b class="pink">${esc(pc.name)} has bled to death.</b>`, 'hurt');
+    renderHud();
+    if (how === 'sleep') return;
+    await say('Dead', `${short(pc)} sits down against the wall, and doesn’t get up. The haemorrhage was never treated, and the hours ran out.
+
+<em>${short(pc)} has bled to death.</em>`, [{ label: 'Go on' }]);
+  }
+  // Sleeping is no cure: whoever is bleeding to death doesn't wake.
+  const bleedWarning = () => {
+    const dying = alive().filter((p) => p.bleeding);
+    return dying.length ? `<p class="pink"><b>${dying.map((p) => esc(p.name)).join(' and ')} ${dying.length > 1 ? 'are' : 'is'} bleeding to death</b>, and won’t live through the night. Bind the wound first: a black poultice, or the priests at the basilica.</p>` : '';
+  };
 
   // A question at a stair or a font: yes does the thing, no walks on.
   function ask(title, body, yes, action) {
@@ -1265,7 +1319,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
 
   async function hurt(pc, dmg, cause) {
     sfx('hurt');
-    await Q.hurtWretch(pc, dmg, cause, { log, onHurt: flashHurt, onChange: renderHud, party: S.party });
+    await Q.hurtWretch(pc, dmg, cause, { log, onHurt: flashHurt, onChange: renderHud, party: S.party, say });
     renderHud();
     if (!alive().length) gameOver(cause);
   }
@@ -1394,7 +1448,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     $('chips').innerHTML = S.party.map((pc) => {
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
       return `<button type="button" class="chip${pc.dead ? ' dead' : ''}" data-sheet="${S.party.indexOf(pc)}" aria-label="${esc(pc.name)}’s character sheet"><img src="${Q.portraitUrl(pc.name)}" alt="">
-        <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span></span></button>`;
+        <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}${pc.bleeding && pc.haem ? ` ♦${pc.haem.left}` : ''}`}</em></span></span></button>`;
     }).join('') + `<div class="purse">${S.silver}s</div><div class="purse comet" title="Calendar of Nechrubel: ${calendarText()}">☄ ${S.calendar.days}</div>`;
     $('hudPlace').textContent = S.where === 'crawl' ? placeName() + (S.escaped && S.floorIx === cityIx() ? ` · ${hourName()}` : '') : '';
     if (world) {
@@ -1693,6 +1747,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
   Q.debugWorld = () => world;
   Q.debugEnter = (ix, pose) => enterFloor(ix, null, pose);
   Q.debugHour = (phase, left) => setHour(phase, left, true);
+  Q.debugHurt = (i, dmg) => run(() => hurt(S.party[i], dmg, 'a test'));
   Q.debugDie = (cause) => { for (const p of S.party) { p.hp = 0; p.dead = true; } gameOver(cause); };
 
   if (Q.Dice) Q.Dice.init($('dice'));

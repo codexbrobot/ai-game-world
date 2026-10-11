@@ -64,10 +64,10 @@ var Q = window.Q || (window.Q = {});
       card.className = 'pc-card' + (pc.dead ? ' dead' : '') + (B.active === i ? ' active' : '') + (pc.row === 'back' ? ' row-back' : ' row-front');
       card.dataset.i = i;
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
-      const marks = `${pc.omenMax ? '<i title="Omen: next hit at maximum">▲</i>' : ''}${pc.omenWard ? '<i title="Omen: next wound −d6">◆</i>' : ''}${pc.omenDR ? '<i title="Omen: next attack or dodge at DR −4">▼</i>' : ''}${pc.dazed ? '<i title="dazed">✶</i>' : ''}${pc.relic ? `<i title="${esc(Q.ITEMS[pc.relic].name)}">✠</i>` : ''}`;
+      const marks = `${pc.omenMax ? '<i title="Omen: next hit at maximum">▲</i>' : ''}${pc.omenWard ? '<i title="Omen: next wound −d6">◆</i>' : ''}${pc.omenDR ? '<i title="Omen: next attack or dodge at DR −4">▼</i>' : ''}${pc.dazed ? '<i title="dazed">✶</i>' : ''}${pc.out > 0 ? `<i class="pink" title="out cold">✖${pc.out}</i>` : ''}${pc.bleeding && pc.haem ? `<i class="pink" title="haemorrhaging: steps left to live">♦${pc.haem.left}</i>` : ''}${pc.relic ? `<i title="${esc(Q.ITEMS[pc.relic].name)}">✠</i>` : ''}`;
       card.innerHTML = `<img src="${Q.portraitUrl(pc.name)}" alt="">
         <span class="pc-info"><span class="row-tag">${pc.row === 'back' ? 'Back' : 'Front'}${Q.classOf(pc) ? ` · ${esc(Q.classOf(pc).name)}` : ''}</span><b>${esc(pc.name)}</b>
-        <span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span>
+        <span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : pc.out > 0 ? `Out · 0/${pc.maxHp}` : `${Math.max(0, pc.hp)}/${pc.maxHp}`}</em></span>
         <small>${esc(pc.weapon.name)} d${pc.weapon.die} · Omens ${pc.omens}${marks}</small></span>`;
       card.disabled = pc.dead;
       card.addEventListener('click', () => pick('pc', i));
@@ -414,7 +414,7 @@ var Q = window.Q || (window.Q = {});
   }
 
   // the Liar's Tongue makes every Presence test harder
-  const presDR = (pc, dr) => dr + (Q.has(pc, 'tongue') ? 2 : 0);
+  const presDR = (pc, dr) => Q.drOf(pc, dr) + (Q.has(pc, 'tongue') ? 2 : 0);
 
   async function readScroll(pc, cmd) {
     pc.powers -= 1;
@@ -450,7 +450,7 @@ var Q = window.Q || (window.Q = {});
   }
 
   async function flee(pc) {
-    let r = Q.test(pc.agility, Q.DR);
+    let r = Q.test(pc.agility, Q.drOf(pc, Q.DR));
     await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'You get away!' : 'Cut off', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} leads the retreat · ${testText('Agility', r, pc.agility)}` });
     r = await rescue(pc, r, pc.agility, 'Agility');
     B.log(r.ok ? `${short(pc)} finds a way out. You run.` : `${short(pc)} cannot find a way out.`, r.ok ? '' : 'miss');
@@ -514,7 +514,7 @@ var Q = window.Q || (window.Q = {});
     }
     if (cmd.key === 'toxin') {
       const f = target();
-      let r = Q.test(pc.agility, Q.DR);
+      let r = Q.test(pc.agility, Q.drOf(pc, Q.DR));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'It shatters on them' : 'It misses', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} hurls a ${name} at ${the(f)} · ${testText('Agility', r, pc.agility)}` });
       r = await rescue(pc, r, pc.agility, 'Agility');
       if (!r.ok) { B.log(`The flask smashes on the flagstones. The floor hisses.`, 'miss'); return; }
@@ -530,8 +530,11 @@ var Q = window.Q || (window.Q = {});
   // ---------- the enemies act ----------
   // Front row three times in four, unless something ignores the rows.
   function pickTarget(anyRow) {
-    const alive = B.party.filter((p) => !p.dead);
-    if (!alive.length) return null;
+    const living = B.party.filter((p) => !p.dead);
+    if (!living.length) return null;
+    // whoever is still standing; the ones lying at 0 HP only when nobody is
+    const standing = living.filter((p) => !(p.out > 0));
+    const alive = standing.length ? standing : living;
     const rand = (list) => list[Math.floor(Math.random() * list.length)];
     const front = alive.filter((p) => p.row !== 'back');
     const back = alive.filter((p) => p.row === 'back');
@@ -604,7 +607,7 @@ var Q = window.Q || (window.Q = {});
     if (res.dmg > 0) await hurt(pc, res.dmg, f.def.name);
     if (res.dmg > 0 && f.kind === 'guard' && !pc.dead && d(3) === 1) {
       // the truncheon rings your skull: Toughness DR 12 or lose your next turn
-      let t = Q.test(pc.toughness, Q.DR);
+      let t = Q.test(pc.toughness, Q.drOf(pc, Q.DR));
       await throwDice({ dice: [D(20, t.r, 'yellow', 'Toughness')], verdict: t.ok ? 'Still standing' : 'Dazed', tone: t.ok ? 'good' : 'bad', text: `The truncheon rings ${short(pc)}’s skull · ${testText('Toughness', t, pc.toughness)}` });
       t = await rescue(pc, t, pc.toughness, 'Toughness');
       if (!t.ok) { pc.dazed = true; B.log(`The truncheon rings ${short(pc)}’s skull. <b>Dazed</b>: they lose their next turn.`, 'hurt'); }
@@ -782,49 +785,125 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
         if (!dmg) { renderParty(); return; }
       }
     }
+    const before = pc.hp;
     pc.hp -= dmg;
     flash(pc.el, 'hurt', 500);
     if (B.onHurt) B.onHurt();
-    if (pc.hp < 0) return kill(pc, cause);
-    if (pc.hp === 0) {
-      let b = Q.broken(pc);
+    // below 0: nothing to roll
+    if (pc.hp < 0) {
+      const died = kill(pc, cause);
+      await dmSays(pc, died ? 'Dead' : 'Not yet', died
+        ? `${before > 0 ? `${short(pc)} had ${before} HP left, and takes ${dmg}.` : `${short(pc)} was already down at 0 HP, and takes ${dmg} more.`} That is <em>below 0</em>, and below 0 there is nothing to roll.
+
+<em>${short(pc)} is dead</em>, killed by ${esc(cause)}.`
+        : `${short(pc)} should be dead. The Pilgrim’s Shroud takes their place and falls to dust. <em>1 HP.</em>`);
+      return;
+    }
+    // exactly 0, from above it: Broken
+    if (pc.hp === 0 && before > 0) {
+      let b = Q.broken();
       if (b.dead && Q.has(pc, 'dirt')) {
         B.log(`Death comes for ${short(pc)}, but the grave dirt says they are already buried. Roll again.`, 'hit');
-        b = Q.broken(pc);
+        b = Q.broken();
       }
-      await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: `${short(pc)} is Broken · d4 · ${esc(b.text)}` });
+      await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: `${short(pc)} drops to 0 HP and is Broken · d4` });
       if (b.dead && await omen(pc, 'Omen: roll the d4 again')) {
-        b = Q.broken(pc);
+        b = Q.broken();
         B.log('<b class="yellow">Omen:</b> death is asked to roll again.', 'hit');
-        await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: `Omen: rolled again · ${esc(b.text)}` });
+        await throwDice({ dice: [D(4, b.r, 'pink', 'Broken')], verdict: b.title, tone: b.dead ? 'bad' : 'neutral', text: 'Omen: rolled again' });
       }
-      B.log(`<b>${short(pc)} is Broken.</b> ${esc(b.text)}`, 'hurt');
-      if (b.dead) return kill(pc, cause);
-      if (b.lostTurn) pc.dazed = true;
+      B.log(`<b>${short(pc)} is Broken:</b> ${esc(b.title.toLowerCase())}.`, 'hurt');
+      if (b.dead) {
+        const died = kill(pc, cause);
+        await dmSays(pc, died ? 'Dead' : 'Not yet', died
+          ? `${short(pc)} drops to 0 HP: <em>Broken</em>. The d4 comes up <b>4</b>.
+
+<em>${short(pc)} is dead</em>, killed by ${esc(cause)}.`
+          : `The d4 says <b>4</b>: dead. But the Pilgrim’s Shroud takes ${short(pc)}’s place and falls to dust. <em>1 HP.</em>`);
+        return;
+      }
+      applyBroken(pc, b);
+      renderParty();
+      await dmSays(pc, 'Broken', brokenText(pc, b));
     }
     renderParty();
+  }
+
+  // What the Broken table does, here and now. In a fight, the rounds out are real; outside one they pass
+  // (a pit, a fall) and you come round.
+  function applyBroken(pc, b) {
+    if (b.ability) {
+      pc[b.ability] = Math.max(-3, pc[b.ability] - 1);
+      if (b.kind === 'eye') pc.lostEye = true;
+      else pc.injuries = [...(pc.injuries || []), `${b.severed ? 'a half-severed' : 'a broken'} ${b.limb}`];
+    }
+    if (b.kind === 'bleed') {
+      pc.bleeding = true;
+      pc.haem = { left: b.hours * Q.HOUR_STEPS, hours: b.hours };
+    }
+    if (b.rounds) {
+      if (inFight()) { pc.out = b.rounds; pc.wakeHp = b.hp; } else pc.hp = b.hp;
+    }
+  }
+  const inFight = () => !!(B && B.foes && B.foes.length);
+  const ABILITY_NAME = { strength: 'Strength', agility: 'Agility', presence: 'Presence', toughness: 'Toughness' };
+  function brokenText(pc, b) {
+    const n = short(pc);
+    const rounds = (k) => `${k} round${k === 1 ? '' : 's'}`;
+    const head = `${n} drops to <b>0 HP</b> and is <em>Broken</em>. The d4 comes up <b>${b.r}</b>.`;
+    const still = inFight()
+      ? ` Until then ${n} lies at 0 HP. The enemy will go for whoever is still standing, but <em>one more wound and ${n} is dead</em>.`
+      : '';
+    if (b.kind === 'out') {
+      return `${head}
+
+${n} goes down in the filth, senseless. ${inFight() ? `<em>Out for ${rounds(b.rounds)}</em>, then ${n} wakes with <b>${b.hp} HP</b>.${still}` : `A while later ${n} comes round, with <b>${b.hp} HP</b>.`}`;
+    }
+    if (b.kind === 'limb' || b.kind === 'eye') {
+      const hurtText = b.kind === 'eye' ? `${n} loses an eye (d6: 6)` : `${n}’s ${b.limb} is ${b.severed ? 'hacked half off' : 'broken'} (d6: ${b.r6})`;
+      return `${head}
+
+${hurtText}. It won’t heal right: <em>${ABILITY_NAME[b.ability]} −1</em>, for good. ${inFight() ? `${n} can’t act for ${rounds(b.rounds)}, then gets up with <b>${b.hp} HP</b>.${still}` : `A while later ${n} gets up again, with <b>${b.hp} HP</b>.`}`;
+    }
+    const steps = b.hours * Q.HOUR_STEPS;
+    return `${head}
+
+<em>Haemorrhage.</em> ${n} stays on their feet, at 0 HP, bleeding badly. Unless the wound is treated, <em>${n} bleeds to death in ${b.hours} hour${b.hours === 1 ? '' : 's'}</em> (about ${steps} steps). A black poultice will stop it, or the basilica’s priests, or a healing power. Sleep won’t.
+
+Until then every test ${n} makes is <b>DR ${b.hours > 1 ? '16' : '18'}</b>${b.hours > 1 ? ', and DR 18 in the last hour' : ''}. And at 0 HP, <em>one more wound and ${n} is dead</em>.`;
+  }
+  // The DM stops the fight to say what just happened.
+  async function dmSays(pc, title, text) {
+    if (!B.say) return;
+    const over = B.party.every((p) => p.dead);
+    await B.say(title, text, [{ label: over ? 'Go on' : inFight() ? 'Fight on' : 'Go on' }]);
   }
 
   function kill(pc, cause) {
     if (pc.relic === 'shroud') {
       Q.takeOff(pc);
       pc.hp = 1;
+      pc.out = 0;
       B.log(`<b class="yellow">${esc(pc.name)} should be dead.</b> The Pilgrim’s Shroud takes their place and falls to dust. 1 HP.`, 'hit');
       sfx('toll', { f: 196 });
       renderParty();
-      return;
+      return false;
     }
+    pc.out = 0;
+    pc.bleeding = false;
+    delete pc.haem;
     pc.dead = true;
     pc.hp = Math.min(pc.hp, 0);
     pc.cause = cause;
     sfx('toll', { f: 98 });
     B.log(`<b class="pink">${esc(pc.name)} is dead.</b>`, 'hurt');
     renderParty();
+    return true;
   }
   Q.hurtWretch = async (pc, dmg, cause, hooks) => {
     // used outside battle (pits, fonts, falls): same rules, no battle screen
     const prev = B;
-    B = { party: hooks.party || [pc], foes: [], log: hooks.log, onHurt: hooks.onHurt, onChange: hooks.onChange };
+    B = { party: hooks.party || [pc], foes: [], log: hooks.log, onHurt: hooks.onHurt, onChange: hooks.onChange, say: hooks.say };
     try { await hurt(pc, dmg, cause); } finally { B = prev; }
   };
 
@@ -891,7 +970,7 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
     let outcome = B.party.every((p) => p.dead) ? 'lost' : B.foes.some((f) => f.hp > 0) ? null : 'won';
     for (let round = 1; !outcome; round++) {
       for (const p of B.party) {
-        if (Q.has(p, 'rosary') && p.hp < p.maxHp) heal(p, 1, 'The rosary bleeds into the wound');
+        if (!p.dead && Q.has(p, 'rosary') && p.hp < p.maxHp) heal(p, 1, 'The rosary bleeds into the wound');
       }
       if (!(round === 1 && theyFirst)) {
         for (let i = 0; i < B.party.length && !outcome; i++) {
@@ -900,6 +979,19 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
           if (!B.foes.some((f) => f.hp > 0)) break;
           B.active = i;
           renderParty();
+          if (pc.out > 0 && pc.hp > 0) {
+            // healed where they lay: back up
+            pc.out = 0;
+            B.log(`${short(pc)} is back on their feet.`, 'hit');
+          }
+          if (pc.out > 0) {
+            pc.out -= 1;
+            if (pc.out === 0) wake(pc);
+            else B.log(`${short(pc)} lies senseless at 0 HP (${pc.out} more round${pc.out === 1 ? '' : 's'}).`, 'dim');
+            renderParty();
+            await wait(800);
+            continue;
+          }
           if (pc.dazed) {
             pc.dazed = false;
             B.log(`${short(pc)} stands frozen, and the moment passes.`, 'dim');
@@ -942,6 +1034,8 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
     }
     if (Q.Dice) Q.Dice.clear();
     hideMenu();
+    // when the fight is over, whoever is still out comes round
+    if (outcome !== 'lost') for (const pc of B.party) if (!pc.dead && pc.out > 0) wake(pc);
     let silver = 0;
     if (outcome === 'won') {
       silver = B.slain.reduce((s, f) => s + f.def.silver(), 0);
@@ -957,6 +1051,15 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
     const result = { outcome, silver, slain: B.slain.length };
     B = null;
     return result;
+  }
+
+  function wake(pc) {
+    pc.out = 0;
+    pc.hp = Math.max(pc.hp, pc.wakeHp || 1);
+    delete pc.wakeHp;
+    B.log(`${short(pc)} comes round, with <b>${pc.hp} HP</b>.`, 'hit');
+    sfx('heal');
+    renderParty();
   }
 
   // keyboard: arrows move between buttons, Enter/Space presses, Escape backs out
