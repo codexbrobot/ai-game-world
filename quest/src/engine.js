@@ -28,7 +28,7 @@ function heightOf(c) {
 }
 
 // Monster billboards: height in world units.
-const SPRITE_HEIGHT = { rats: 0.62, zombie: 1.85, skeleton: 1.9, cultist: 1.9, abbess: 2.5, guard: 1.95, prisoner: 1.8, warden: 2.4, drowned: 1.9, watch: 1.95, hanged: 1.85 };
+const SPRITE_HEIGHT = { rats: 0.62, zombie: 1.85, skeleton: 1.9, cultist: 1.9, abbess: 2.5, guard: 1.95, prisoner: 1.8, warden: 2.4, drowned: 1.9, watch: 1.95, hanged: 1.85, cutter: 1.85, saltwight: 1.9, overseer: 2.35 };
 
 export function createWorld(container, hooks) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -206,12 +206,13 @@ export function createWorld(container, hooks) {
 
   // ---------- building a floor ----------
   // Walls pick a picture by a fixed hash of their cell, weighted by the theme.
+  // A zone of the floor (the harbor's rotting houses, a salt cave) can bring its own walls, floor and ceiling.
+  const zoneAt = (cx, cy) => (theme.zones || []).find((z) => (z.rect
+    ? cx >= z.rect[0] && cx <= z.rect[2] && cy >= z.rect[1] && cy <= z.rect[3]
+    : cy >= z.rows[0] && cy <= z.rows[1]));
   function wallMaterialFor(cx, cy) {
-    // a zone of the floor (the harbor's rotting houses, say) can bring its own mix
-    const zone = (theme.zones || []).find((z) => (z.rect
-      ? cx >= z.rect[0] && cx <= z.rect[2] && cy >= z.rect[1] && cy <= z.rect[3]
-      : cy >= z.rows[0] && cy <= z.rows[1]));
-    const walls = zone ? zone.walls : theme.walls;
+    const zone = zoneAt(cx, cy);
+    const walls = zone && zone.walls ? zone.walls : theme.walls;
     const total = walls.reduce((n, [, w]) => n + w, 0);
     let k = (((cx * 7 + cy * 13) % total) + total) % total;
     for (const [name, w] of walls) {
@@ -271,9 +272,10 @@ export function createWorld(container, hooks) {
         const fy = h[y][x], cy = c[y][x];
         const x0 = x * CELL, x1 = (x + 1) * CELL, z0 = y * CELL, z1 = (y + 1) * CELL;
         // floor (a hole for the stair down) and ceiling
+        const zone = zoneAt(x, y);
         if (t === '>') buildStairDown(x, y, fy);
-        else quad(fy <= CHASM + 0.01 ? 'abyss' : 'floor', [x0, fy, z1], [x1, fy, z1], [x1, fy, z0], [x0, fy, z0], [x, -(y + 1), x + 1, -(y + 1), x + 1, -y, x, -y]);
-        if (!outdoor) quad('ceiling', [x0, cy, z0], [x1, cy, z0], [x1, cy, z1], [x0, cy, z1], [x, y, x + 1, y, x + 1, y + 1, x, y + 1]);
+        else quad(fy <= CHASM + 0.01 ? 'abyss' : (zone && zone.floor) || 'floor', [x0, fy, z1], [x1, fy, z1], [x1, fy, z0], [x0, fy, z0], [x, -(y + 1), x + 1, -(y + 1), x + 1, -y, x, -y]);
+        if (!outdoor) quad((zone && zone.ceiling) || 'ceiling', [x0, cy, z0], [x1, cy, z0], [x1, cy, z1], [x0, cy, z1], [x, y, x + 1, y, x + 1, y + 1, x, y + 1]);
         for (const e of EDGES) {
           const nx = x + e.dx, ny = y + e.dy;
           const nt = (grid[ny] && grid[ny][nx]) || '#';
@@ -287,8 +289,9 @@ export function createWorld(container, hooks) {
           }
           // a step down to the neighbour shows its riser from this side; a lower ceiling next door shows a lintel
           const nf = h[ny][nx], nc = c[ny][nx];
-          if (nf > fy) vface('riser', e, x, y, fy, nf);
-          if (!outdoor && nc < cy) vface('riser', e, x, y, nc, cy);
+          const riser = (zone && zone.riser) || 'riser';
+          if (nf > fy) vface(riser, e, x, y, fy, nf);
+          if (!outdoor && nc < cy) vface(riser, e, x, y, nc, cy);
         }
         if (t === 'D' || t === 'C' || t === 'J') buildDoor(x, y, fy, cy, t !== 'D');
         if (((t === 'G' && !outdoor) || t === '<')) buildDaylight(x, y, fy);
@@ -884,6 +887,13 @@ export function createWorld(container, hooks) {
       light.position.y = 1.1;
       g.add(light);
     }
+    // a prop can shine: { color, power, at } (at: how far up it, in its own heights)
+    if (u && u.prop && u.prop.light) {
+      const L = u.prop.light;
+      const light = new THREE.PointLight(L.color, L.power || 4, L.range || 9, 1.2);
+      light.position.set(0, hh * (L.at || 0.5), 0.6);
+      g.add(light);
+    }
     level.root.add(g);
     level.items.set(key, g);
   }
@@ -1286,8 +1296,12 @@ export function createWorld(container, hooks) {
     drowned: (u, v, s) => [s * 0.05 * v * v, v < 0.3 && (u - 0.5) * s > 0 ? 0.04 * (1 - v / 0.3) : -0.018 * v],
     watch: (u, v, s) => [s * 0.025 * v, v < 0.28 && (u - 0.5) * s > 0 ? 0.045 * (1 - v / 0.28) : 0],
     hanged: (u, v, s) => [s * 0.08 * v * v, v < 0.2 && (u - 0.5) * s > 0 ? 0.02 * (1 - v / 0.2) : -0.01 * v],
+    // under Church Hill: cutters stride with their picks, the salt wights grind along, the overseer lumbers
+    cutter: (u, v, s) => [s * 0.03 * v, v < 0.28 && (u - 0.5) * s > 0 ? 0.04 * (1 - v / 0.28) : 0],
+    saltwight: (u, v, s) => [s * 0.045 * v * v, v < 0.3 && (u - 0.5) * s > 0 ? 0.03 * (1 - v / 0.3) : -0.02 * v],
+    overseer: (u, v, s) => [s * 0.05 * v * v - s * 0.01, v < 0.3 && (u - 0.5) * s > 0 ? 0.03 * (1 - v / 0.3) : -0.01 * v],
   };
-  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55, prisoner: 1.7, guard: 1.2, warden: 1.9, drowned: 1.7, watch: 1.1, hanged: 2.0 }; // walk units per frame
+  const CADENCE = { zombie: 1.6, skeleton: 1.0, cultist: 1.3, rats: 0.55, prisoner: 1.7, guard: 1.2, warden: 1.9, drowned: 1.7, watch: 1.1, hanged: 2.0, cutter: 1.2, saltwight: 1.8, overseer: 1.9 }; // walk units per frame
   function shamble(entry, now) {
     const moving = entry.lastStep !== entry.step;
     entry.lastStep = entry.step;

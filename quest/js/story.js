@@ -468,7 +468,13 @@ Under it, faces, washed by the rain to nothing at all. One of them could be your
     {
       id: 'gravedigger', floor: 'skarnvik',
       async run(dm, first) {
-        const opts = [{ key: 'whose', label: 'Ask whose grave it is' }, { key: 'lords', label: 'Ask about the Salt Lords' }, { key: 'go', label: 'Walk on' }];
+        const door = (dm.flag('seekAgne') || dm.flag('sawBellDoor')) && !dm.flag('bellKey') && !dm.flag('hollowOpen');
+        const opts = [
+          { key: 'whose', label: 'Ask whose grave it is' },
+          { key: 'lords', label: 'Ask about the Salt Lords' },
+          ...(door ? [{ key: 'door', label: 'Ask about the bell-ringers’ door' }] : []),
+          { key: 'go', label: 'Walk on' },
+        ];
         const pick = await dm.say('The gravedigger', first
           ? 'An old man leaning on a spade, ankle-deep in a grave he is digging in the rain. <em>“Busy season,”</em> he says, and does not stop.'
           : '<em>“Still busy,”</em> says the gravedigger.', opts);
@@ -480,6 +486,28 @@ Under it, faces, washed by the rain to nothing at all. One of them could be your
           await dm.say('The gravedigger', `He stops digging. <em>“They opened the old saint’s tomb behind the basilica, last spring. Salt Lords’ men, at night, with a wagon. Paid me to look the other way, so I looked the other way.”</em>
 
 He spits into the grave. <em>“It was empty when they finished. And it wasn’t empty before.”</em>`, [{ label: 'Go on' }]);
+        } else if (key === 'door') {
+          const how = await dm.say('The gravedigger', `<em>“The little door in the hill? The bell-ringers’ door.”</em> He leans on his spade. <em>“Brother Haskel had the last key, and he went down there and never came up. But old Brother Osric, before him, I buried with his own key round his neck. There. Under the yew.”</em>
+
+He looks at you sideways. <em>“Ten silver, and I’ll have him up. Or dig him up yourselves, and I never saw it.”</em>`, [
+            { label: 'Pay him to dig (10s)', disabled: dm.silverLeft < 10 },
+            { label: 'Dig it up yourselves', note: 'Strength DR 12' },
+            { label: 'Not now' },
+          ]);
+          if (how === 0) {
+            dm.silver(-10);
+            dm.flag('bellKey', true);
+            await dm.say('The gravedigger', 'He digs fast, for an old man, and doesn’t look at the face. The key comes up on a rotten cord: iron, as long as your hand, with a little bell for a bow. <em>You have the bell-ringers’ key.</em>', [{ label: 'Take it' }]);
+          } else if (how === 1) {
+            const pc = dm.best('strength');
+            if (await dm.test(pc, 'strength', 12, 'digs up Brother Osric')) {
+              dm.flag('bellKey', true);
+              await dm.say('Brother Osric', `${dm.name(pc)} digs down through the wet earth to the coffin, and through the coffin to Brother Osric, and takes the key from round his neck. Iron, as long as your hand, with a little bell for a bow. <em>You have the bell-ringers’ key.</em>`, [{ label: 'Fill it in' }]);
+            } else {
+              await dm.hurt(pc, 1, 'a grave that kept filling with water');
+              await dm.say('Brother Osric', 'The grave fills with black water as fast as you dig. Brother Osric is keeping his key, for today.', [{ label: 'Step back' }]);
+            }
+          }
         }
       },
     },
@@ -536,6 +564,226 @@ He leans close. <em>“The salt down there is warm. Salt isn’t warm. Think abo
         await dm.say('Old graves', lines[dm.d(lines.length) - 1], [{ label: 'Step back' }]);
       },
     },
+    // ---------- the bell-ringers' door, behind the graves on Church Hill ----------
+    {
+      id: 'belldoor', floor: 'skarnvik',
+      async run(dm) {
+        if (dm.flag('hollowOpen')) {
+          const go = await dm.say('The bell-ringers’ door', 'The little door in the hill stands open. Worn steps wind down into the dark, and up them comes a sound like picks, far away, and something like singing.', [{ label: 'Go down' }, { label: 'Not now' }]);
+          if (go === 0) dm.go('hollow');
+          return;
+        }
+        dm.flag('sawBellDoor', true);
+        const opts = [
+          ...(dm.flag('bellKey') ? [{ key: 'key', label: 'Unlock it with Brother Osric’s key' }] : []),
+          ...(dm.flag('bellStair') ? [{ key: 'lift', label: 'Lift it on its hinges', note: 'Strength DR 10' }] : []),
+          { key: 'force', label: 'Force it', note: 'Strength DR 16' },
+          { key: 'go', label: 'Leave it' },
+        ];
+        const key = opts[await dm.say('A little door in the hill', `Behind the graves, half under ivy, a low iron door is set into the hill itself, with a bell carved in the stone above it. Rust has run down from the hinges like old blood.
+
+It doesn’t move.${dm.flag('seekAgne') ? ' <em>The bell-ringers’ way into Church Hill.</em>' : ''}`, opts)].key;
+        if (key === 'go') return;
+        let open = key === 'key';
+        if (key !== 'key') {
+          const pc = dm.best('strength');
+          open = await dm.test(pc, 'strength', key === 'lift' ? 10 : 16, key === 'lift' ? 'lifts the door on its hinges' : 'throws a shoulder at the door');
+          if (!open && key === 'force') await dm.hurt(pc, 1, 'an iron door');
+        }
+        if (!open) {
+          await dm.say('A little door in the hill', 'The door doesn’t care.', [{ label: 'Step back' }]);
+          return;
+        }
+        dm.flag('hollowOpen', true);
+        const go = await dm.say('The bell-ringers’ door', `${key === 'key' ? 'The key turns as if it had been waiting.' : 'Something gives with a shriek of rust.'} The door swings in on a stair that winds down inside the hill, worn into a gutter by centuries of feet.
+
+Cold air comes up it, and on the air, very far down: <em>picks</em>. And under the picks, something singing.`, [{ label: 'Go down' }, { label: 'Not now' }]);
+        if (go === 0) dm.go('hollow');
+      },
+    },
+    // ---------- Saint Agne's Hollow ----------
+    {
+      id: 'hollowStair', floor: 'hollow', arrive: true,
+      async run(dm) {
+        await dm.say('The bell-ringers’ stair', `The stair winds down inside the hill, around and around. The walls are bones at first: the bell-ringers buried their own right here on the stair, so they could go on hearing the bell.
+
+Then the bones stop, and somewhere far below, the stone turns white.
+
+From down there comes a sound you know from the Brine: <em>picks</em>. Many picks, working. And under them, so faint you could be imagining it, <em>singing</em>.`, [{ label: 'Go on' }]);
+      },
+    },
+    {
+      id: 'bellchamber', floor: 'hollow', area: [9, 1, 15, 6],
+      async run(dm) {
+        await dm.say('The bell chamber', `A round chamber cut into the rock, its roof lost in the dark. In the middle, where it fell, lies the bell-ringers’ bell: bronze, taller than a man, cracked from lip to crown, its rope still on it.
+
+Around the lip, in old letters: <em>I RING THAT SHE MAY KNOW SHE IS NOT FORGOTTEN.</em>`, [{ label: 'Go on' }]);
+      },
+    },
+    {
+      id: 'bell', floor: 'hollow',
+      async run(dm) {
+        if (dm.flag('bellRung')) {
+          await dm.say('The bell-ringers’ bell', 'The bell lies where it fell. You can still feel the note you rang in your teeth.', [{ label: 'Leave it' }]);
+          return;
+        }
+        const pick = await dm.say('The bell-ringers’ bell', 'Cracked from lip to crown. <em>I RING THAT SHE MAY KNOW SHE IS NOT FORGOTTEN.</em> The rope is rotten, but the clapper is still in it.',
+          [{ label: 'Ring it', note: 'Strength DR 12' }, { label: 'Leave it' }]);
+        if (pick !== 0) return;
+        const pc = dm.best('strength');
+        if (!(await dm.test(pc, 'strength', 12, 'heaves on the clapper'))) {
+          await dm.say('The bell-ringers’ bell', 'The clapper won’t swing. Not yet.', [{ label: 'Step back' }]);
+          return;
+        }
+        dm.flag('bellRung', true);
+        for (const p of dm.party) dm.omen(p);
+        dm.alarm();
+        await dm.say('The bell-ringers’ bell', `${dm.name(pc)} swings the clapper into the cracked bronze, and the bell gives one note, so low and so loud you feel it in your teeth and your knees and the roots of your hair.
+
+And far below, <em>something answers</em>: a voice, singing one long note back up through the hill. <em>Each of you: +1 Omen.</em>
+
+The picks have stopped. Everything down there heard it.`, [{ label: 'Go on' }]);
+      },
+    },
+    {
+      id: 'haskel', floor: 'hollow', area: [17, 1, 20, 3],
+      async run(dm) {
+        const pick = await dm.say('A bell-ringer’s cell', 'A cot, a cold brazier, a rope for a bell that isn’t there. In the corner sits what is left of the last bell-ringer, Brother Haskel, with a book in his lap.', [{ label: 'Read the book' }, { label: 'Leave him be' }]);
+        if (pick !== 0) return;
+        dm.flag('sevenSaints', true);
+        await dm.say('Brother Haskel’s book', `<em>“Seven saints hold up Skarn, one under each of the seven hills, standing on the floor of the sea with the island on their shoulders. Ours is Agne. We ring every dawn so she knows she is not forgotten, and she holds.”</em>
+
+<em>“The Salt Lords have forbidden the dawn bell. It disturbs the counting at the Exchange, they say.”</em>
+
+<em>“Men in the hill. Picks, at night. They came in from the east, from under the Hill. Agne’s song has changed.”</em>
+
+<em>“They have cut down the bell. I am the last. I am going down to her, and”</em>
+
+And that’s where it stops.`, [{ label: 'Close it' }]);
+      },
+    },
+    {
+      id: 'camp', floor: 'hollow', area: [5, 11, 13, 15],
+      async run(dm) {
+        await dm.say('The cutters’ camp', `Lanterns on poles, rails on the floor, and carts heaped with salt that glitters pink where it was freshly cut. The walls are white and wet. Men in salt-caked aprons look up from their picks.
+
+<em>“Who let you down here?”</em>`, [{ label: 'Raise your weapons' }]);
+      },
+    },
+    {
+      id: 'cart', floor: 'hollow',
+      async run(dm) {
+        const taken = dm.flag('tookSalt');
+        const pick = await dm.say('A cart of salt', `A cart heaped with fresh-cut salt. It is warm. Where the pick went in, the salt is pink, and wet, and it smells of the sea and of skin.${taken ? '' : ' At the Exchange, a cart like this is worth more than the house you were born in.'}`,
+          [...(taken ? [] : [{ label: 'Fill your pockets' }]), { label: 'Leave it' }]);
+        if (taken || pick !== 0) return;
+        dm.flag('tookSalt', true);
+        const n = dm.d(6) * 5;
+        dm.silver(n);
+        await dm.say('A cart of salt', `You fill your pockets. Thrumm will pay for it, and ask no questions. <em>+${n}s.</em>
+
+Somewhere below, the singing falters, for just a moment.`, [{ label: 'Go on' }]);
+      },
+    },
+    {
+      id: 'saltcaves', floor: 'hollow', area: [18, 10, 25, 15],
+      async run(dm) {
+        await dm.say('The salt', `The salt grows in teeth from the walls here, white and pink, and it is warm to the touch, like a cheek.
+
+Things move in it: cutters who ate the salt they cut, crusted to the knee, to the waist, to the eyes. They still swing their picks. They don’t know what at.`, [{ label: 'Go on' }]);
+      },
+    },
+    {
+      id: 'hollow', floor: 'hollow', area: [5, 18, 23, 22],
+      async run(dm) {
+        const pick = await dm.say('The Hollow', `<em>The hill is hollow.</em>
+
+The cave is as tall as the basilica, and in the middle of it stands <em>Saint Agne</em>: a woman of white salt three storeys tall, her arms raised, holding up the roof of the world. Her face is turned up, and calm. Below the knees there is nothing left of her. They have cut her away, cart by cart, and the hill groans on her shoulders.
+
+And she is singing.
+
+Under her, a big hooded man in a long black coat turns round, a lantern in his fist and a writ in his belt. <em>“This is the Lords’ work,”</em> he says. <em>“Back to it, lads.”</em>`, [
+          { label: 'Tell the cutters to put down their picks', note: 'Presence DR 14' },
+          { label: 'Fight' },
+        ]);
+        if (pick === 0) {
+          const pc = dm.best('presence');
+          if (await dm.test(pc, 'presence', 14, 'speaks to the cutters')) {
+            await dm.say('The Hollow', `${dm.name(pc)} points up at her face. The cutters look at the saint, and at their picks, and at each other. One by one they put the picks down and walk off into the dark.
+
+Only the overseer stays. <em>“Cowards,”</em> he says, and hefts his cudgel.`, [{ label: 'Fight' }]);
+            await dm.fight({ drop: 'cutter' });
+            return;
+          }
+          await dm.say('The Hollow', '<em>“Back to work,”</em> says the overseer, and the cutters come at you with their picks.', [{ label: 'Fight' }]);
+        }
+        await dm.fight();
+      },
+    },
+    {
+      id: 'agne', floor: 'hollow',
+      async run(dm) {
+        if (!dm.flag('overseerDead')) {
+          await dm.say('Saint Agne', 'The overseer’s lantern swings your way. Not while he’s standing.', [{ label: 'Step back' }]);
+          return;
+        }
+        if (!dm.flag('agneMet')) {
+          dm.flag('agneMet', true);
+          await dm.say('Saint Agne', `Up close she is not stone and not salt but both, and warm, like a hand. Her song comes up through your feet. There are words in it, if you listen with your bones:
+
+<em>Seven of us. One under each hill. We stood on the floor of the sea when the sea was young, and took Skarn on our shoulders, and we have held it every day since.</em>
+
+<em>Four of my sisters are cut away already. Their salt is in the Exchange, and in the Salt Lords’ bread, and in the mouths of the Bright. The island sinks because we are fewer.</em>
+
+<em>I am cut to the knee. I hold. I hold.</em>`, [{ label: 'Go on' }]);
+        }
+        for (;;) {
+          const opts = [
+            ...(dm.flag('agnePrayed') ? [] : [{ key: 'pray', label: 'Pray with her', note: 'all HP, +1 Omen each, once' }]),
+            ...(dm.flag('agneSealed') ? [] : [{ key: 'seal', label: 'Bring down the cutters’ tunnel', note: 'Strength DR 12' }]),
+            ...(dm.flag('agneCut') ? [] : [{ key: 'cut', label: 'Cut a piece of her', note: 'it would sell for a fortune' }]),
+            { key: 'go', label: 'Leave her' },
+          ];
+          const key = opts[await dm.say('Saint Agne', 'Saint Agne holds up the hill, and sings.', opts)].key;
+          if (key === 'go') return;
+          if (key === 'pray') {
+            dm.flag('agnePrayed', true);
+            for (const p of dm.party) { dm.heal(p, p.maxHp); p.bleeding = false; dm.omen(p); }
+            await dm.say('Saint Agne', 'You pray, and you don’t know the words, and it doesn’t matter. Her song goes through you like warm water. Every wound closes. <em>All HP, and +1 Omen each.</em>', [{ label: 'Go on' }]);
+          } else if (key === 'seal') {
+            const pc = dm.best('strength');
+            if (await dm.test(pc, 'strength', 12, 'brings down the tunnel roof')) {
+              dm.flag('agneSealed', true);
+              const n = dm.giveDays(dm.d(4));
+              await dm.say('Saint Agne', `${dm.name(pc)} knocks the props out of the cutters’ tunnel, and the roof comes down in a roar of salt. Nobody is coming in that way again.
+
+Her song steadies. The hill stops groaning. <em>The island holds a little longer: the next Misery is ${n} day${n === 1 ? '' : 's'} further off.</em>`, [{ label: 'Go on' }]);
+            } else {
+              await dm.hurt(pc, dm.d(4), 'falling salt');
+              await dm.say('Saint Agne', 'Salt comes down, but not enough of it, and most of it on you.', [{ label: 'Step back' }]);
+            }
+          } else if (key === 'cut') {
+            dm.flag('agneCut', true);
+            const n = dm.d(6) * 10;
+            dm.silver(n);
+            dm.loseDay();
+            await dm.say('Saint Agne', `You cut. It comes away warm and pink, and heavy, a fortune in your hands. <em>+${n}s.</em>
+
+She doesn’t stop singing. That is the worst of it. The hill groans, and somewhere in Skarn the sea comes up another step. <em>A day is lost.</em>`, [{ label: 'Go on' }]);
+          }
+        }
+      },
+    },
+    {
+      id: 'tunnel', floor: 'hollow', area: [25, 20, 28, 20],
+      async run(dm) {
+        await dm.say('The cutters’ tunnel', dm.flag('agneSealed')
+          ? 'The cutters’ tunnel is choked with fallen salt, wall to wall. Nobody is coming in this way again.'
+          : `The cutters’ tunnel runs on east into the dark, rails and all, sloping down. A wind comes up it that smells of lamp oil and money. It runs under the Hill.
+
+<em>Under the Exchange.</em> Not yet.`, [{ label: 'Turn back' }]);
+      },
+    },
     // ---------- what the Brine Gaol left behind ----------
     {
       // the one you broke out of his cell, hiding in the Gutter (js/data.js: only once he's freed)
@@ -563,7 +811,7 @@ He spits. <em>“I’m ${name}. If you’re finishing what they started, I’ll 
 
 <em>“One: the Brine is where they put the diggers from the Deep Mine, once the diggers started talking. About the salt, and what was singing under it.”</em>${dm.flag('ledger') ? ' It is what the Gaol ledger said.' : ''}
 
-<em>“Two: the saints. They took the old saint out of her tomb behind the basilica last spring, out the front, with a wagon. But the bell-ringers had their own way into that hill, older than the tomb: <b>the bell-ringer’s stair</b>. Nobody watches it. Nobody remembers it but old lags like me.”</em>`, [{ label: 'Go on' }]);
+<em>“Two: the saints. They took the old saint out of her tomb behind the basilica last spring, out the front, with a wagon. But the bell-ringers had their own way into that hill, older than the tomb: <b>the bell-ringer’s stair</b>, behind the graves. Nobody watches it. Nobody remembers it but old lags like me. The door was never locked, mind. It sticks. You lift it on its hinges.”</em>`, [{ label: 'Go on' }]);
         } else if (key === 'stash') {
           dm.flag('freedPaid', true);
           await dm.say(name, `<em>“Before they took me, I hid something where the watch would never look: in the watch-house wall.”</em> He is gone a long time, and comes back with something wrapped in a rag.

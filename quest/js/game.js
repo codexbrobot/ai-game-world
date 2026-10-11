@@ -170,6 +170,14 @@
         renderHud();
         return pc;
       },
+      // down a stair the story opened, onto another floor's G
+      go(id) {
+        enterFloor(floorIndex(id), 'G');
+        log(`You go down into <b>${esc(floor().name)}</b>.`);
+      },
+      // the Calendar of Nechrubel, pushed back or brought nearer
+      giveDays(n) { S.calendar.days += n; renderHud(); return n; },
+      loseDay() { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); renderHud(); },
       // who stands in the street changed: build it again around you
       refreshCity() { if (S.floorIx === cityIx()) enterFloor(S.floorIx, null, world.pose()); },
       silver(n) { S.silver = Math.max(0, S.silver + n); if (n > 0) { sfx('gain'); log(`<b>+${n}s</b>.`, 'hit'); } renderHud(); },
@@ -185,11 +193,16 @@
         world.openDoor(x, y);
         sfx('door');
       },
-      // wake whatever sleeps nearest and fight it, now
-      async fight() {
+      // wake whatever sleeps nearest and fight it, now (opts.drop: a kind of monster in it that walks away)
+      async fight(opts = {}) {
         const p = world.pose();
         const g = floor().groups.filter((x) => x.alive && x.dormant).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
         if (!g) return;
+        if (opts.drop) {
+          g.members = g.members.filter((m) => m.key !== opts.drop);
+          world.removeGroup(g);
+          world.addGroup(g);
+        }
         g.dormant = false;
         g.alert = true;
         await battle(g);
@@ -243,6 +256,8 @@
   async function playScene(scene, first) {
     if (!alive().length) return;
     await scene.run(makeDM(), first);
+    const miseries = S.pendingMiseries.splice(0);
+    if (miseries.length && !S.over) await new Promise((res) => showMiseries(miseries, res));
     // something a scene turned up (a sack in the evidence room)
     if (S.pendingDrop && !S.over) {
       const key = S.pendingDrop;
@@ -660,8 +675,13 @@
     await battle(g);
   }
   function goal() {
-    return S.flags.strangerTold ? `Something is pulling the island down.${S.flags.bellStair ? ' The bell-ringer’s stair goes down into Church Hill.' : ''} (The story continues in the next update.)`
-      : S.flags.deepStair ? 'Tell the Stranger, by the gallows, what the water is doing under the square.'
+    const f = S.flags;
+    if (f.strangerAgne) return 'Under the Exchange, down the white stair, the Salt Lords grind the saints into salt. (The story continues in the next update.)';
+    if (f.agneMet) return 'Tell the Stranger, by the gallows, what is under Church Hill.';
+    if (f.hollowOpen) return 'Go down the bell-ringers’ stair, behind the graves on Church Hill, to Saint Agne.';
+    if (f.seekAgne) return `Find the bell-ringers’ way into Church Hill, behind the graves. ${f.bellStair ? 'The freed man says the door only sticks: lift it on its hinges.' : 'The gravedigger buried the bell-ringers; he will know.'}`;
+    if (f.strangerTold) return 'The Stranger, by the gallows, has more to tell you.';
+    return S.flags.deepStair ? 'Tell the Stranger, by the gallows, what the water is doing under the square.'
         : S.metStranger ? 'Go down the crypt stair at the edge of the square, into the Undercroft, and see what the water is doing.'
           : 'A stranger in the shadow of the gallows is watching you.';
   }
@@ -689,7 +709,8 @@
     const u = f && usesHere()[f.t];
     facingNow = u ? f : null;
     el.hidden = !u;
-    const name = u && (isHome(u) ? (u.home === 'scum' ? 'Your corner of the alley' : 'Your home') : u.act === 'church' && S.home && S.home.cls === 'priest' ? 'The basilica (your home)' : u.name);
+    const name = u && (isHome(u) ? (u.home === 'scum' ? 'Your corner of the alley' : 'Your home') : u.act === 'church' && S.home && S.home.cls === 'priest' ? 'The basilica (your home)'
+      : u.scene === 'belldoor' && S.flags.hollowOpen ? 'The bell-ringers’ stair' : u.name);
     if (u) el.innerHTML = `${esc(name)}<small>${u.decal ? 'step onto' : 'walk into'} ${u.prop && u.scene !== 'gallows' && u.scene !== 'graves' && u.act !== 'board' ? 'them' : 'it'}, or tap here</small>`;
   }
   // ---------- homes ----------
@@ -953,7 +974,43 @@
       <p>“Fennick.” The Stranger says the name the way you would spit out a tooth. “The diggers from the Deep Mine: <i>not to be released, not to be named</i>. So they did find something down there, and the Salt Lords buried it in the Brine with the men who found it.”</p>
       <p>He presses ten silver into your hand. “For your memory. Keep it sharp.”</p>`, [{ label: 'Take the silver' }]);
   }
+  // The rest of it: the saints that hold the island up, and the one under Church Hill.
+  function strangerRest(first) {
+    S.flags.seekAgne = true;
+    save();
+    modal('The Stranger', `${art('stranger')}
+      ${first ? '' : '<p>The Stranger looks at you a long time before he speaks.</p>'}
+      <p>“The old hymns say seven saints hold Skarn up, one under each hill. The priests stopped singing those hymns the year the Salt Lords built their Exchange.”</p>
+      <p>“Church Hill had one. <b>Saint Agne.</b> The bell-ringers kept her: they rang every dawn so she’d know she wasn’t forgotten, until the Salt Lords forbade the bell. The last of them went down into the hill and never came up.”</p>
+      <p>“Find the bell-ringers’ way into Church Hill. It’s behind the graves. The gravedigger buried most of them; he’ll know how it opens.”</p>`, [...ledgerTalk(), { label: 'Nod' }]);
+    log(goal());
+  }
+  function strangerAgne() {
+    S.flags.strangerAgne = true;
+    S.silver += 50;
+    save();
+    renderHud();
+    modal('The Stranger', `${art('stranger')}
+      <p>“Cut to the knee.” The Stranger is quiet for a long time. “And four of her sisters gone already. Their salt in the Exchange.”</p>
+      ${S.flags.writ ? '<p>He reads the overseer’s writ twice. “<i>Leave the crown, so the hill stands until the Exchange has its fill.</i> They know. They know exactly what they’re doing.”</p>' : ''}
+      <p>He presses fifty silver into your hand without counting it. “Then that’s where they grind them. Under the Exchange, down the white stair the old miners sang about. That’s where we go next. Not yet. Get stronger.”</p>
+      <p class="small">(The story continues in the next update.)</p>`, [...ledgerTalk(), { label: 'Take the silver' }]);
+    log(goal());
+  }
   function visitStranger() {
+    if (S.flags.agneMet && !S.flags.strangerAgne) { strangerAgne(); return; }
+    if (S.flags.strangerAgne) {
+      modal('The Stranger', `${art('stranger')}
+        <p>“Under the Exchange. The white stair. Get stronger, and come back.”</p>
+        <p class="small">(The story continues in the next update.)</p>`, [...ledgerTalk(), { label: 'Nod' }]);
+      return;
+    }
+    if (S.flags.strangerTold && !S.flags.seekAgne) { strangerRest(false); return; }
+    if (S.flags.seekAgne) {
+      modal('The Stranger', `${art('stranger')}
+        <p>“Saint Agne. Under Church Hill. Find the bell-ringers’ way in.”</p>`, [...ledgerTalk(), { label: 'Nod' }]);
+      return;
+    }
     if (S.flags.deepStair && !S.flags.strangerTold) {
       S.flags.strangerTold = true;
       S.silver += 40;
@@ -962,14 +1019,7 @@
       modal('The Stranger', `${art('stranger')}
         <p>“Rising, you say. From under. Not rain, not a spring.” The Stranger presses forty silver into your hand without counting it.</p>
         <p>“Then it’s true. The island isn’t sinking. <b>Something is pulling it down.</b> And the Salt Lords are getting rich while it happens.”</p>
-        <p>“Get stronger. Get richer. When you’re ready to hear the rest, I’ll be here.” <span class="pink">(The story continues in the next update.)</span></p>`, [{ label: 'Take the silver' }]);
-      return;
-    }
-    if (S.flags.strangerTold) {
-      modal('The Stranger', `${art('stranger')}
-        <p>The Stranger hasn’t moved from the gallows’ shadow.</p>
-        <p>“Something is pulling the island down. Get stronger. When you’re ready to hear the rest, I’ll be here.”</p>
-        <p class="small">(The story continues in the next update.)</p>`, [...ledgerTalk(), { label: 'Nod' }]);
+        <p>“And I think I know where to look.”</p>`, [{ label: 'Take the silver', action: () => strangerRest(true) }]);
       return;
     }
     const first = !S.metStranger;
@@ -1132,7 +1182,13 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     } else if (t === 'G' && floor().id === 'gaol') {
       ask('The sewer grate', '<p>Above you, a grate, and through it grey light and the smell of rain and fish and smoke. <b>The city.</b></p>', 'Climb out', () => run(escapeGaol));
     } else if (t === 'G') {
-      ask('The stair up', art('stair') + '<p>Rain and a grey light come down the steps. Gallows Square is above.</p>', 'Climb out', () => { enterCity('>'); log('You climb back up into <b>Gallows Square</b>.'); save(); });
+      const f = Q.FLOORS[S.floorIx];
+      ask('The stair up', art('stair') + `<p>${f.upText || 'Rain and a grey light come down the steps. Gallows Square is above.'}</p>`, 'Climb out', () => {
+        if (f.upAt) enterFloor(cityIx(), null, { x: (f.upAt[0] + 0.5) * CELL, z: (f.upAt[1] + 0.5) * CELL, a: ANGLE[f.upAt[2]] });
+        else enterCity('>');
+        log(`You climb back up into <b>${esc(placeName())}</b>.`);
+        save();
+      });
     } else if (t === '>' && Q.FLOORS[S.floorIx].down) {
       ask('The crypt stair', art('stair') + '<p>Worn steps go down under the square, into a cold that smells of candle wax and old water. <b>The Undercroft.</b></p>', 'Descend', enterCrypt);
     } else if (t === '>') {
@@ -1232,7 +1288,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     v.classList.remove('shatter');
     const result = await Q.Battle.run({
       party: S.party, foes: g.members, inv: S, log, misery: S.calendar.misery,
-      ...(g.members.some((m) => Q.MONSTERS[m.key].boss) ? { bossWeak: !!S.flags.abbessWeak, firstStrike: !!S.flags.ambush, foesFirst: !!S.flags.abbessAlert && !S.flags.ambush } : {}),
+      ...(g.members.some((m) => Q.MONSTERS[m.key].boss) ? { bossWeak: !!S.flags.abbessWeak, firstStrike: !!S.flags.ambush, foesFirst: (!!S.flags.abbessAlert || (!!S.flags.bellRung && g.members.some((m) => m.key === 'overseer'))) && !S.flags.ambush } : {}),
       onDayLost: () => { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); renderHud(); },
       onChange: renderHud, onHurt: flashHurt, say, sheet: showSheet,
     });
@@ -1249,6 +1305,11 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       // cultists carry relics; skeletons, strange weapons
       const kinds = g.members.map((m) => Q.MONSTERS[m.key].kind);
       let drop = null;
+      if (kinds.includes('overseer')) {
+        S.flags.overseerDead = true;
+        S.flags.writ = true;
+        log('In the overseer’s belt, a writ under Lord Fennick’s seal: <i>“Cut from below. Leave the crown, so the hill stands until the Exchange has its fill.”</i>', 'hit');
+      }
       if (kinds.includes('hanged')) {
         S.flags.hangedLaid = true;
         log(`${esc(S.flags.livingName || 'The hanged man')} lies still in the street at last.`, 'hit');
@@ -1417,9 +1478,11 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     if (!world || S.where !== 'crawl') return;
     // the key: the city's own marks, or the dungeon's
     const marks = Object.values(usesHere()).filter((u) => u.mark && u.name).reduce((a, u) => (a.some((x) => x.mark === u.mark) ? a : [...a, u]), []);
+    const below = '▲ stairs up · ▼ stairs down · ✚ remains · ◍ font · pink: monsters';
+    const outdoors = !!(Q.FLOORS[S.floorIx].theme || {}).outdoor;
     const key = marks.length
-      ? [...marks.map((u) => `${u.mark} ${{ '●': 'someone to talk to', '▪': 'homes', '+': 'graves' }[u.mark] || esc(u.name)}`), '▼ the crypt stair'].join(' · ')
-      : '▲ stairs up · ▼ stairs down · ✚ remains · ◍ font · pink: monsters';
+      ? [...marks.map((u) => `${u.mark} ${{ '●': 'someone to talk to', '▪': 'homes', '+': 'graves' }[u.mark] || esc(u.name)}`), outdoors ? '▼ the crypt stair' : below].join(' · ')
+      : below;
     modal(floor().name, `<canvas id="bigMap" width="480" height="480"></canvas><p class="small">${key}</p>`, [{ label: 'Close' }]);
     const c = $('bigMap'), dpr = Math.min(2, window.devicePixelRatio || 1);
     c.width = 480 * dpr; c.height = 480 * dpr;

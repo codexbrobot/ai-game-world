@@ -69,6 +69,23 @@ ART = {
                    prompt=f'full body illustration of a huge bloated drowned prison warden in a long black coat with brass buttons, '
                           f'an iron mask over his face, a great ring of iron keys and a lantern on his belt, barnacles and seaweed, '
                           f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    # Under Church Hill: the Salt Lords' cutters, the miners the salt got into, their overseer, and the saint
+    'cutter': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                   prompt=f'full body illustration of a gaunt salt miner in a leather apron and hood caked in white salt dust, '
+                          f'a heavy pickaxe over his shoulder, a rag over his mouth, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'saltwight': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                      prompt=f'full body illustration of a dead miner half encrusted in white salt crystals, crystals growing out of his face '
+                             f'and shoulders, glowing red cracks in the salt, a broken pickaxe, shambling, facing the viewer, {ISOLATED}, {STYLE}'),
+    'overseer': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                     prompt=f'full body illustration of a huge brutal mine overseer in a long pale coat, a lantern on a pole in one hand and '
+                            f'a coiled whip in the other, a rolled writ with a red wax seal in his belt, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'saint-agne': dict(kind='sprite', size=(384, 768), out=(384, 768), seed=None,
+                       prompt=f'a colossal statue of a veiled nun saint in heavy hooded robes covering her whole body, carved from white salt, '
+                              f'arms raised over her head holding up a rock ceiling, solemn face, pickaxe gouges in the base, front view, {ISOLATED}, {STYLE}'),
+    'bell': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
+                 prompt=f'a huge cracked bronze church bell fallen on its side on the ground, front view, {ISOLATED}, {STYLE}'),
+    'saltcart': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
+                     prompt=f'an old wooden mine cart on iron rails heaped with glittering rock salt, front view, {ISOLATED}, {STYLE}'),
     # Skarnvik's harbor at night: the drowned walking up out of the sea, looking for their houses
     'drowned': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                     prompt=f'full body illustration of a bloated drowned fisherman risen from the sea, tangled in a torn fishing net, '
@@ -123,6 +140,11 @@ ART = {
                       prompt=f'close-up of a prison cell front of rusted vertical iron bars set in a stone frame, darkness behind the bars, {FLAT}'),
     'gaol-door': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.96, init='celldoor', strength=0.6,
                       prompt=f'close-up of a heavy iron prison cell door with rivets and a small barred window, in a stone wall, {FLAT}'),
+    # Saint Agne's Hollow, under Church Hill: rock salt that bleeds pink where it's cut, and a salt floor.
+    'wall-salt': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='salt', strength=0.6, veins=4, mid=0.42,
+                      prompt=f'close-up of a white salt mine wall with wavy layered strata and pickaxe marks, {FLAT}'),
+    'floor-salt': dict(kind='texture', size=(512, 512), out=(512, 512), seed=None, crop=0.94, init='saltfloor', strength=0.58, veins=2, mid=0.45,
+                       prompt=f'close-up of a trampled floor of grey white rock salt with cracks and grit, {FLAT}'),
     # --- Skarnvik, the city ---
     # House fronts, one per street square: drawn as a flat layout (storeys, timber, door, windows, roof),
     # painted over in ink, then cut out along the roofline so the sky shows above them, with some windows lit.
@@ -159,6 +181,9 @@ ART = {
     'front-crypthouse': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:crypthouse', strength=0.64,
                              prompt=f'front view of a small stone crypt house in a graveyard with a cross on its gable, a low iron door, '
                                     f'skulls set in the wall, flat facade, {FLAT}'),
+    'front-belldoor': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:belldoor', strength=0.64,
+                           prompt=f'front view of an old mossy stone retaining wall in a hillside, a small low arched iron door at the bottom, '
+                                  f'a church bell carved in the stone above the door, ivy hanging down, flat facade, {FLAT}'),
     'front-watchhouse': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:watchhouse', strength=0.64,
                              prompt=f'front view of an old stone watch tower with crenellations, a barred window, a boarded-up door, '
                                     f'rags hanging from the window, flat facade, {FLAT}'),
@@ -269,6 +294,7 @@ SEEDS = {
     'facade-timber': 1, 'front-inn': 1, 'facade-stone': 3, 'front-stall': 3, 'npc-stranger': 2, 'facade-derelict': 1, 'gallows': 2, 'board': 1, 'npc-preacher': 2, 'npc-fisher': 1,
     'front-church': 1, 'front-manor': 3, 'front-home': 1, 'npc-priest': 1, 'front-watchhouse': 1, 'front-crypthouse': 2, 'front-exchange': 1, 'npc-watchman': 2, 'npc-beggar': 3, 'npc-gravedigger': 2, 'tombstones': 1, 'dead-tree': 2,
     'drowned': 2, 'npc-freed': 3, 'npc-widow': 1,
+    'overseer': 2,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
@@ -282,7 +308,7 @@ LAYOUT_INFO = {}
 
 def _facade(d, rnd, w, h, style):
     roof = {'timber': 'gable', 'inn': 'gable', 'stone': 'flat', 'stall': 'flat', 'derelict': 'step', 'church': 'gable', 'home': 'gable',
-            'manor': 'flat', 'exchange': 'pediment', 'crypthouse': 'hut', 'watchhouse': 'cren'}[style]
+            'manor': 'flat', 'exchange': 'pediment', 'crypthouse': 'hut', 'watchhouse': 'cren', 'belldoor': 'none'}[style]
     eave = h * rnd.uniform(0.17, 0.21)
     if roof == 'gable':
         outline = [(0, h), (0, eave), (w * 0.5, h * rnd.uniform(0.02, 0.04)), (w, eave), (w, h)]
@@ -300,6 +326,8 @@ def _facade(d, rnd, w, h, style):
             x0, x1 = w * i / 5, w * (i + 0.5) / 5
             outline += [(x0, top), (x1, top), (x1, top + h * 0.035), (w * (i + 1) / 5, top + h * 0.035)]
         outline += [(w, top), (w, h)]
+    elif roof == 'none':
+        outline = [(0, h), (0, 0), (w, 0), (w, h)]
     elif roof == 'step':
         top, k = h * 0.04, 3
         outline = [(0, h), (0, eave)]
@@ -314,7 +342,7 @@ def _facade(d, rnd, w, h, style):
         cx1 = cx0 + w * 0.16
         outline = [(0, h), (0, top), (cx0, top), (cx0, h * 0.02), (cx1, h * 0.02), (cx1, top), (w, top), (w, h)]
     wall = {'timber': 150, 'inn': 150, 'stone': 118, 'stall': 128, 'derelict': 135, 'church': 112, 'home': 148,
-            'manor': 122, 'exchange': 132, 'crypthouse': 104, 'watchhouse': 110}[style]
+            'manor': 122, 'exchange': 132, 'crypthouse': 104, 'watchhouse': 110, 'belldoor': 98}[style]
     d.polygon(outline, fill=wall)
     # the roof: tiles above the eave, or a cornice
     if roof in ('gable', 'pediment', 'hut'):
@@ -339,10 +367,10 @@ def _facade(d, rnd, w, h, style):
         d.rectangle([0, eave, w, eave + 12], fill=beam)
         d.line([(14, storey - 8), (w * 0.3, eave + 12)], fill=beam, width=10)
         d.line([(w - 14, storey - 8), (w * 0.7, eave + 12)], fill=beam, width=10)
-    if style in ('stone', 'church', 'watchhouse', 'crypthouse', 'manor', 'exchange'):
-        for y in range(int(eave), int(plinth), 34):
+    if style in ('stone', 'church', 'watchhouse', 'crypthouse', 'manor', 'exchange', 'belldoor'):
+        for y in range(int(eave if roof != 'none' else 0), int(plinth), 34):
             d.line([(outline[0][0], y), (outline[-1][0], y)], fill=88, width=3)
-    if style in ('church', 'exchange', 'manor', 'crypthouse', 'watchhouse'):
+    if style in ('church', 'exchange', 'manor', 'crypthouse', 'watchhouse', 'belldoor'):
         # the grand ones and the grim ones: their own fronts, drawn whole
         windows = []
         if style == 'church':
@@ -382,6 +410,17 @@ def _facade(d, rnd, w, h, style):
             d.rectangle([w * 0.36, h * 0.74, w * 0.64, plinth], fill=24)
             for k in range(4):
                 d.ellipse([w * (0.16 + 0.19 * k), h * 0.66, w * (0.16 + 0.19 * k) + 26, h * 0.66 + 30], fill=200)
+        elif style == 'belldoor':
+            for k in range(14):                                                               # ivy down from the top
+                x = rnd.uniform(0, w)
+                d.line([(x, 0), (x + rnd.uniform(-20, 20), h * rnd.uniform(0.15, 0.5))], fill=50, width=rnd.randint(6, 16))
+            bx, by = w * 0.5, h * 0.58                                                        # the carved bell
+            d.polygon([(bx - w * 0.07, by - h * 0.06), (bx + w * 0.07, by - h * 0.06), (bx + w * 0.13, by + h * 0.04), (bx - w * 0.13, by + h * 0.04)], fill=150)
+            d.ellipse([bx - w * 0.03, by + h * 0.035, bx + w * 0.03, by + h * 0.06], fill=150)
+            d.rectangle([w * 0.33, h * 0.78, w * 0.67, plinth], fill=22)                       # the low arched door
+            d.ellipse([w * 0.33, h * 0.72, w * 0.67, h * 0.84], fill=22)
+            for k in range(3):
+                d.line([(w * 0.33, h * (0.8 + 0.05 * k)), (w * 0.67, h * (0.8 + 0.05 * k))], fill=70, width=6)
         else:  # watchhouse
             d.rectangle([w * 0.38, h * 0.3, w * 0.62, h * 0.42], fill=18)
             for k in range(4):
@@ -583,6 +622,21 @@ def layout(kind, size, seed_name):
             d.ellipse([w * 0.44, h * 0.16, w * 0.56, h * 0.3], fill=175)          # head
             d.polygon([(w * 0.5, h * 0.3), (w * 0.36, h * 0.9), (w * 0.64, h * 0.9)], fill=150)  # robe
             d.polygon([(w * 0.47, h * 0.42), (w * 0.53, h * 0.42), (w * 0.5, h * 0.52)], fill=200)  # hands
+    elif kind in ('salt', 'saltfloor'):
+        # a salt mine's face: wavy bands of strata, light and grey, scored all over by picks
+        y, phase = 0.0, rnd.uniform(0, 6)
+        while y < h:
+            band = rnd.uniform(14, 46)
+            tone = rnd.randint(150, 225) if rnd.random() < 0.7 else rnd.randint(95, 140)
+            pts = [(x, y + math.sin(x / w * 2 * math.pi * 2 + phase) * 6) for x in range(0, w + 16, 16)]
+            low = [(x, y + band + math.sin(x / w * 2 * math.pi * 2 + phase + 0.7) * 6) for x in range(w + 16, -16, -16)]
+            d.polygon(pts + low, fill=tone if kind == 'salt' else max(90, tone - 30))
+            y += band
+        for _ in range(160 if kind == 'salt' else 60):
+            x, y = rnd.uniform(0, w), rnd.uniform(0, h)
+            ln = rnd.uniform(10, 34)
+            a = rnd.uniform(-1.2, -0.6) if rnd.random() < 0.6 else rnd.uniform(0.6, 1.2)
+            d.line([(x, y), (x + math.cos(a) * ln, y + math.sin(a) * ln)], fill=rnd.randint(40, 90), width=rnd.randint(2, 4))
     elif kind == 'rat':
         d.rectangle([0, 0, w, h], fill=242)
         cy = h * 0.62
@@ -904,6 +958,27 @@ def _accents(rgb, out, strength=1.0):
     return out
 
 
+def _veins(out, n, seed):
+    """Thin pink veins running through cut salt: the saint bleeding where she was cut."""
+    import random
+    from PIL import ImageDraw
+    h, w = out.shape[:2]
+    rnd = random.Random(seed * 7 + n)
+    mask = Image.new('L', (w, h), 0)
+    dm = ImageDraw.Draw(mask)
+    for _ in range(n):
+        x, y = rnd.uniform(0, w), rnd.uniform(0, h)
+        a = rnd.uniform(0, 2 * math.pi)
+        width = rnd.uniform(2, 4)
+        for i in range(rnd.randint(25, 60)):
+            a += rnd.uniform(-0.45, 0.45)
+            nx, ny = x + math.cos(a) * 8, y + math.sin(a) * 8
+            dm.line([(x, y), (nx, ny)], fill=255, width=max(1, int(width * (1 - i / 70))))
+            x, y = nx, ny
+    m = np.asarray(mask.filter(ImageFilter.GaussianBlur(1.0)), np.float32)[..., None] / 255.0 * 0.75
+    return out * (1 - m) + (np.array(PINK, np.float32) / 255) * m
+
+
 def _drips(out, spec, seed):
     """Paint black, wet drips over a graded surface: `drips` random ones, and `tears` that run from given
     points (fractions of the picture) to the bottom. Each has a bone-white glint down one side."""
@@ -1015,11 +1090,13 @@ def grade(name, img, seed=None):
             res = res.crop(bbox)
         return _fit(res, spec['out'], anchor='bottom')
     if kind == 'texture':
-        t = _contrast(lum, k=6.5, mid=0.55, gamma=1.15)
+        t = _contrast(lum, k=6.5, mid=spec.get('mid', 0.55), gamma=1.15)
         out = _duotone(t, INK, STONE)
         out = _accents(rgb, out, 0.8)
         if spec.get('drips') or spec.get('tears'):
             out = _drips(out, spec, seed)
+        if spec.get('veins'):
+            out = _veins(out, spec['veins'], seed)
         out = _grain(out, 0.07, seed)
     else:  # scene, portrait
         t = _contrast(lum, k=7.0, mid=0.5)

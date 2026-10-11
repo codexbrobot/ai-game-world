@@ -180,6 +180,21 @@ var Q = window.Q || (window.Q = {});
       tone(d, t, { type: 'square', f: rnd(150, 175), f2: rnd(120, 135), d: 0.32, a: 0.02, gain: 0.08, lp: 900, q: 3 });
       for (let i = 0; i < 5; i++) noise(d, t + 0.3 + i * rnd(0.03, 0.06), { filter: 'highpass', f: rnd(3000, 5000), d: 0.03, gain: 0.12 });
     },
+    // a cutter: a pick on salt, twice, and a grunt
+    cutter(d, t) {
+      for (let i = 0; i < 2; i++) { bell(d, t + i * 0.32, rnd(1800, 2400), 0.12, 0.06); noise(d, t + i * 0.32, { filter: 'highpass', f: 2500, d: 0.06, gain: 0.2 }); }
+      tone(d, t + 0.7, { type: 'sawtooth', f: rnd(120, 140), f2: 95, d: 0.3, a: 0.03, gain: 0.1, lp: 800, q: 3 });
+    },
+    // a salt wight: crystal cracking, and a dry groan
+    saltwight(d, t) {
+      for (let i = 0; i < 6; i++) noise(d, t + i * rnd(0.04, 0.1), { filter: 'highpass', f: rnd(3500, 6000), d: 0.025, gain: 0.18 });
+      tone(d, t + 0.25, { type: 'sawtooth', f: rnd(90, 105), f2: 70, glide: 1, d: 1.1, a: 0.2, gain: 0.13, lp: 600, q: 7, vib: 4, vibDepth: 0.05 });
+    },
+    // the overseer: a cudgel on rock, and a bark
+    overseer(d, t) {
+      noise(d, t, { filter: 'highpass', f: 1800, d: 0.05, gain: 0.5 });
+      tone(d, t + 0.2, { type: 'sawtooth', f: 95, f2: 70, glide: 0.5, d: 0.6, a: 0.04, gain: 0.2, lp: 700, q: 4 });
+    },
     // the hanged man: the rope creaks, and a voice with no breath behind it
     hanged(d, t) {
       for (let i = 0; i < 3; i++) tone(d, t + i * 0.22, { type: 'sawtooth', f: rnd(330, 380), f2: rnd(280, 300), d: 0.18, a: 0.05, gain: 0.05, lp: 1400, q: 12 });

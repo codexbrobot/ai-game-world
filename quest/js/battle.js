@@ -266,7 +266,7 @@ var Q = window.Q || (window.Q = {});
     // a unique weapon's quirks, when it's the weapon doing the work (not a Bite)
     const usesWeapon = !opts.die;
     const perk = usesWeapon ? pc.weapon.key : null;
-    const undead = ['zombie', 'skeleton', 'abbess', 'guard', 'prisoner', 'warden', 'drowned', 'hanged'].includes(f.kind);
+    const undead = ['zombie', 'skeleton', 'abbess', 'guard', 'prisoner', 'warden', 'drowned', 'hanged', 'saltwight'].includes(f.kind);
     if (perk === 'saint' && undead && !opts.bonusDie) opts = { ...opts, bonusDie: 6 };
     if (perk === 'plank' && !opts.bonusDie) opts = { ...opts, bonusDie: 4 };
     if (perk === 'gorgh') opts = { ...opts, ignoreArmor: true };

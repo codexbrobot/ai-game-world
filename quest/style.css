@@ -450,6 +450,10 @@ body.in-battle .hands { opacity: 0; }
 .foe-card.kind-drowned img { animation: f-zombie 1.5s steps(1) infinite; }
 .foe-card.kind-watch img { animation: f-guard 1.4s steps(1) infinite; }
 .foe-card.kind-hanged img { animation: f-prisoner 2s steps(1) infinite; }
+.foe-card.kind-cutter img { animation: f-guard 1.3s steps(1) infinite; }
+.foe-card.kind-saltwight img { animation: f-zombie 1.7s steps(1) infinite; }
+.foe-card.kind-overseer img { animation: f-warden 2.2s steps(1) infinite; }
+.foe-card.kind-overseer img { max-height: 112%; }
 @keyframes f-zombie { 0% { transform: skewX(3deg) translateX(-2%); } 50% { transform: skewX(-3deg) translateX(2%) translateY(1%); } }
 @keyframes f-skeleton { 0% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(1%); } }
 @keyframes f-cultist { 0% { transform: skewX(2deg); } 50% { transform: skewX(-2deg); } }
