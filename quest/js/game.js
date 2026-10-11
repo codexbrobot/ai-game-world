@@ -518,7 +518,10 @@
           : 'A stranger in the shadow of the gallows is watching you.';
   }
   async function useThing(u) {
-    if (u.act === 'inn') visitInn();
+    if (u.act === 'grate') sewerGrate();
+    else if (u.act === 'home') visitHome(u);
+    else if (u.act === 'church') visitChurch();
+    else if (u.act === 'inn') visitInn();
     else if (u.act === 'shop') visitShop();
     else if (u.act === 'stranger') visitStranger();
     else if (u.act === 'board') showBoard();
@@ -538,8 +541,74 @@
     const u = f && usesHere()[f.t];
     facingNow = u ? f : null;
     el.hidden = !u;
-    if (u) el.innerHTML = `${esc(u.name)}<small>walk into ${u.prop && u.act !== 'board' && u.scene !== 'gallows' ? 'them' : 'it'}, or tap here</small>`;
+    const name = u && (isHome(u) ? (u.home === 'scum' ? 'Your corner of the alley' : 'Your home') : u.act === 'church' && S.home && S.home.cls === 'priest' ? 'The basilica (your home)' : u.name);
+    if (u) el.innerHTML = `${esc(name)}<small>${u.decal ? 'step onto' : 'walk into'} ${u.prop && u.scene !== 'gallows' && u.scene !== 'graves' && u.act !== 'board' ? 'them' : 'it'}, or tap here</small>`;
   }
+  // ---------- homes ----------
+  // New wretches are of Skarnvik: they wake at home, and whose home is the front one's: a priest in the
+  // basilica's vestry, a hermit in a graveyard crypt-house, royalty in what is left of the House of Vael, a
+  // herbmaster in a narrow house in Lantern Row, a deserter in the old watch-house, gutterborn scum in an
+  // alley. Their home is a free bed (js/data.js: the city's starts say where each one is).
+  const HOMES = {
+    priest: { wake: 'You wake on the cold floor of the basilica’s vestry, under a painting of a saint with her eyes scratched out. The other priests are already at their prayers, or pretending to be.',
+      sleep: 'The vestry: a cot, a cold font, and the other priests not quite looking at you.', rest: 'home' },
+    hermit: { wake: 'You wake in your crypt-house in the graveyard on Church Hill, between two coffins and a pile of books that should not exist. The dead were quiet company, as always.',
+      sleep: 'Your crypt-house: a pallet between two coffins, your books, the candle stubs.', rest: 'home' },
+    royalty: { wake: 'You wake in the House of Vael, up on the Hill, in the last room with a bed in it. Everything else worth selling has been sold, and the Salt Lords’ men watch the door.',
+      sleep: 'The House of Vael. Everything worth selling is sold, but the bed is still a bed.', rest: 'bed' },
+    herbmaster: { wake: 'You wake in your narrow house in Lantern Row, under bundles of herbs drying in the rafters, to the smell of rot and rosemary.',
+      sleep: 'Your house: herbs in the rafters, jars on every shelf, a bed that smells of both.', rest: 'home' },
+    deserter: { wake: 'You wake in the old watch-house in the Gutter, where the deserters keep the door barred and the brazier lit. Nobody here asks which war you walked away from.',
+      sleep: 'The old watch-house. Your blanket by the brazier is where you left it.', rest: 'home' },
+    scum: { wake: 'You wake in your corner of the alley, in a nest of rags, with a wall at your back and a rat you have come to an arrangement with.',
+      sleep: 'Your corner of the alley. A nest of rags, a wall at your back.', rest: 'gutter' },
+  };
+  const NOT_HOME = {
+    hermit: 'A crypt-house in the graveyard. The door is chained from the inside, and something in there is breathing, slowly.',
+    royalty: 'The House of Vael. The shutters are nailed shut, and a Salt Lords’ notice of debt is nailed over the door.',
+    herbmaster: 'A narrow house hung with herbs. Somebody inside tells you to go away, and means it.',
+    deserter: 'The old watch-house. Deserters squat in it. A voice behind the boards tells you to keep walking.',
+    scum: 'A nest of rags in a corner of the alley. It smells like somebody lives here, and they would not like you in it.',
+  };
+  const ANGLE = { N: -Math.PI / 2, E: 0, S: Math.PI / 2, W: Math.PI };
+  function startPose(cls) {
+    const st = (Q.FLOORS[cityIx()].starts || {})[cls];
+    return st && { x: (st.at[0] + 0.5) * CELL, z: (st.at[1] + 0.5) * CELL, a: ANGLE[st.a] || 0 };
+  }
+  // Back to the city at your home's door (or, for the two who escaped and have none, the grate).
+  function goHome() {
+    const pose = S.home && startPose(S.home.cls);
+    if (pose) enterFloor(cityIx(), null, pose);
+    else enterCity('G');
+  }
+  const isHome = (u) => !!(u.home && S.home && S.home.cls === u.home);
+  function visitHome(u) {
+    if (!isHome(u)) { modal(u.name, `<p>${esc(NOT_HOME[u.home] || 'The door stays shut.')}</p>`, [{ label: 'Walk on' }]); return; }
+    const h = HOMES[u.home];
+    modal('Home', `<p>${esc(h.sleep)}</p><p class="small">Sleep here for nothing: ${h.rest === 'bed' ? 'all HP back' : h.rest === 'home' ? 'd6 HP each' : 'd4 HP each'}, and your Omens and Powers. It costs a day: <span class="pink">☄ ${calendarText()}</span>.</p>`, [
+      { label: 'Sleep', action: () => sleep(h.rest === 'bed' ? true : h.rest === 'home' ? 'home' : false) },
+      { label: 'Leave', ghost: true },
+    ]);
+  }
+  // The basilica on Church Hill.
+  const BLESSING = 10;
+  function visitChurch() {
+    const mine = S.home && S.home.cls === 'priest';
+    modal('The Basilica of the Two-Headed Basilisk', `<p>Candles, incense and damp. Over the altar, a basilisk of black iron with two heads, one looking up at the comet and one looking down. Along the nave, every saint’s niche is empty.</p>`, [
+      { label: 'Ask about the empty niches', action: () => {
+        S.flags.emptyNiches = true;
+        modal('The empty niches', '<p>A priest with ash on his hands: <em>“Taken down for cleaning. By the Salt Lords’ men, in the spring, with a wagon. The saints’ days stopped the same week.”</em></p><p>He looks at the floor. <em>“They have not brought them back.”</em></p>', [{ label: 'Go on' }]);
+      } },
+      { label: `Pay for a blessing (${BLESSING}s)`, note: 'the priests bind your wounds: d6 HP each, bleeding stops', disabled: S.silver < BLESSING || !alive().some((p) => p.hp < p.maxHp || p.bleeding), action: () => {
+        S.silver -= BLESSING;
+        const got = alive().map((pc) => { const n = d(6); pc.hp = Math.min(pc.maxHp, pc.hp + n); pc.bleeding = false; return `${esc(pc.name)} +${n} HP`; });
+        sfx('heal'); log(`The priests mutter over your wounds. ${got.join(', ')}.`, 'hit'); save(); renderHud();
+      } },
+      ...(mine ? [{ label: 'Sleep in the vestry', note: 'your home: d6 HP each, free', action: () => sleep('home') }] : []),
+      { label: 'Leave', ghost: true },
+    ]);
+  }
+
   // The board in Gallows Square: work for silver, killing what lives under the square.
   const BOUNTIES = [
     { id: 'rats', title: 'Rats in the drains', text: 'The rats are coming up out of the Undercroft into the cellars. 5s a pack, 3 packs.', kind: 'rats', need: 3, pay: 15 },
@@ -629,7 +698,8 @@
     const lines = [];
     const m = mods();
     for (const pc of alive()) {
-      if (bed) pc.hp = pc.maxHp;
+      if (bed === true) pc.hp = pc.maxHp;
+      else if (bed === 'home') pc.hp = Math.min(pc.maxHp, pc.hp + d(6));
       else if (m.gutter) pc.hp = Math.min(pc.maxHp, pc.hp + d(4));
       pc.bleeding = false;
       pc.omens = m.omenCap || d((Q.classOf(pc) || { omenDie: 2 }).omenDie);
@@ -666,9 +736,10 @@
     for (let i = 0; i < days; i++) { const m = tickCalendar(); if (m) miseries.push(m); }
     lines.push(`<span class="pink">☄ ${days === 1 ? 'A day is' : `${days} days are`} gone. ${miseries.length ? 'Something is wrong with the sky.' : calendarText() + '.'}</span>`);
     rollCurios();
+    postBounties();
     save();
     renderTown();
-    modal(bed ? 'Morning' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
+    modal(bed === true ? 'Morning' : bed === 'home' ? 'Morning, at home' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
       { label: 'Get up', action: miseries.length ? () => showMiseries(miseries, () => { save(); renderTown(); }) : null },
     ]);
   }
@@ -891,8 +962,8 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       await searchRemains(t === 'S');
     } else if (t === 'G' && floor().id === 'gaol' && !S.flags.wardenDead) {
       modal('The sewer grate', '<p>Above you, a grate, and through it grey light and the smell of rain and fish and smoke. It is chained shut, and the padlock is new.</p><p><b>The key will be on the Warden’s ring.</b></p>', [{ label: 'Step back' }]);
-    } else if (t === 'G' && floor().id === 'skarnvik') {
-      sewerGrate();
+    } else if (usesHere()[t] && usesHere()[t].decal) {
+      await useThing(usesHere()[t]);
     } else if (t === 'G' && floor().id === 'gaol') {
       ask('The sewer grate', '<p>Above you, a grate, and through it grey light and the smell of rain and fish and smoke. <b>The city.</b></p>', 'Climb out', () => run(escapeGaol));
     } else if (t === 'G') {
@@ -1105,8 +1176,8 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   function placeName() {
     const areas = Q.FLOORS[S.floorIx].areas;
     if (!areas || !world) return floor().name;
-    const row = Math.round(world.mapPose().y);
-    const a = areas.find((x) => row >= x.rows[0] && row <= x.rows[1]);
+    const p = world.mapPose(), cx = Math.round(p.x), cy = Math.round(p.y);
+    const a = areas.find((x) => (x.rect ? cx >= x.rect[0] && cx <= x.rect[2] && cy >= x.rect[1] && cy <= x.rect[3] : cy >= x.rows[0] && cy <= x.rows[1]));
     return a ? a.name : floor().name;
   }
 
@@ -1174,7 +1245,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     // the key: the city's own marks, or the dungeon's
     const marks = Object.values(usesHere()).filter((u) => u.mark && u.name).reduce((a, u) => (a.some((x) => x.mark === u.mark) ? a : [...a, u]), []);
     const key = marks.length
-      ? [...marks.map((u) => `${u.mark} ${u.mark === '●' ? 'someone to talk to' : esc(u.name)}`), '▼ the crypt stair'].join(' · ')
+      ? [...marks.map((u) => `${u.mark} ${{ '●': 'someone to talk to', '▪': 'homes', '+': 'graves' }[u.mark] || esc(u.name)}`), '▼ the crypt stair'].join(' · ')
       : '▲ stairs up · ▼ stairs down · ✚ remains · ◍ font · pink: monsters';
     modal(floor().name, `<canvas id="bigMap" width="480" height="480"></canvas><p class="small">${key}</p>`, [{ label: 'Close' }]);
     const c = $('bigMap'), dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1293,10 +1364,16 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       S.over = false;
       S.awaitingWretches = false;
       Q.fixRows(S.party);
+      // they wake at the front one's home
+      const front = S.party.find((p) => p.row === 'front') || S.party[0];
+      S.home = HOMES[front.cls] ? { cls: front.cls } : null;
       log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> pick up where the dead left off.`);
-      enterCity('@');
+      goHome();
       save();
-      say('Skarnvik', 'You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. <em>Somebody has to finish it.</em> It might as well be you.', [{ label: 'Go on' }])
+      const wake = S.home ? HOMES[S.home.cls].wake : 'You wake in Skarnvik, where you have always lived.';
+      say('Skarnvik', `${wake}
+
+You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. <em>Somebody has to finish it.</em> It might as well be you.`, [{ label: 'Go on' }])
         .then(() => log(goal()));
       return;
     }
@@ -1318,7 +1395,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     // a save from before the city had a floor of its own: add it
     for (const f of buildFloors()) if (!S.floors.some((x) => x.id === f.id)) S.floors.push(f);
     if (S.where === 'crawl' && S.pose) enterFloor(S.floorIx, null, S.pose);
-    else enterCity('@');
+    else goHome();
   }
 
   // ---------- input ----------

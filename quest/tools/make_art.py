@@ -136,6 +136,27 @@ ART = {
     'front-stall': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:stall', strength=0.62,
                         prompt=f'front view of a cramped medieval weapon shop with a ragged striped awning over an open counter, '
                                f'axes and swords hanging, a flat roof with a chimney, flat facade, {FLAT}'),
+    # The bigger town's buildings: the basilica on Church Hill, a crumbling manor and the Salt Exchange on the
+    # Hill, and the homes new wretches wake in (a herbmaster's house, a hermit's crypt-house in the
+    # graveyard, the deserters' old watch-house in the Gutter).
+    'front-church': dict(kind='facade', size=(384, 1152), out=(320, 1120), seed=None, init='facade:church', strength=0.62,
+                         prompt=f'front view of the tall gothic stone portal of a grim cathedral, a pointed arched doorway, a round rose window, '
+                                f'carved saints and a two-headed serpent over the door, weathered stone, flat facade, {FLAT}'),
+    'front-manor': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:manor', strength=0.62,
+                        prompt=f'front view of a crumbling noble townhouse of dark stone, a carved coat of arms over a double door with steps, '
+                               f'tall cracked windows, a parapet with broken urns, flat facade, {FLAT}'),
+    'front-exchange': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:exchange', strength=0.62,
+                           prompt=f'front view of a severe stone counting-house with heavy columns and a low pediment, huge iron-barred doors, '
+                                  f'carved salt crystals, flat facade, {FLAT}'),
+    'front-home': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:home', strength=0.62,
+                       prompt=f'front view of a narrow crooked timber house with bundles of dried herbs and roots hanging by the door, '
+                              f'a glowing window, a steep gable roof, flat facade, {FLAT}'),
+    'front-crypthouse': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:crypthouse', strength=0.64,
+                             prompt=f'front view of a small stone crypt house in a graveyard with a cross on its gable, a low iron door, '
+                                    f'skulls set in the wall, flat facade, {FLAT}'),
+    'front-watchhouse': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:watchhouse', strength=0.64,
+                             prompt=f'front view of an old stone watch tower with crenellations, a barred window, a boarded-up door, '
+                                    f'rags hanging from the window, flat facade, {FLAT}'),
     # Skarnvik's people and things, cut out like the monsters.
     'npc-stranger': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                          prompt=f'full body illustration of a tall gaunt stranger in a long hooded black cloak, one eye sewn shut with '
@@ -149,6 +170,22 @@ ART = {
     'gallows': dict(kind='sprite', size=(512, 640), out=(448, 560), seed=None,
                     prompt=f'a wooden gallows with two hanged corpses dangling from ropes and a crow on the beam, front view, '
                            f'{ISOLATED}, {STYLE}'),
+    'npc-priest': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                       prompt=f'full body illustration of a gaunt bald priest in a black cassock with a two-headed serpent amulet, '
+                              f'holding a smoking censer, standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-gravedigger': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                            prompt=f'full body illustration of a hunched old gravedigger leaning on a spade, muddy rags, a lantern at his belt, '
+                                   f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-watchman': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                         prompt=f'full body illustration of a grim town watchman in a dented helmet and a salt-white tabard, holding a halberd, '
+                                f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'npc-beggar': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                       prompt=f'full body illustration of a ragged blind old beggar wrapped in a filthy blanket holding out a wooden bowl, '
+                              f'standing, facing the viewer, {ISOLATED}, {STYLE}'),
+    'tombstones': dict(kind='sprite', size=(512, 384), out=(384, 288), seed=None,
+                       prompt=f'a cluster of three crooked old gravestones and a leaning stone cross in the mud, front view, {ISOLATED}, {STYLE}'),
+    'dead-tree': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
+                      prompt=f'a gnarled dead leafless tree with twisted black branches and a crow, {ISOLATED}, {STYLE}'),
     'board': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
                   prompt=f'a weathered wooden notice board on two posts covered in nailed paper notices and wanted posters, '
                          f'a skull nailed on top, front view, {ISOLATED}, {STYLE}'),
@@ -219,6 +256,7 @@ SEEDS = {
     'vault-wall': 1, 'vault-niches': 2, 'vault-face': 2, 'vault-floor': 1, 'vault-ceiling': 2, 'vault-door': 2,
     'guard': 2, 'prisoner': 1, 'warden': 3, 'gaol-wall': 3, 'gaol-bars': 2, 'gaol-door': 2,
     'facade-timber': 1, 'front-inn': 1, 'facade-stone': 3, 'front-stall': 3, 'npc-stranger': 2, 'facade-derelict': 1, 'gallows': 2, 'board': 1, 'npc-preacher': 2, 'npc-fisher': 1,
+    'front-church': 1, 'front-manor': 3, 'front-home': 1, 'npc-priest': 1, 'front-watchhouse': 1, 'front-crypthouse': 2,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
@@ -231,10 +269,25 @@ LAYOUT_INFO = {}
 
 
 def _facade(d, rnd, w, h, style):
-    roof = {'timber': 'gable', 'inn': 'gable', 'stone': 'flat', 'stall': 'flat', 'derelict': 'step'}[style]
+    roof = {'timber': 'gable', 'inn': 'gable', 'stone': 'flat', 'stall': 'flat', 'derelict': 'step', 'church': 'gable', 'home': 'gable',
+            'manor': 'flat', 'exchange': 'pediment', 'crypthouse': 'hut', 'watchhouse': 'cren'}[style]
     eave = h * rnd.uniform(0.17, 0.21)
     if roof == 'gable':
         outline = [(0, h), (0, eave), (w * 0.5, h * rnd.uniform(0.02, 0.04)), (w, eave), (w, h)]
+    elif roof == 'pediment':
+        eave = h * 0.2
+        outline = [(0, h), (0, eave), (w * 0.5, h * 0.09), (w, eave), (w, h)]
+    elif roof == 'hut':
+        # a low hut: everything above its little gable is sky
+        eave = h * 0.6
+        outline = [(w * 0.08, h), (w * 0.08, eave), (w * 0.5, h * 0.44), (w * 0.92, eave), (w * 0.92, h)]
+    elif roof == 'cren':
+        top = h * 0.05
+        outline = [(0, h), (0, top)]
+        for i in range(5):
+            x0, x1 = w * i / 5, w * (i + 0.5) / 5
+            outline += [(x0, top), (x1, top), (x1, top + h * 0.035), (w * (i + 1) / 5, top + h * 0.035)]
+        outline += [(w, top), (w, h)]
     elif roof == 'step':
         top, k = h * 0.04, 3
         outline = [(0, h), (0, eave)]
@@ -248,15 +301,17 @@ def _facade(d, rnd, w, h, style):
         cx0, cx1 = w * rnd.uniform(0.55, 0.65), 0
         cx1 = cx0 + w * 0.16
         outline = [(0, h), (0, top), (cx0, top), (cx0, h * 0.02), (cx1, h * 0.02), (cx1, top), (w, top), (w, h)]
-    wall = {'timber': 150, 'inn': 150, 'stone': 118, 'stall': 128, 'derelict': 135}[style]
+    wall = {'timber': 150, 'inn': 150, 'stone': 118, 'stall': 128, 'derelict': 135, 'church': 112, 'home': 148,
+            'manor': 122, 'exchange': 132, 'crypthouse': 104, 'watchhouse': 110}[style]
     d.polygon(outline, fill=wall)
     # the roof: tiles above the eave, or a cornice
-    if roof == 'gable':
-        d.polygon(outline[1:4], fill=62)
+    if roof in ('gable', 'pediment', 'hut'):
+        d.polygon(outline[1:4], fill=62 if roof == 'gable' else 90)
         for i in range(1, 9):
             y = outline[2][1] + (eave - outline[2][1]) * i / 9
-            half = w * 0.5 * (y - outline[2][1]) / (eave - outline[2][1])
-            d.line([(w * 0.5 - half, y), (w * 0.5 + half, y)], fill=34, width=3)
+            half = (outline[3][0] - outline[1][0]) * 0.5 * (y - outline[2][1]) / (eave - outline[2][1])
+            if roof == 'gable':
+                d.line([(w * 0.5 - half, y), (w * 0.5 + half, y)], fill=34, width=3)
     elif roof == 'flat':
         d.rectangle([0, eave * 0.6, w, eave * 0.6 + 14], fill=70)
         d.rectangle([outline[2][0], outline[3][1], outline[4][0], eave * 0.6], fill=95)
@@ -264,7 +319,7 @@ def _facade(d, rnd, w, h, style):
     plinth = h * 0.95
     d.rectangle([0, plinth, w, h], fill=80)
     windows = []
-    if style in ('timber', 'inn'):
+    if style in ('timber', 'inn', 'home'):
         beam = 34
         for x in (0, w - 14):
             d.rectangle([x, eave, x + 14, plinth], fill=beam)
@@ -272,16 +327,65 @@ def _facade(d, rnd, w, h, style):
         d.rectangle([0, eave, w, eave + 12], fill=beam)
         d.line([(14, storey - 8), (w * 0.3, eave + 12)], fill=beam, width=10)
         d.line([(w - 14, storey - 8), (w * 0.7, eave + 12)], fill=beam, width=10)
-    if style == 'stone':
+    if style in ('stone', 'church', 'watchhouse', 'crypthouse', 'manor', 'exchange'):
         for y in range(int(eave), int(plinth), 34):
-            d.line([(0, y), (w, y)], fill=88, width=3)
+            d.line([(outline[0][0], y), (outline[-1][0], y)], fill=88, width=3)
+    if style in ('church', 'exchange', 'manor', 'crypthouse', 'watchhouse'):
+        # the grand ones and the grim ones: their own fronts, drawn whole
+        windows = []
+        if style == 'church':
+            d.ellipse([w * 0.26, h * 0.3, w * 0.74, h * 0.46], fill=60)                       # the rose window
+            d.ellipse([w * 0.31, h * 0.32, w * 0.69, h * 0.44], fill=215)
+            for k in range(8):
+                import math as _m
+                a = k * _m.pi / 4
+                d.line([(w * 0.5, h * 0.38), (w * 0.5 + _m.cos(a) * w * 0.19, h * 0.38 + _m.sin(a) * h * 0.06)], fill=60, width=5)
+            windows.append((0.31, 0.32, 0.69, 0.44, True))
+            for x in (0.1, 0.78):
+                d.rectangle([w * x, h * 0.5, w * (x + 0.12), h * 0.66], fill=18)
+                d.ellipse([w * x, h * 0.47, w * (x + 0.12), h * 0.53], fill=18)
+            d.rectangle([w * 0.27, h * 0.72, w * 0.73, plinth], fill=30)                      # the portal
+            d.ellipse([w * 0.27, h * 0.64, w * 0.73, h * 0.8], fill=30)
+            d.polygon([(w * 0.22, h * 0.72), (w * 0.5, h * 0.6), (w * 0.78, h * 0.72)], fill=95)
+        elif style == 'exchange':
+            for k in range(4):
+                x = w * (0.08 + 0.26 * k)
+                d.rectangle([x, h * 0.24, x + w * 0.1, plinth], fill=185)
+            d.rectangle([w * 0.3, h * 0.62, w * 0.7, plinth], fill=26)
+            for k in range(6):
+                x = w * (0.32 + 0.065 * k)
+                d.line([(x, h * 0.62), (x, plinth)], fill=120, width=5)
+        elif style == 'manor':
+            for x in (0.12, 0.62):
+                lit = rnd.random() < 0.4
+                d.rectangle([w * x, h * 0.26, w * (x + 0.26), h * 0.46], fill=225 if lit else 18)
+                windows.append((x, 0.26, x + 0.26, 0.46, lit))
+            d.polygon([(w * 0.4, h * 0.52), (w * 0.6, h * 0.52), (w * 0.6, h * 0.6), (w * 0.5, h * 0.65), (w * 0.4, h * 0.6)], fill=190)
+            d.rectangle([w * 0.3, h * 0.68, w * 0.7, plinth - h * 0.03], fill=30)
+            for k in range(3):
+                d.rectangle([w * (0.24 - 0.04 * k), plinth - h * 0.03 + k * 8, w * (0.76 + 0.04 * k), plinth - h * 0.03 + k * 8 + 8], fill=140 - 15 * k)
+        elif style == 'crypthouse':
+            d.line([(w * 0.5, h * 0.4), (w * 0.5, h * 0.47)], fill=40, width=8)                  # the cross
+            d.line([(w * 0.45, h * 0.425), (w * 0.55, h * 0.425)], fill=40, width=8)
+            d.rectangle([w * 0.36, h * 0.74, w * 0.64, plinth], fill=24)
+            for k in range(4):
+                d.ellipse([w * (0.16 + 0.19 * k), h * 0.66, w * (0.16 + 0.19 * k) + 26, h * 0.66 + 30], fill=200)
+        else:  # watchhouse
+            d.rectangle([w * 0.38, h * 0.3, w * 0.62, h * 0.42], fill=18)
+            for k in range(4):
+                d.line([(w * (0.4 + 0.06 * k), h * 0.3), (w * (0.4 + 0.06 * k), h * 0.42)], fill=140, width=5)
+            d.rectangle([w * 0.32, h * 0.72, w * 0.68, plinth], fill=30)
+            for k in range(3):
+                d.line([(w * 0.28, h * (0.75 + 0.06 * k)), (w * 0.72, h * (0.77 + 0.06 * k))], fill=125, width=14)
+        LAYOUT_INFO[style] = {'outline': [(x / w, y / h) for x, y in outline], 'windows': windows}
+        return
     # upper windows
     n = 1 if style in ('stall',) else rnd.choice([1, 2])
     for i in range(n):
         ww, wh = w * (0.3 if n == 1 else 0.24), h * rnd.uniform(0.12, 0.15)
         x0 = (w - ww) / 2 if n == 1 else w * (0.16 + 0.44 * i)
         y0 = eave + (storey - eave - wh) * 0.5
-        lit = style == 'inn' or rnd.random() < 0.45
+        lit = style in ('inn', 'home') or rnd.random() < 0.45
         d.rectangle([x0, y0, x0 + ww, y0 + wh], fill=225 if lit else 18)
         d.line([(x0 + ww / 2, y0), (x0 + ww / 2, y0 + wh)], fill=60, width=4)
         d.line([(x0, y0 + wh / 2), (x0 + ww, y0 + wh / 2)], fill=60, width=4)
@@ -327,6 +431,12 @@ def _facade(d, rnd, w, h, style):
                 d.rectangle([gx0, gy0, gx0 + gw, gy0 + gh], fill=225 if lit else 18)
                 d.line([(gx0 + gw / 2, gy0), (gx0 + gw / 2, gy0 + gh)], fill=60, width=4)
                 windows.append((gx0 / w, gy0 / h, (gx0 + gw) / w, (gy0 + gh) / h, lit))
+        if style == 'home':
+            # bundles of herbs and roots hanging beside the door
+            for k in range(4):
+                x = dx0 + dw + 10 + k * 14
+                d.line([(x, dy0), (x, dy0 + 30)], fill=40, width=2)
+                d.ellipse([x - 7, dy0 + 26, x + 7, dy0 + 60], fill=70 + 20 * (k % 2))
         if style == 'inn':
             # the sign of the Drowned Lamb on its bracket
             d.line([(14, storey + 30), (w * 0.42, storey + 30)], fill=30, width=6)

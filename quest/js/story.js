@@ -435,5 +435,119 @@ Under it, faces, washed by the rain to nothing at all. One of them could be your
         }
       },
     },
+    {
+      id: 'priest', floor: 'skarnvik',
+      async run(dm, first) {
+        const opts = [{ key: 'saints', label: 'Ask about the saints' }, { key: 'under', label: 'Ask about the crypts under the square' }, { key: 'go', label: 'Walk on' }];
+        const pick = await dm.say('A priest of the basilica', first
+          ? 'A gaunt priest swings a censer at the rain, as if he could smoke it away. <em>“The basilica is open to the faithful,”</em> he says. <em>“And to the paying.”</em>'
+          : 'The priest is still swinging his censer at the rain.', opts);
+        const key = opts[pick].key;
+        if (key === 'saints') {
+          dm.flag('saintsHold', true);
+          await dm.say('A priest of the basilica', `He glances up at the Hill, at the watchmen in white. <em>“The saints hold the island up. Everybody knew that, once. It is in the oldest hymns.”</em>
+
+<em>“Now the Salt Lords say saints are a superstition. And they take them away to be cleaned.”</em>`, [{ label: 'Go on' }]);
+        } else if (key === 'under') {
+          await dm.say('A priest of the basilica', '<em>“The old crypts, under Gallows Square. The water comes up through them now, black and warm. We stopped burying people down there in the spring.”</em>', [{ label: 'Go on' }]);
+        }
+      },
+    },
+    {
+      id: 'gravedigger', floor: 'skarnvik',
+      async run(dm, first) {
+        const opts = [{ key: 'whose', label: 'Ask whose grave it is' }, { key: 'lords', label: 'Ask about the Salt Lords' }, { key: 'go', label: 'Walk on' }];
+        const pick = await dm.say('The gravedigger', first
+          ? 'An old man leaning on a spade, ankle-deep in a grave he is digging in the rain. <em>“Busy season,”</em> he says, and does not stop.'
+          : '<em>“Still busy,”</em> says the gravedigger.', opts);
+        const key = opts[pick].key;
+        if (key === 'whose') {
+          await dm.say('The gravedigger', '<em>“Nobody’s, yet. I dig them ahead now. Since the comet they fill faster than I can dig them.”</em>', [{ label: 'Go on' }]);
+        } else if (key === 'lords') {
+          dm.flag('emptyTomb', true);
+          await dm.say('The gravedigger', `He stops digging. <em>“They opened the old saint’s tomb behind the basilica, last spring. Salt Lords’ men, at night, with a wagon. Paid me to look the other way, so I looked the other way.”</em>
+
+He spits into the grave. <em>“It was empty when they finished. And it wasn’t empty before.”</em>`, [{ label: 'Go on' }]);
+        }
+      },
+    },
+    {
+      id: 'watchman', floor: 'skarnvik',
+      async run(dm) {
+        const opts = [{ key: 'exchange', label: 'Ask about the Salt Exchange' }, { key: 'sinking', label: 'Ask about the sinking' }, { key: 'go', label: 'Walk on' }];
+        const pick = await dm.say('A Salt Lords’ watchman', 'A watchman in a salt-white tabard looks you up and down, and doesn’t like what he sees. <em>“Move along.”</em>', opts);
+        const key = opts[pick].key;
+        if (key === 'exchange') {
+          await dm.say('A Salt Lords’ watchman', '<em>“Closed to the likes of you. The Lords count their salt in there. Nobody goes in without a Lord’s seal.”</em>', [{ label: 'Go on' }]);
+        } else if (key === 'sinking') {
+          dm.flag('fennickTide', true);
+          await dm.say('A Salt Lords’ watchman', `His hand goes to his halberd. <em>“Nobody’s sinking. It’s the tide. Lord Fennick says it’s the tide.”</em>
+
+He says it like a prayer he has said a great many times.${dm.flag('ledger') ? ' Fennick: the name in the Gaol ledger.' : ''}`, [{ label: 'Go on' }]);
+        }
+      },
+    },
+    {
+      id: 'beggar', floor: 'skarnvik',
+      async run(dm) {
+        const told = dm.flag('warmSalt');
+        const opts = [
+          { key: 'coin', label: 'Give him a coin', note: '1s', disabled: dm.silverLeft < 1 },
+          { key: 'go', label: 'Walk on' },
+        ];
+        const pick = await dm.say('A blind beggar', '<em>“Spare a coin for a man who saw too much?”</em> A blind beggar in a doorway, wrapped in a blanket, holds out a wooden bowl.', opts);
+        if (opts[pick].key !== 'coin') return;
+        dm.silver(-1);
+        if (told) {
+          await dm.say('A blind beggar', '<em>“Bless you. Bless you. Don’t go down the Deep Mine.”</em>', [{ label: 'Go on' }]);
+          return;
+        }
+        dm.flag('warmSalt', true);
+        await dm.say('A blind beggar', `He bites the coin. <em>“Kind. Here’s something for it. I worked the Deep Mine, before my eyes went. Twenty years.”</em>
+
+He leans close. <em>“The salt down there is warm. Salt isn’t warm. Think about that.”</em>`, [{ label: 'Go on' }]);
+      },
+    },
+    {
+      id: 'graves', floor: 'skarnvik',
+      async run(dm) {
+        const pick = await dm.say('Old graves', 'Old graves, sinking at angles into the wet ground of Church Hill. Rain runs down the stones and into the names.', [{ label: 'Read the stones' }, { label: 'Walk on' }]);
+        if (pick !== 0) return;
+        const lines = [
+          '<em>HERE LIES A SALT-CUTTER. THE SALT KEPT HIM.</em>',
+          '<em>SHE HELD THE ISLAND IN HER PRAYERS.</em> The name has been chiselled off.',
+          '<em>DROWNED, AND BURIED ANYWAY.</em>',
+          '<em>WE WILL SING YOU UP.</em> Somebody has scratched a comet over it.',
+          'A child’s grave. Somebody has left a ring of white salt around it.',
+          '<em>SAINT AGNE’S BELL-RINGER. THE BELL IS SILENT NOW.</em>',
+        ];
+        await dm.say('Old graves', lines[dm.d(lines.length) - 1], [{ label: 'Step back' }]);
+      },
+    },
+    {
+      id: 'exchange', floor: 'skarnvik',
+      async run(dm) {
+        const opts = [
+          { key: 'doors', label: 'Try the doors' },
+          ...(dm.flag('grinding') ? [] : [{ key: 'listen', label: 'Listen at the doors', note: 'Presence DR 12' }]),
+          { key: 'go', label: 'Walk on' },
+        ];
+        const pick = await dm.say('The Salt Exchange', 'Columns, a pediment carved with salt crystals, and iron-barred doors as tall as two men. Watchmen in salt-white stand at either side. Inside, faintly, under the rain, something is turning.', opts);
+        const key = opts[pick].key;
+        if (key === 'doors') {
+          await dm.say('The Salt Exchange', 'Barred. A watchman lowers his halberd across your chest. <em>“Not without a Lord’s seal.”</em>', [{ label: 'Step back' }]);
+        } else if (key === 'listen') {
+          const pc = dm.best('presence');
+          if (await dm.test(pc, 'presence', 12, 'listens at the Exchange’s doors')) {
+            dm.flag('grinding', true);
+            await dm.say('The Salt Exchange', `Under the clink of counting, deep down, far below the street: a slow grinding, like a millstone the size of a house.
+
+And under that, so faint ${dm.name(pc)} isn’t sure, <em>singing</em>.`, [{ label: 'Step back' }]);
+          } else {
+            await dm.say('The Salt Exchange', 'The rain is too loud, and a watchman is starting to look at you.', [{ label: 'Step back' }]);
+          }
+        }
+      },
+    },
   ];
 })();

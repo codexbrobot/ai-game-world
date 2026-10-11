@@ -170,8 +170,11 @@ var Q = window.Q || (window.Q = {});
     const angle = view.a !== undefined ? view.a + Math.PI / 2 : (view.dir * Math.PI) / 2;
     const where = view.monsterPos || ((m) => m);
     const rows = grid.length, cols = grid[0].length;
-    const cs = Math.floor(Math.min(W / cols, H / rows));
-    const ox = Math.floor((W - cs * cols) / 2), oy = Math.floor((H - cs * rows) / 2);
+    // a big floor (the town) in the little map: a window round the wretches, not the whole thing shrunk away
+    const follow = mini && Math.max(cols, rows) > 18;
+    const cs = follow ? 7 : Math.floor(Math.min(W / cols, H / rows));
+    const ox = follow ? Math.round(W / 2 - (x + 0.5) * cs) : Math.floor((W - cs * cols) / 2);
+    const oy = follow ? Math.round(H / 2 - (y + 0.5) * cs) : Math.floor((H - cs * rows) / 2);
     const r = rng('map');
     ctx.clearRect(0, 0, W, H);
     if (!mini) { ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H); }

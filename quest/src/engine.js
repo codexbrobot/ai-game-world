@@ -168,7 +168,9 @@ export function createWorld(container, hooks) {
   // Walls pick a picture by a fixed hash of their cell, weighted by the theme.
   function wallMaterialFor(cx, cy) {
     // a zone of the floor (the harbor's rotting houses, say) can bring its own mix
-    const zone = (theme.zones || []).find((z) => cy >= z.rows[0] && cy <= z.rows[1]);
+    const zone = (theme.zones || []).find((z) => (z.rect
+      ? cx >= z.rect[0] && cx <= z.rect[2] && cy >= z.rect[1] && cy <= z.rect[3]
+      : cy >= z.rows[0] && cy <= z.rows[1]));
     const walls = zone ? zone.walls : theme.walls;
     const total = walls.reduce((n, [, w]) => n + w, 0);
     let k = (((cx * 7 + cy * 13) % total) + total) % total;
@@ -201,7 +203,7 @@ export function createWorld(container, hooks) {
     const c = floor.ceil.map((row, y) => [...row].map((ch, x) => (outdoor
       ? h[y][x] + (ch === 'L' ? 1.1 : (theme.wallHeight || 5.2) * (ch === 'H' ? 1.35 : 1))
       : Math.max(CEILINGS[ch] || 3.2, h[y][x] + 2.4))));
-    level = { grid, h, c, W, H, root: new THREE.Group(), doors: new Map(), items: new Map(), groups: [], lights: [] };
+    level = { grid, h, c, W, H, root: new THREE.Group(), doors: new Map(), items: new Map(), groups: [], lights: [], lamps: [], lampLights: null };
     scene.add(level.root);
 
     // gather quads per material, then make one mesh each
@@ -246,7 +248,8 @@ export function createWorld(container, hooks) {
           const front = uses[nt] && uses[nt].front;
           if (nt === '#' || front) {
             // outdoors a wall is a whole house front, stretched up to its roofline; a low one is a parapet
-            if (outdoor && cy - fy > 2) vface(front || wallMaterialFor(nx, ny), e, x, y, fy, cy, true);
+            const wallMat = front || wallMaterialFor(nx, ny);
+            if (outdoor && cy - fy > 2) vface(wallMat, e, x, y, fy, cy, isFacade(wallMat));
             else vface(outdoor ? 'riser' : front || wallMaterialFor(nx, ny), e, x, y, fy, cy);
             continue;
           }
@@ -692,10 +695,29 @@ export function createWorld(container, hooks) {
     arm.position.set(0.22, 3.05, 0);
     const lantern = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.36, 0.26), lampMats.glass);
     lantern.position.set(0.42, 2.8, 0);
-    const light = new THREE.PointLight(0xffc96a, 7, 9, 1.25);
-    light.position.set(0.42, 2.7, 0);
-    g.add(post, arm, lantern, light);
+    g.add(post, arm, lantern);
+    level.lamps.push(new THREE.Vector3((x + 0.5) * CELL + 0.42, floorH(x, y) + 2.7, (y + 0.5) * CELL));
     return g;
+  }
+  // A town has more lamps than a phone has lights to spare: a few lights move to the lamps nearest you.
+  const LAMP_LIGHTS = 5;
+  let lampTimer = 0;
+  function updateLamps(dt) {
+    if (!level.lamps.length) return;
+    if (!level.lampLights) {
+      level.lampLights = Array.from({ length: LAMP_LIGHTS }, () => { const l = new THREE.PointLight(0xffc96a, 0, 9, 1.25); level.root.add(l); return l; });
+      lampTimer = 0;
+    }
+    lampTimer -= dt;
+    if (lampTimer > 0) return;
+    lampTimer = 0.3;
+    const near = level.lamps.map((p) => [p, Math.hypot(p.x - player.x, p.z - player.z)]).sort((a, b) => a[1] - b[1]);
+    level.lampLights.forEach((l, i) => {
+      const n = near[i];
+      if (!n) { l.intensity = 0; return; }
+      l.position.copy(n[0]);
+      l.intensity = 7;
+    });
   }
   // A notice board: two posts and a plank backing, the notices (a picture) nailed to its face, turned to
   // face the way the floor says (face: radians, 0 is south).
@@ -716,6 +738,22 @@ export function createWorld(container, hooks) {
     g.add(face);
     g.rotation.y = u.prop.face || 0;
     return g;
+  }
+  // A nest of rags in an alley corner: somebody sleeps here.
+  function ragsTexture() {
+    if (texCache.__rags) return texCache.__rags;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const g = cv.getContext('2d');
+    for (let i = 0; i < 26; i++) {
+      const x = 30 + Math.random() * 68, y = 30 + Math.random() * 68, r = 8 + Math.random() * 18;
+      g.fillStyle = ['#2a241d', '#3b3329', '#1a1612', '#4a4034'][i % 4];
+      g.beginPath(); g.ellipse(x, y, r, r * 0.6, Math.random() * 3, 0, Math.PI * 2); g.fill();
+    }
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    texCache.__rags = t;
+    return t;
   }
   // The sewer grate: iron bars over the black, drawn once.
   function grateTexture() {
@@ -746,7 +784,7 @@ export function createWorld(container, hooks) {
         g = buildBoard(u);
         g.position.set((x + 0.5) * CELL, floorH(x, y), (y + 0.5) * CELL);
       } else if (u.decal) {
-        g = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.82, CELL * 0.82), new THREE.MeshLambertMaterial({ map: grateTexture(), transparent: true, alphaTest: 0.1 }));
+        g = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.82, CELL * 0.82), new THREE.MeshLambertMaterial({ map: u.decal === 'rags' ? ragsTexture() : grateTexture(), transparent: true, alphaTest: 0.1 }));
         g.rotation.x = -Math.PI / 2;
         g.position.set((x + 0.5) * CELL, floorH(x, y) + 0.02, (y + 0.5) * CELL);
       } else {
@@ -1409,6 +1447,7 @@ export function createWorld(container, hooks) {
     placeCamera(now);
     updateWater(dt);
     updateRain(dt);
+    updateLamps(dt);
     renderer.render(scene, camera);
   }
 
