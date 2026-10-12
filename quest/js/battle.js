@@ -789,6 +789,9 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
     pc.hp -= dmg;
     flash(pc.el, 'hurt', 500);
     if (B.onHurt) B.onHurt();
+    // the house rule (Settings): a blow that would kill rolls on the Broken table too, unless you were already down
+    const overkill = pc.hp < 0 && before > 0 && Q.prefs && Q.prefs.broken === 'below';
+    if (overkill) pc.hp = 0;
     // below 0: nothing to roll
     if (pc.hp < 0) {
       const died = kill(pc, cause);
@@ -816,7 +819,7 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
       if (b.dead) {
         const died = kill(pc, cause);
         await dmSays(pc, died ? 'Dead' : 'Not yet', died
-          ? `${short(pc)} drops to 0 HP: <em>Broken</em>. The d4 comes up <b>4</b>.
+          ? `${overkill ? `${short(pc)} takes ${dmg} with ${before} HP left, and is <em>Broken</em>` : `${short(pc)} drops to 0 HP: <em>Broken</em>`}. The d4 comes up <b>4</b>.
 
 <em>${short(pc)} is dead</em>, killed by ${esc(cause)}.`
           : `The d4 says <b>4</b>: dead. But the Pilgrim’s Shroud takes ${short(pc)}’s place and falls to dust. <em>1 HP.</em>`);
@@ -824,7 +827,7 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
       }
       applyBroken(pc, b);
       renderParty();
-      await dmSays(pc, 'Broken', brokenText(pc, b));
+      await dmSays(pc, 'Broken', brokenText(pc, b, overkill && { before, dmg }));
     }
     renderParty();
   }
@@ -847,10 +850,12 @@ ${fallen.length ? `He bellows down the hall, <em>“GUARDS!”</em>, and ${falle
   }
   const inFight = () => !!(B && B.foes && B.foes.length);
   const ABILITY_NAME = { strength: 'Strength', agility: 'Agility', presence: 'Presence', toughness: 'Toughness' };
-  function brokenText(pc, b) {
+  function brokenText(pc, b, over) {
     const n = short(pc);
     const rounds = (k) => `${k} round${k === 1 ? '' : 's'}`;
-    const head = `${n} drops to <b>0 HP</b> and is <em>Broken</em>. The d4 comes up <b>${b.r}</b>.`;
+    const head = over
+      ? `${n} takes ${over.dmg} with ${over.before} HP left. By the book that is death, but at this table a killing blow is <em>Broken</em> instead: ${n} drops to <b>0 HP</b>. The d4 comes up <b>${b.r}</b>.`
+      : `${n} drops to <b>0 HP</b> and is <em>Broken</em>. The d4 comes up <b>${b.r}</b>.`;
     const still = inFight()
       ? ` Until then ${n} lies at 0 HP. The enemy will go for whoever is still standing, but <em>one more wound and ${n} is dead</em>.`
       : '';

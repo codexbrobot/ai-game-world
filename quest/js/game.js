@@ -1578,6 +1578,11 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   const FLOOD_KEY = 'quest-borg-flood';
   Q.prefs.flood = true;
   try { if (localStorage.getItem(FLOOD_KEY) === 'dry') Q.prefs.flood = false; } catch (e) { /* ignore */ }
+  // When the Broken table is rolled: at exactly 0 HP, as the book says, or on any wound that takes you to 0
+  // or below (a common house rule: a killing blow rolls on the table too).
+  const BROKEN_KEY = 'quest-borg-broken';
+  Q.prefs.broken = 'exact';
+  try { if (localStorage.getItem(BROKEN_KEY) === 'below') Q.prefs.broken = 'below'; } catch (e) { /* ignore */ }
   const MOVE_KEY = 'quest-borg-move';
   let moveMode = 'free';
   try { moveMode = localStorage.getItem(MOVE_KEY) === 'grid' ? 'grid' : 'free'; } catch (e) { /* storage may be unavailable */ }
@@ -1591,7 +1596,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   }
   function showSettings() {
     const on = !Q.Sound || Q.Sound.on;
-    const current = { move: moveMode, sound: on ? 'on' : 'off', omens: Q.prefs.omens, flood: Q.prefs.flood ? 'on' : 'off' };
+    const current = { move: moveMode, sound: on ? 'on' : 'off', omens: Q.prefs.omens, flood: Q.prefs.flood ? 'on' : 'off', broken: Q.prefs.broken };
     const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${current[key] === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
     modal('Settings', `<div class="settings">
       <div class="opt"><b>Movement</b><div class="choices">
@@ -1606,6 +1611,10 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
         ${opt('omens', 'auto', 'Auto', 'offered on the dice after a bad roll')}
         ${opt('omens', 'manual', 'Manual', 'spend from the battle menu before you act')}
       </div></div>
+      <div class="opt"><b>Broken</b><div class="choices">
+        ${opt('broken', 'exact', 'Exactly 0', 'the book: at 0 HP roll on the Broken table, below 0 you die')}
+        ${opt('broken', 'below', '0 or below', 'house rule: even a killing blow rolls on the table')}
+      </div></div>
       <div class="opt"><b>Sound</b><div class="choices">${opt('sound', 'on', 'On')}${opt('sound', 'off', 'Off')}</div></div>
       <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
@@ -1617,6 +1626,10 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
           if (S && S.where === 'crawl') enterFloor(S.floorIx, null, world.pose());
         }
       } else if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
+      else if (b.dataset.set === 'broken') {
+        Q.prefs.broken = b.dataset.val === 'below' ? 'below' : 'exact';
+        try { localStorage.setItem(BROKEN_KEY, Q.prefs.broken); } catch (e) { /* ignore */ }
+      }
       else if (b.dataset.set === 'move') {
         moveMode = b.dataset.val;
         try { localStorage.setItem(MOVE_KEY, moveMode); } catch (e) { /* ignore */ }
