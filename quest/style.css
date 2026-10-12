@@ -467,7 +467,10 @@ body.in-battle .hands { opacity: 0; }
 .foe-card.kind-zombie.lunge img, .foe-card.kind-skeleton.lunge img, .foe-card.kind-cultist.lunge img, .foe-card.kind-rats.lunge img, .foe-card.kind-abbess.lunge img, .foe-card.kind-guard.lunge img, .foe-card.kind-prisoner.lunge img, .foe-card.kind-warden.lunge img { animation: lunge 0.4s ease-out; }
 .foe-card.kind-zombie.cast img, .foe-card.kind-skeleton.cast img, .foe-card.kind-cultist.cast img, .foe-card.kind-rats.cast img, .foe-card.kind-abbess.cast img, .foe-card.kind-guard.cast img, .foe-card.kind-prisoner.cast img, .foe-card.kind-warden.cast img { animation: cast 0.6s ease-out; }
 .foe-card.kind-zombie.rise img, .foe-card.kind-skeleton.rise img, .foe-card.kind-cultist.rise img, .foe-card.kind-rats.rise img, .foe-card.kind-guard.rise img, .foe-card.kind-prisoner.rise img, .foe-card.kind-warden.rise img { animation: rise 0.8s ease-out; }
-.foe-card.slain img, .foe-card.fled img { animation: none; }
+.foe-card.slain img, .foe-card.fled img, .foe-card.gone img { animation: none; }
+/* a fallen foe whose fade is over: drawn where the fade ended, not faded again */
+.foe-card.gone { opacity: 0; filter: brightness(3) blur(4px); transform: scaleY(0.2) translateY(60%); }
+.foe-card.gone.was-fled { filter: none; transform: translateX(60px); }
 @media (min-aspect-ratio: 1/1) {
   .hud-buttons { flex-direction: row; width: auto; }
   .hand-left { left: 10%; }

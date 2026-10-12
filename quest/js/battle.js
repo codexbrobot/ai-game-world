@@ -37,13 +37,22 @@ var Q = window.Q || (window.Q = {});
   let B = null; // the battle in progress
 
   // ---------- drawing the battle ----------
+  // The cards are drawn afresh on every change, so a fallen foe's fade-out is picked up where it had got to
+  // (or shown finished) rather than played again from the start, which flashed the dead back up.
+  const FADE_MS = 600;
   function renderFoes() {
     const row = $('foes');
     row.innerHTML = '';
+    const now = performance.now();
     B.foes.forEach((f, i) => {
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = `foe-card kind-${f.kind}` + (f.hp <= 0 ? (f.fled ? ' fled' : ' slain') : '') + (f.phase === 2 ? ' phase2' : '');
+      if (f.hp > 0) delete f.goneAt; // risen again
+      else if (f.goneAt === undefined) f.goneAt = now;
+      const since = f.hp > 0 ? 0 : now - f.goneAt;
+      const fade = f.hp <= 0 ? (since >= FADE_MS ? ' gone' : f.fled ? ' fled' : ' slain') : '';
+      card.className = `foe-card kind-${f.kind}${fade}` + (f.hp <= 0 && f.fled ? ' was-fled' : '') + (f.phase === 2 ? ' phase2' : '');
+      if (since > 0 && since < FADE_MS) card.style.animationDelay = `-${Math.round(since)}ms`;
       card.dataset.i = i;
       const marks = `${f.stunned ? ' · kneels' : ''}${f.poison ? ' · poisoned' : ''}${f.raised && f.hp > 0 ? ' · risen' : ''}`;
       const health = Q.anyHas(B.party, 'eye') ? `${f.hp}/${f.maxHp} HP` : Q.healthWord(f.hp, f.maxHp);
