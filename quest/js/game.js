@@ -421,13 +421,17 @@
   }
 
   function renderCreate() {
+    $('createActions').hidden = false;
+    $('customActions').hidden = true;
     const options = (pc) => Object.entries(Q.CLASSES).map(([k, c]) => `<option value="${k}"${pc.cls === k ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
     $('sheets').innerHTML = rolled.map((pc, i) => `
       <div class="sheet">${sheetHtml(pc, true)}
-        <label class="cls-pick">Class <select data-i="${i}">${options(pc)}</select></label>
-        <button type="button" class="ghost reroll" data-i="${i}">Roll this one again</button>
+        ${pc.custom ? '<button type="button" class="ghost reroll edit-own">Edit by hand</button>'
+          : `<label class="cls-pick">Class <select data-i="${i}">${options(pc)}</select></label>
+        <button type="button" class="ghost reroll" data-i="${i}">Roll this one again</button>`}
       </div>`).join('');
-    document.querySelectorAll('.reroll').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.edit-own').forEach((b) => b.addEventListener('click', () => renderCustom(rolled)));
+    document.querySelectorAll('.reroll[data-i]').forEach((b) => b.addEventListener('click', () => {
       rolled[+b.dataset.i] = rollBeside(rolled[+b.dataset.i].cls, rolled[1 - +b.dataset.i]);
       renderCreate();
     }));
@@ -435,6 +439,96 @@
       rolled[+sel.dataset.i] = rollBeside(sel.value, rolled[1 - +sel.dataset.i]);
       renderCreate();
     }));
+  }
+
+  // Both again.
+  function rerollBoth() {
+    const keys = Object.keys(Q.CLASSES).sort(() => Math.random() - 0.5);
+    rolled = [Q.rollWretch(keys[0])];
+    rolled.push(rollBeside(keys[1], rolled[0]));
+    renderCreate();
+  }
+
+  // ---------- your own wretches, by hand, from the book ----------
+  async function askOwnBook() {
+    const pick = await say('Your own wretches', `To make your own wretches you roll them up yourself from the <em>MÖRK BORG</em> rulebook: their abilities, hit points, Omens, silver, gear and terrible traits, on the book’s own tables. This game doesn’t give you those tables. They’re the book’s, and the people who made it should be paid for them.
+
+<em>Do you own MÖRK BORG?</em>`, [{ label: 'I own it' }, { label: 'I don’t' }]);
+    if (pick === 0) renderCustom(rolled.every((pc) => pc.custom) ? rolled : null);
+  }
+  // Two blank sheets (or the ones you made, to change).
+  function renderCustom(from) {
+    $('createActions').hidden = true;
+    $('customActions').hidden = false;
+    $('customError').hidden = true;
+    const range = [-3, -2, -1, 0, 1, 2, 3];
+    const sel = (name, opts, value, blank) => `<select name="${name}">${blank ? `<option value="">${blank}</option>` : ''}${opts.map(([v, label]) => `<option value="${v}"${String(value) === String(v) ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select>`;
+    const num = (name, value, min, max, ph) => `<input type="number" inputmode="numeric" name="${name}" min="${min}" max="${max}" placeholder="${ph}" value="${value === undefined ? '' : value}">`;
+    $('sheets').innerHTML = [0, 1].map((i) => {
+      const pc = (from && from[i]) || {};
+      return `<form class="sheet custom" data-i="${i}" autocomplete="off" onsubmit="return false">
+        <h3>Wretch ${i + 1}</h3>
+        <p class="custom-hint">Roll them up from the book, then write them in.</p>
+        <label class="f">Name <input name="name" maxlength="40" placeholder="Name and epithet" value="${esc(pc.name || '')}"></label>
+        <label class="f">Class ${sel('cls', [...Object.entries(Q.CLASSES).map(([k, c]) => [k, c.name]), ['none', 'No class']], pc.custom ? pc.cls || 'none' : '', 'Choose…')}</label>
+        <div class="abs">${[['strength', 'Str'], ['agility', 'Agi'], ['presence', 'Pre'], ['toughness', 'Tou']].map(([k, label]) => `<label class="f">${label} ${sel(k, range.map((v) => [v, fmt(v)]), pc[k], '–')}</label>`).join('')}</div>
+        <div class="three">
+          <label class="f">HP ${num('maxHp', pc.maxHp, 1, 30, '1–30')}</label>
+          <label class="f">Omens ${num('omens', pc.omens, 0, 4, '0–4')}</label>
+          <label class="f">Silver ${num('silver', pc.silver, 0, 500, 's')}</label>
+        </div>
+        <label class="f">Weapon ${sel('weapon', Q.WEAPONS.map((w, k) => [k, `${w.name} (d${w.die})`]), pc.weapon ? Q.WEAPONS.findIndex((w) => w.name === pc.weapon.name) : '', 'Choose…')}</label>
+        <label class="f">Armor ${sel('armor', Q.ARMOR.map((a, k) => [k, `${a.name}${a.tier ? ` (−d${Q.ARMOR_DIE[a.tier]})` : ''}`]), pc.armor ? pc.armor.tier : '', 'Choose…')}</label>
+        <label class="f">Stands in ${sel('row', [['front', 'The front row'], ['back', 'The back row']], pc.row || '', 'Choose…')}</label>
+        <label class="f">Terrible trait <input name="trait" maxlength="120" placeholder="optional" value="${esc(pc.custom ? pc.trait || '' : '')}"></label>
+      </form>`;
+    }).join('');
+    $('sheets').querySelectorAll('input, select').forEach((el) => el.addEventListener('input', () => el.classList.remove('missing')));
+    window.scrollTo(0, 0);
+  }
+  // Every box filled, or no wretches.
+  function saveCustom() {
+    const made = [];
+    let missing = 0;
+    for (const form of $('sheets').querySelectorAll('form.custom')) {
+      const get = (name) => form.elements[name];
+      const need = ['name', 'cls', 'strength', 'agility', 'presence', 'toughness', 'maxHp', 'omens', 'silver', 'weapon', 'armor', 'row'];
+      for (const name of need) {
+        const el = get(name);
+        const v = el.value.trim();
+        const bad = v === '' || (el.type === 'number' && (!Number.isFinite(+v) || +v < +el.min || +v > +el.max));
+        el.classList.toggle('missing', bad);
+        if (bad) missing += 1;
+      }
+      if (missing) continue;
+      const w = Q.WEAPONS[+get('weapon').value];
+      const a = Q.ARMOR[+get('armor').value];
+      const pc = {
+        name: get('name').value.trim().replace(/\s+/g, ' '),
+        cls: get('cls').value === 'none' ? undefined : get('cls').value,
+        trait: get('trait').value.trim() || 'Made by hand, from the book.',
+        strength: +get('strength').value, agility: +get('agility').value, presence: +get('presence').value, toughness: +get('toughness').value,
+        weapon: { name: w.name, die: w.die },
+        armor: { name: a.name, tier: a.tier },
+        omens: Math.round(+get('omens').value),
+        silver: Math.round(+get('silver').value),
+        poultices: 2, scrolls: [], kills: 0, killsSinceBetter: 0, bleeding: false, omenMax: false, omenWard: false,
+        row: get('row').value,
+        maxHp: Math.round(+get('maxHp').value),
+        custom: true,
+      };
+      pc.hp = pc.maxHp;
+      pc.powers = Q.powersFor(pc);
+      made.push(pc);
+    }
+    if (missing) {
+      $('customError').textContent = 'Every box needs filling in on both sheets, except the trait.';
+      $('customError').hidden = false;
+      return;
+    }
+    rolled = made;
+    renderCreate();
+    window.scrollTo(0, 0);
   }
 
   function sheetHtml(pc, fresh) {
@@ -1726,6 +1820,10 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     $('btnContinue').addEventListener('click', continueRun);
     $('btnCodex').addEventListener('click', showCodex);
     $('btnAccept').addEventListener('click', acceptParty);
+    $('btnReroll').addEventListener('click', rerollBoth);
+    $('btnCustom').addEventListener('click', askOwnBook);
+    $('btnCustomSave').addEventListener('click', saveCustom);
+    $('btnCustomCancel').addEventListener('click', renderCreate);
     $('facing').addEventListener('click', () => { const f = facingNow; if (f && !busy) run(() => lockedDoor(f.x, f.y)); });
     $('tMap').addEventListener('click', showMap);
     $('tParty').addEventListener('click', partySheet);

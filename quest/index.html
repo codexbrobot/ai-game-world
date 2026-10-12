@@ -34,8 +34,15 @@
   <div class="paper wide">
     <p class="kicker">You are nobodies. Here are your nobodies.</p>
     <div id="sheets" class="sheets"></div>
-    <div class="row">
+    <div id="createActions" class="row create-actions">
+      <button id="btnReroll" type="button" class="ghost">Roll both again</button>
+      <button id="btnCustom" type="button" class="ghost">Create your own</button>
       <button id="btnAccept" type="button">Into the dark</button>
+    </div>
+    <div id="customActions" class="row create-actions" hidden>
+      <p id="customError" class="custom-error" hidden></p>
+      <button id="btnCustomCancel" type="button" class="ghost">Back</button>
+      <button id="btnCustomSave" type="button">Save these wretches</button>
     </div>
   </div>
 </section>
