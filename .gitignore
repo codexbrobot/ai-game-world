@@ -3,3 +3,6 @@ dist/
 quest/tools/raw/
 quest/tools/sheets/
 __pycache__/
+
+# pictures waiting to be brought in with quest/tools/import_art.py
+quest/art-new/

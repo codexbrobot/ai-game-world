@@ -2,7 +2,7 @@
 
 A Neverwinter Nights-style 3D game set in the world of MÖRK BORG, playable in a web browser on desktop or phone. See [STORY.md](STORY.md) for the story and the rules.
 
-This repo also holds a second, separate game in [`quest/`](quest/README.md): a first-person Mörk Borg dungeon crawler in the style of the iPhone game *The Quest*.
+This repo also holds a second, separate game in [`quest/`](quest/README.md): a first-person Mörk Borg dungeon crawler in the style of the iPhone game *The Quest*, set on the sinking island of Skarnvik. It has its own build (`npm run build:quest`), browser tests (`npm run test:quest`, see [`quest/tests/`](quest/tests/README.md)) and art guide ([`quest/ART.md`](quest/ART.md)).
 
 ## Build and play
 
