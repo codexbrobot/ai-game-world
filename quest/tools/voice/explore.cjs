@@ -95,12 +95,13 @@ async function explore(Q) {
             if (!(name in flags)) {
               if (/^known(Name|She|What)$/.test(name)) [flags.knownName, flags.knownShe, flags.knownWhat] = pick(people.knew);
               else if (name === 'livingName') flags.livingName = pick(people.living);
-              else if (name === 'freed') flags.freed = pick([undefined, dm.flag('livingName')]);
+              else if (name === 'freed') flags.freed = scene.id === 'freed' ? dm.flag('livingName') : pick([undefined, dm.flag('livingName')]); // that scene only comes once he's out
               else flags[name] = pick([undefined, true]);
             }
             return flags[name];
           },
           recruit: () => mk('r'),
+          giveDays: (n) => n,
           restoreGear: () => ['⟪GEAR⟫'], // who got what back: a list, not narration
         };
         // everything else the DM does changes the world, not the words

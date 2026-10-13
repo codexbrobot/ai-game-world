@@ -1272,12 +1272,12 @@
   "key": "the little door in the hill stands open. worn steps wind down into the dark, and up them comes a sound like picks, far away, and something like singing."
  },
  {
-  "id": "eb4b267960",
+  "id": "59a03bc24e",
   "group": "freed",
   "floor": "skarnvik",
-  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: undefined, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
+  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: Brann Two-Fingers, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
   "src": "story:freed",
-  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: undefined, from the cell down the corridor. out of the brine, fed, and very nearly clean."
+  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: brann two-fingers, from the cell down the corridor. out of the brine, fed, and very nearly clean."
  },
  {
   "id": "79a9e949e7",
@@ -1344,14 +1344,6 @@
   "key": "\"thought you'd never ask.\" he finishes the bottle and keeps the rat. ⟪n⟫ takes the dead one's place."
  },
  {
-  "id": "59a03bc24e",
-  "group": "freed",
-  "floor": "skarnvik",
-  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: Brann Two-Fingers, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
-  "src": "story:freed",
-  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: brann two-fingers, from the cell down the corridor. out of the brine, fed, and very nearly clean."
- },
- {
   "id": "9ab11399b4",
   "group": "freed",
   "floor": "skarnvik",
@@ -1384,12 +1376,12 @@
   "key": "a man in a stolen cloak watches you from a corner of the gutter. shackle-scars on both wrists. \"you're asking about the two who came up out of the brine,\" he says. \"they got me out. they're dead now, aren't they.\""
  },
  {
-  "id": "6c7a8e29d9",
+  "id": "f0a47bf294",
   "group": "freed",
   "floor": "skarnvik",
-  "say": "He spits. “I’m undefined. If you’re finishing what they started, I’ll help.”",
+  "say": "He spits. “I’m Brann Two-Fingers. If you’re finishing what they started, I’ll help.”",
   "src": "story:freed",
-  "key": "he spits. \"i'm undefined. if you're finishing what they started, i'll help.\""
+  "key": "he spits. \"i'm brann two-fingers. if you're finishing what they started, i'll help.\""
  },
  {
   "id": "f85c4c5d7d",
@@ -1398,14 +1390,6 @@
   "say": "“For them. For you, then.”",
   "src": "story:freed",
   "key": "\"for them. for you, then.\""
- },
- {
-  "id": "f0a47bf294",
-  "group": "freed",
-  "floor": "skarnvik",
-  "say": "He spits. “I’m Brann Two-Fingers. If you’re finishing what they started, I’ll help.”",
-  "src": "story:freed",
-  "key": "he spits. \"i'm brann two-fingers. if you're finishing what they started, i'll help.\""
  },
  {
   "id": "79251fb10f",
@@ -1430,14 +1414,6 @@
   "say": "He spits. “I’m Jorl Nine-Lives. If you’re finishing what they started, I’ll help.”",
   "src": "story:freed",
   "key": "he spits. \"i'm jorl nine-lives. if you're finishing what they started, i'll help.\""
- },
- {
-  "id": "f61ec9a989",
-  "group": "freed",
-  "floor": "skarnvik",
-  "say": "undefined is still in his corner of the Gutter, out of the rain, with his rat on a string.",
-  "src": "story:freed",
-  "key": "undefined is still in his corner of the gutter, out of the rain, with his rat on a string."
  },
  {
   "id": "b47994e78e",
@@ -2832,12 +2808,20 @@
   "key": "⟪n⟫ knocks the props out of the cutters' tunnel, and the roof comes down in a roar of salt. nobody is coming in that way again."
  },
  {
-  "id": "adaa2b0c8f",
+  "id": "b054f889ab",
   "group": "agne",
   "floor": "hollow",
-  "say": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is undefined days further off.",
+  "say": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is a few days further off.",
   "src": "story:agne",
-  "key": "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is undefined days further off."
+  "key": "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is # day further off."
+ },
+ {
+  "id": "b054f889ab",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is a few days further off.",
+  "src": "story:agne",
+  "key": "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is # days further off."
  },
  {
   "id": "541ddedf5c",
