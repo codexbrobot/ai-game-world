@@ -6,3 +6,5 @@ __pycache__/
 
 # pictures waiting to be brought in with quest/tools/import_art.py
 quest/art-new/
+
+quest/voice/clips/

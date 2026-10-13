@@ -1,0 +1,142 @@
+{
+ "_": "What the narrator says, where it can't just read the box: a wretch's name (the narrator doesn't know it), a number that changes, a killer's name. 'say' is keyed by the paragraph as quest/tools/voice/script.cjs prints it; 'patterns' match the plain paragraph (numbers kept) for boxes too varied to list. An empty string keeps a paragraph silent.",
+ "say": {
+  "⟪n⟫ holds their breath and counts: rats to the west, something slow in the deep crypt, and boots, many boots, by a door. everything that moves on this floor is on your map.": "One of you holds their breath and counts: rats to the west, something slow in the deep crypt, and boots, many boots, by a door. Everything that moves on this floor is on your map.",
+  "⟪n⟫ drinks. warmth runs down the throat and spreads. +# hp.": "One of you drinks. Warmth runs down the throat and spreads.",
+  "the basin grinds a hand's width aside. behind it, low in the wall, a crack breathes cold air. ⟪n⟫ pries out a loose stone, then another: a hidden niche. something is wrapped in rotten velvet inside.": "The basin grinds a hand's width aside. Behind it, low in the wall, a crack breathes cold air. You pry out a loose stone, then another: a hidden niche. Something is wrapped in rotten velvet inside.",
+  "⟪n⟫ rolls the drop around the mouth and learns nothing, except that it tastes of nothing they know.": "The drop rolls around the mouth and teaches nothing, except that it tastes of nothing you know.",
+  "⟪n⟫ drinks, and it burns all the way down. # damage. the font seems pleased.": "One of you drinks, and it burns all the way down. The font seems pleased.",
+  "it is a prayer for being eaten gladly. ⟪n⟫ says it under their breath, and for a moment the comet looks away. +# omen.": "It is a prayer for being eaten gladly. One of you says it under their breath, and for a moment the comet looks away. One more Omen.",
+  "the letters crawl. one of them crawls into ⟪n⟫'s eye. # damage.": "The letters crawl. One of them crawls into an eye. One damage.",
+  "⟪n⟫'s fingers close on a purse that rotted around its coins. #s.": "Fingers close on a purse that rotted around its coins.",
+  "⟪n⟫'s fingers close on something cold that was waiting to be found.": "Fingers close on something cold that was waiting to be found.",
+  "a leech as long as your forearm, fat and grateful. # damage before ⟪n⟫ tears it off.": "A leech as long as your forearm, fat and grateful. It drinks its share before it is torn off.",
+  "⟪n⟫ and ⟪n⟫: two wretches in one cell, in the brine gaol of skarnvik, where the salt lords put the people they want forgotten. nobody has brought food in a long while. nobody has come at all.": "Two wretches in one cell, in the Brine Gaol of Skarnvik, where the Salt Lords put the people they want forgotten. Nobody has brought food in a long while. Nobody has come at all.",
+  "⟪n⟫: two wretches in one cell, in the brine gaol of skarnvik, where the salt lords put the people they want forgotten. nobody has brought food in a long while. nobody has come at all.": "Two wretches in one cell, in the Brine Gaol of Skarnvik, where the Salt Lords put the people they want forgotten. Nobody has brought food in a long while. Nobody has come at all.",
+  "the hinge holds. the bar bites ⟪n⟫'s palm. # damage. try again, or try something else.": "The hinge holds. The bar bites into a palm. One damage. Try again, or try something else.",
+  "a last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out - and sees the bone in ⟪n⟫'s hand. he runs screaming into the dark. you are out of the cell.": "A last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out... and sees the bone in your hand. He runs screaming into the dark. You are out of the cell.",
+  "⟪n⟫ closes the eyes and says what there is to say. it's the first time in years anyone has wept in here. something in the dark takes note. +# omen.": "One of you closes the eyes and says what there is to say. It's the first time in years anyone has wept in here. Something in the dark takes note. One more Omen.",
+  "he falls out into the water and grabs ⟪n⟫'s hand in both of his.": "He falls out into the water and grabs your hand in both of his.",
+  "he bites the coin, weeps, and lays a hand on ⟪n⟫'s head. the blessing is in a language that hurts the teeth. +# omen.": "He bites the coin, weeps, and lays a hand on your head. The blessing is in a language that hurts the teeth. One more Omen.",
+  "⟪n⟫ stands close, under his feet, and the words come through the rain:": "You stand close, under his feet, and the words come through the rain.",
+  "the humming stops. the dead face turns, very slowly, toward ⟪n⟫. the crow flies off.": "The humming stops. The dead face turns, very slowly, toward you. The crow flies off.",
+  "⟪n⟫ digs down through the wet earth to the coffin, and through the coffin to brother osric, and takes the key from round his neck. iron, as long as your hand, with a little bell for a bow. you have the bell-ringers' key.": "One of you digs down through the wet earth to the coffin, and through the coffin to Brother Osric, and takes the key from round his neck. Iron, as long as your hand, with a little bell for a bow. You have the bell-ringers' key.",
+  "⟪n⟫ swings the clapper into the cracked bronze, and the bell gives one note, so low and so loud you feel it in your teeth and your knees and the roots of your hair.": "One of you swings the clapper into the cracked bronze, and the bell gives one note, so low and so loud you feel it in your teeth and your knees and the roots of your hair.",
+  "you fill your pockets. thrumm will pay for it, and ask no questions. +#s.": "You fill your pockets. Thrumm will pay for it, and ask no questions.",
+  "⟪n⟫ points up at her face. the cutters look at the saint, and at their picks, and at each other. one by one they put the picks down and walk off into the dark.": "One of you points up at her face. The cutters look at the saint, and at their picks, and at each other. One by one they put the picks down and walk off into the dark.",
+  "⟪n⟫ knocks the props out of the cutters' tunnel, and the roof comes down in a roar of salt. nobody is coming in that way again.": "You knock the props out of the cutters' tunnel, and the roof comes down in a roar of salt. Nobody is coming in that way again.",
+  "you cut. it comes away warm and pink, and heavy, a fortune in your hands. +#s.": "You cut. It comes away warm and pink, and heavy, a fortune in your hands.",
+  "\"thought you'd never ask.\" he finishes the bottle and keeps the rat. ⟪n⟫ takes the dead one's place.": "\"Thought you'd never ask.\" He finishes the bottle and keeps the rat. He takes the dead one's place.",
+  "she weeps without a sound. \"then she wasn't alone.\" she presses something into ⟪n⟫'s hand: the one thing of her she kept.": "She weeps without a sound. \"Then she wasn't alone.\" She presses something into your hand: the one thing of her she kept.",
+  "she weeps without a sound. \"then he wasn't alone.\" she presses something into ⟪n⟫'s hand: the one thing of his she kept.": "She weeps without a sound. \"Then he wasn't alone.\" She presses something into your hand: the one thing of his she kept.",
+  "and under that, so faint ⟪n⟫ isn't sure, singing.": "And under that, so faint you can't be sure... singing.",
+  "two watchmen in salt-white step into your way, halberds down. \"seal? no seal. then it's the street toll: ⟪?⟫ silver, by order of the salt lords.\"": "Two watchmen in salt-white step into your way, halberds down. \"Seal? No seal. Then it's the street toll: five silver, by order of the Salt Lords.\"",
+  "⟪n⟫ has bled out, and should be dead. the pilgrim's shroud takes their place and falls to dust. # hp, and the bleeding has stopped.": "One of you has bled out, and should be dead. The Pilgrim's Shroud takes their place and falls to dust. One hit point, and the bleeding has stopped.",
+  "⟪n⟫ sits down against the wall, and doesn't get up. the haemorrhage was never treated, and the hours ran out.": "One of you sits down against the wall, and doesn't get up. The haemorrhage was never treated, and the hours ran out.",
+  "⟪n⟫ has bled to death.": "Bled to death.",
+  "⟪n⟫ had ⟪?⟫ hp left, and takes ⟪?⟫. that is below #, and below # there is nothing to roll.": "That blow goes below zero. And below zero, there is nothing to roll.",
+  "⟪n⟫ is dead, killed by ⟪?⟫.": "Dead. The dark takes another one.",
+  "⟪n⟫ was already down at # hp, and takes ⟪?⟫ more. that is below #, and below # there is nothing to roll.": "Already down at zero, and struck again. That is below zero. And below zero, there is nothing to roll.",
+  "⟪n⟫ should be dead. the pilgrim's shroud takes their place and falls to dust. # hp.": "That should have been death. The Pilgrim's Shroud takes their place instead, and falls to dust. One hit point.",
+  "⟪n⟫ takes ⟪?⟫ with ⟪?⟫ hp left, and is broken. the d# comes up #.": "A killing blow, and at this table that means Broken. The die comes up four.",
+  "⟪n⟫ drops to # hp: broken. the d# comes up #.": "Down to zero hit points. Broken. The die comes up four.",
+  "the d# says #: dead. but the pilgrim's shroud takes ⟪n⟫'s place and falls to dust. # hp.": "The die says four: dead. But the Pilgrim's Shroud takes their place, and falls to dust. One hit point.",
+  "and far below, something answers: a voice, singing one long note back up through the hill. each of you: +# omen.": "And far below, something answers: a voice, singing one long note back up through the hill. Each of you: one more Omen.",
+  "you pray, and you don't know the words, and it doesn't matter. her song goes through you like warm water. every wound closes. all hp, and +# omen each.": "You pray, and you don’t know the words, and it doesn’t matter. Her song goes through you like warm water. Every wound closes. Every hit point back, and one more Omen each.",
+  "to make your own wretches you roll them up yourself from the mörk borg rulebook: their abilities, hit points, omens, silver, gear and terrible traits, on the book's own tables. this game doesn't give you those tables. they're the book's, and the people who made it should be paid for them.": "To make your own wretches you roll them up yourself from the Mork Borg rulebook: their abilities, hit points, Omens, silver, gear and terrible traits, on the book’s own tables. This game doesn’t give you those tables. They’re the book’s, and the people who made it should be paid for them.",
+  "do you own mörk borg?": "Do you own Mork Borg?",
+  "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round.": "He has thrown off his armor. From now on he hits harder and acts twice each round.",
+  "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guard fights on at half strength.": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guard fights on at half strength.",
+  "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guards fight on at half strength.": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guards fight on at half strength."
+ },
+ "patterns": [
+  {
+   "re": "^⟪n⟫ drops to 0 hp and is broken\\. the d4 comes up 1\\.$",
+   "say": "Down to zero hit points, and Broken. The die comes up one."
+  },
+  {
+   "re": "^⟪n⟫ drops to 0 hp and is broken\\. the d4 comes up 2\\.$",
+   "say": "Down to zero hit points, and Broken. The die comes up two."
+  },
+  {
+   "re": "^⟪n⟫ drops to 0 hp and is broken\\. the d4 comes up 3\\.$",
+   "say": "Down to zero hit points, and Broken. The die comes up three."
+  },
+  {
+   "re": "^⟪n⟫ takes \\d+ with \\d+ hp left\\. by the book that is death, but at this table a killing blow is broken instead: ⟪n⟫ drops to 0 hp\\. the d4 comes up 1\\.$",
+   "say": "By the book, that blow is death. But at this table a killing blow is Broken instead: down to zero hit points. The die comes up one."
+  },
+  {
+   "re": "^⟪n⟫ takes \\d+ with \\d+ hp left\\. by the book that is death, but at this table a killing blow is broken instead: ⟪n⟫ drops to 0 hp\\. the d4 comes up 2\\.$",
+   "say": "By the book, that blow is death. But at this table a killing blow is Broken instead: down to zero hit points. The die comes up two."
+  },
+  {
+   "re": "^⟪n⟫ takes \\d+ with \\d+ hp left\\. by the book that is death, but at this table a killing blow is broken instead: ⟪n⟫ drops to 0 hp\\. the d4 comes up 3\\.$",
+   "say": "By the book, that blow is death. But at this table a killing blow is Broken instead: down to zero hit points. The die comes up three."
+  },
+  {
+   "re": "^⟪n⟫ goes down in the filth, senseless\\. out for \\d+ rounds?, then ⟪n⟫ wakes with \\d+ hp\\. until then",
+   "say": "Down in the filth, senseless, and out for a few rounds. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death."
+  },
+  {
+   "re": "^⟪n⟫ goes down in the filth, senseless\\. a while later ⟪n⟫ comes round, with \\d+ hp\\.$",
+   "say": "Down in the filth, senseless. A while later, they come round."
+  },
+  {
+   "re": "^⟪n⟫ loses an eye \\(d6: 6\\)\\. it won't heal right: presence -1, for good\\. ⟪n⟫ can't act for",
+   "say": "An eye, lost. It won't heal right: Presence goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death."
+  },
+  {
+   "re": "^⟪n⟫ loses an eye \\(d6: 6\\)\\. it won't heal right: presence -1, for good\\. a while later",
+   "say": "An eye, lost. It won't heal right: Presence goes down by one, for good. A while later, they get up again."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) arm is broken \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. ⟪n⟫ can't act for",
+   "say": "A broken arm. It won't heal right: Strength goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) arm is broken \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. a while later",
+   "say": "A broken arm. It won't heal right: Strength goes down by one, for good. A while later, they get up again."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) arm is hacked half off \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. ⟪n⟫ can't act for",
+   "say": "An arm, hacked half off. It won't heal right: Strength goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) arm is hacked half off \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. a while later",
+   "say": "An arm, hacked half off. It won't heal right: Strength goes down by one, for good. A while later, they get up again."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) leg is broken \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. ⟪n⟫ can't act for",
+   "say": "A broken leg. It won't heal right: Agility goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) leg is broken \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. a while later",
+   "say": "A broken leg. It won't heal right: Agility goes down by one, for good. A while later, they get up again."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) leg is hacked half off \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. ⟪n⟫ can't act for",
+   "say": "A leg, hacked half off. It won't heal right: Agility goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death."
+  },
+  {
+   "re": "^⟪n⟫'s (left|right) leg is hacked half off \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. a while later",
+   "say": "A leg, hacked half off. It won't heal right: Agility goes down by one, for good. A while later, they get up again."
+  },
+  {
+   "re": "^haemorrhage\\. ⟪n⟫ stays on their feet, at 0 hp, bleeding badly\\. unless the wound is treated, ⟪n⟫ bleeds to death in 1 hour ",
+   "say": "Haemorrhage. Still on their feet, at zero hit points, and bleeding badly. Unless the wound is treated, they bleed to death within the hour. A black poultice will stop it, or the basilica's priests, or a healing power. Sleep won't."
+  },
+  {
+   "re": "^haemorrhage\\. ⟪n⟫ stays on their feet, at 0 hp, bleeding badly\\. unless the wound is treated, ⟪n⟫ bleeds to death in 2 hours ",
+   "say": "Haemorrhage. Still on their feet, at zero hit points, and bleeding badly. Unless the wound is treated, they bleed to death in two hours. A black poultice will stop it, or the basilica's priests, or a healing power. Sleep won't."
+  },
+  {
+   "re": "^until then every test ⟪n⟫ makes is dr 18\\. and at 0 hp, one more wound and ⟪n⟫ is dead\\.$",
+   "say": "Until then, every test they make is at difficulty eighteen. And at zero hit points, one more wound is death."
+  },
+  {
+   "re": "^until then every test ⟪n⟫ makes is dr 16, and dr 18 in the last hour\\. and at 0 hp, one more wound and ⟪n⟫ is dead\\.$",
+   "say": "Until then, every test they make is at difficulty sixteen, and eighteen in the last hour. And at zero hit points, one more wound is death."
+  }
+ ]
+}

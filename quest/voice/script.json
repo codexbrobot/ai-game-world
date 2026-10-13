@@ -1,0 +1,2890 @@
+[
+ {
+  "id": "3310cf5029",
+  "group": "wake",
+  "floor": "gaol",
+  "say": "Cold water in your mouth wakes you. It is up to your ankles, and it wasn’t yesterday. Or the day before. You stopped counting days a long time ago.",
+  "src": "story:wake",
+  "key": "cold water in your mouth wakes you. it is up to your ankles, and it wasn't yesterday. or the day before. you stopped counting days a long time ago."
+ },
+ {
+  "id": "22a5037b35",
+  "group": "wake",
+  "floor": "gaol",
+  "say": "Two wretches in one cell, in the Brine Gaol of Skarnvik, where the Salt Lords put the people they want forgotten. Nobody has brought food in a long while. Nobody has come at all.",
+  "src": "story:wake",
+  "key": "⟪n⟫ and ⟪n⟫: two wretches in one cell, in the brine gaol of skarnvik, where the salt lords put the people they want forgotten. nobody has brought food in a long while. nobody has come at all."
+ },
+ {
+  "id": "9c8e3fa1af",
+  "group": "wake",
+  "floor": "gaol",
+  "say": "In the corner is what’s left of your old cellmate. He isn’t using his legs any more.",
+  "src": "story:wake",
+  "key": "in the corner is what's left of your old cellmate. he isn't using his legs any more."
+ },
+ {
+  "id": "10a127be35",
+  "group": "wake",
+  "floor": "gaol",
+  "say": "The bones come away easily. Not a sword, but they will crack a skull. Your own things — your weapons, your armor, your silver — the guards took when they brought you in. If they’re anywhere, they’re somewhere in here.",
+  "src": "story:wake",
+  "key": "the bones come away easily. not a sword, but they will crack a skull. your own things - your weapons, your armor, your silver - the guards took when they brought you in. if they're anywhere, they're somewhere in here."
+ },
+ {
+  "id": "0f9569490a",
+  "group": "wake",
+  "floor": "gaol",
+  "say": "The cell door is shut. Water is coming in under it.",
+  "src": "story:wake",
+  "key": "the cell door is shut. water is coming in under it."
+ },
+ {
+  "id": "22a5037b35",
+  "group": "wake",
+  "floor": "gaol",
+  "say": "Two wretches in one cell, in the Brine Gaol of Skarnvik, where the Salt Lords put the people they want forgotten. Nobody has brought food in a long while. Nobody has come at all.",
+  "src": "story:wake",
+  "key": "⟪n⟫: two wretches in one cell, in the brine gaol of skarnvik, where the salt lords put the people they want forgotten. nobody has brought food in a long while. nobody has come at all."
+ },
+ {
+  "id": "8d70f08070",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "Iron, rusted orange where the water reaches. The lock is old. The hinges are older.",
+  "src": "story:celldoor",
+  "key": "iron, rusted orange where the water reaches. the lock is old. the hinges are older."
+ },
+ {
+  "id": "249ef2d83d",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "The hinge screams and gives. The door sags open into the corridor. You are out of the cell.",
+  "src": "story:celldoor",
+  "key": "the hinge screams and gives. the door sags open into the corridor. you are out of the cell."
+ },
+ {
+  "id": "b3e6e90055",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "The hinge holds. The bar bites into a palm. One damage. Try again, or try something else.",
+  "src": "story:celldoor",
+  "key": "the hinge holds. the bar bites ⟪n⟫'s palm. # damage. try again, or try something else."
+ },
+ {
+  "id": "661c537faf",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "Something in the lock clicks, and keeps clicking, and gives. You are out of the cell.",
+  "src": "story:celldoor",
+  "key": "something in the lock clicks, and keeps clicking, and gives. you are out of the cell."
+ },
+ {
+  "id": "d91d9b57a2",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "The splinter snaps off in the lock. There are more bones.",
+  "src": "story:celldoor",
+  "key": "the splinter snaps off in the lock. there are more bones."
+ },
+ {
+  "id": "5c07995379",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "A last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out... and sees the bone in your hand. He runs screaming into the dark. You are out of the cell.",
+  "src": "story:celldoor",
+  "key": "a last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out - and sees the bone in ⟪n⟫'s hand. he runs screaming into the dark. you are out of the cell."
+ },
+ {
+  "id": "18c5198542",
+  "group": "celldoor",
+  "floor": "gaol",
+  "say": "Nobody comes. But somewhere down the corridor a door bangs open, and something heard you. It is coming the slow way.",
+  "src": "story:celldoor",
+  "key": "nobody comes. but somewhere down the corridor a door bangs open, and something heard you. it is coming the slow way."
+ },
+ {
+  "id": "52df365b6c",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "You know this cell. You know who’s in it.",
+  "src": "story:knewher",
+  "key": "you know this cell. you know who's in it."
+ },
+ {
+  "id": "782bb95691",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Old Sigrun. Across the corridor from you for years. She whistled every night so you would know she was still alive. She drowned in her chains, sitting up, as if waiting for a visitor.",
+  "src": "story:knewher",
+  "key": "old sigrun. across the corridor from you for years. she whistled every night so you would know she was still alive. she drowned in her chains, sitting up, as if waiting for a visitor."
+ },
+ {
+  "id": "1bc7ded1bc",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Nobody else is going to mourn Old Sigrun.",
+  "src": "story:knewher",
+  "key": "nobody else is going to mourn old sigrun."
+ },
+ {
+  "id": "955c2836f1",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "One of you closes the eyes and says what there is to say. It's the first time in years anyone has wept in here. Something in the dark takes note. One more Omen.",
+  "src": "story:knewher",
+  "key": "⟪n⟫ closes the eyes and says what there is to say. it's the first time in years anyone has wept in here. something in the dark takes note. +# omen."
+ },
+ {
+  "id": "bd3ec85314",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Then the eyes open again.",
+  "src": "story:knewher",
+  "key": "then the eyes open again."
+ },
+ {
+  "id": "9bac9d14ef",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "The boots come off the swollen feet with a sound you won’t forget. And then the feet move.",
+  "src": "story:knewher",
+  "key": "the boots come off the swollen feet with a sound you won't forget. and then the feet move."
+ },
+ {
+  "id": "f14b2545aa",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Old Sigrun opens her eyes, and they are full of seawater, and they don’t know you.",
+  "src": "story:knewher",
+  "key": "old sigrun opens her eyes, and they are full of seawater, and they don't know you."
+ },
+ {
+  "id": "6b89ba83c2",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "You back out into the corridor. The water closes over the footprints you made.",
+  "src": "story:knewher",
+  "key": "you back out into the corridor. the water closes over the footprints you made."
+ },
+ {
+  "id": "49559fa7fd",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Matthis the Cook. Across the corridor from you for years. He traded you half his bread for stories, and never once asked for the ending. He drowned in his chains, sitting up, as if waiting for a visitor.",
+  "src": "story:knewher",
+  "key": "matthis the cook. across the corridor from you for years. he traded you half his bread for stories, and never once asked for the ending. he drowned in his chains, sitting up, as if waiting for a visitor."
+ },
+ {
+  "id": "03ac7337b7",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Nobody else is going to mourn Matthis the Cook.",
+  "src": "story:knewher",
+  "key": "nobody else is going to mourn matthis the cook."
+ },
+ {
+  "id": "e063baf006",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Matthis the Cook opens his eyes, and they are full of seawater, and they don’t know you.",
+  "src": "story:knewher",
+  "key": "matthis the cook opens his eyes, and they are full of seawater, and they don't know you."
+ },
+ {
+  "id": "85c227e303",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Little Ragna. Across the corridor from you for years. She sang hymns backwards to annoy the guards, and it worked. She drowned in her chains, sitting up, as if waiting for a visitor.",
+  "src": "story:knewher",
+  "key": "little ragna. across the corridor from you for years. she sang hymns backwards to annoy the guards, and it worked. she drowned in her chains, sitting up, as if waiting for a visitor."
+ },
+ {
+  "id": "5205205d5d",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Nobody else is going to mourn Little Ragna.",
+  "src": "story:knewher",
+  "key": "nobody else is going to mourn little ragna."
+ },
+ {
+  "id": "3d1e62afbf",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Little Ragna opens her eyes, and they are full of seawater, and they don’t know you.",
+  "src": "story:knewher",
+  "key": "little ragna opens her eyes, and they are full of seawater, and they don't know you."
+ },
+ {
+  "id": "1b4bf1c06a",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Grey Ottar. Across the corridor from you for years. He scratched a calendar on the wall and lied to you about the date so you wouldn’t despair. He drowned in his chains, sitting up, as if waiting for a visitor.",
+  "src": "story:knewher",
+  "key": "grey ottar. across the corridor from you for years. he scratched a calendar on the wall and lied to you about the date so you wouldn't despair. he drowned in his chains, sitting up, as if waiting for a visitor."
+ },
+ {
+  "id": "a9bdd37dfc",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Nobody else is going to mourn Grey Ottar.",
+  "src": "story:knewher",
+  "key": "nobody else is going to mourn grey ottar."
+ },
+ {
+  "id": "c98b651395",
+  "group": "knewher",
+  "floor": "gaol",
+  "say": "Grey Ottar opens his eyes, and they are full of seawater, and they don’t know you.",
+  "src": "story:knewher",
+  "key": "grey ottar opens his eyes, and they are full of seawater, and they don't know you."
+ },
+ {
+  "id": "7f6612a091",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“You’re out? You’re OUT. Let me out. Please. I’m Brann Two-Fingers. I can tell you things. I know where they put everything.”",
+  "src": "story:brann",
+  "key": "\"you're out? you're out. let me out. please. i'm brann two-fingers. i can tell you things. i know where they put everything.\""
+ },
+ {
+  "id": "dcdcae7aa5",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "A hand comes through the grille, grey and shaking.",
+  "src": "story:brann",
+  "key": "a hand comes through the grille, grey and shaking."
+ },
+ {
+  "id": "13ed004c37",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "He falls out into the water and grabs your hand in both of his.",
+  "src": "story:brann",
+  "key": "he falls out into the water and grabs ⟪n⟫'s hand in both of his."
+ },
+ {
+  "id": "b72c82270d",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“The guards kept everything in the evidence room, through the infirmary. Sacks with our names on them. The key to the Warden’s hall hangs in there too. And the Warden — he’s still down there. Still doing his rounds. Don’t let him see you.”",
+  "src": "story:brann",
+  "key": "\"the guards kept everything in the evidence room, through the infirmary. sacks with our names on them. the key to the warden's hall hangs in there too. and the warden - he's still down there. still doing his rounds. don't let him see you.\""
+ },
+ {
+  "id": "a8c73902c4",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "Then he’s gone into the dark ahead of you, laughing or weeping. You may see him again, up in the city.",
+  "src": "story:brann",
+  "key": "then he's gone into the dark ahead of you, laughing or weeping. you may see him again, up in the city."
+ },
+ {
+  "id": "3c6a09df8b",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“Again. Again! Please.” The lock holds. Your arms shake.",
+  "src": "story:brann",
+  "key": "\"again. again! please.\" the lock holds. your arms shake."
+ },
+ {
+  "id": "ff7a37a71a",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“You’ll come back. You’ll come back. They all say that.” The hand withdraws.",
+  "src": "story:brann",
+  "key": "\"you'll come back. you'll come back. they all say that.\" the hand withdraws."
+ },
+ {
+  "id": "f73a48180b",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "You walk away. His voice follows you down the corridor for a long time, cursing you by name, and then by the names of your mothers.",
+  "src": "story:brann",
+  "key": "you walk away. his voice follows you down the corridor for a long time, cursing you by name, and then by the names of your mothers."
+ },
+ {
+  "id": "78e1dfaf09",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“You’re out? You’re OUT. Let me out. Please. I’m Osk the Weasel. I can tell you things. I know where they put everything.”",
+  "src": "story:brann",
+  "key": "\"you're out? you're out. let me out. please. i'm osk the weasel. i can tell you things. i know where they put everything.\""
+ },
+ {
+  "id": "1e6bc8f2b0",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“You’re out? You’re OUT. Let me out. Please. I’m Tobbe Saltlung. I can tell you things. I know where they put everything.”",
+  "src": "story:brann",
+  "key": "\"you're out? you're out. let me out. please. i'm tobbe saltlung. i can tell you things. i know where they put everything.\""
+ },
+ {
+  "id": "322ef84858",
+  "group": "brann",
+  "floor": "gaol",
+  "say": "“You’re out? You’re OUT. Let me out. Please. I’m Jorl Nine-Lives. I can tell you things. I know where they put everything.”",
+  "src": "story:brann",
+  "key": "\"you're out? you're out. let me out. please. i'm jorl nine-lives. i can tell you things. i know where they put everything.\""
+ },
+ {
+  "id": "1be17c4be3",
+  "group": "guardroom",
+  "floor": "gaol",
+  "say": "A table, a brazier long dead, and cards laid out for a game nobody finished. The guards are still here. They drowned at their posts, and they are still on duty, swollen with seawater, waiting for a shift that ended months ago to end.",
+  "src": "story:guardroom",
+  "key": "a table, a brazier long dead, and cards laid out for a game nobody finished. the guards are still here. they drowned at their posts, and they are still on duty, swollen with seawater, waiting for a shift that ended months ago to end."
+ },
+ {
+  "id": "ab21fc8490",
+  "group": "guardroom",
+  "floor": "gaol",
+  "say": "They look up.",
+  "src": "story:guardroom",
+  "key": "they look up."
+ },
+ {
+  "id": "f7da9d3128",
+  "group": "infirmary",
+  "floor": "gaol",
+  "say": "Cots under the water, straps on the cots. A desk on a dais of bricks, just above the flood, with a ledger on it, swollen shut.",
+  "src": "story:infirmary",
+  "key": "cots under the water, straps on the cots. a desk on a dais of bricks, just above the flood, with a ledger on it, swollen shut."
+ },
+ {
+  "id": "6d0d4301d1",
+  "group": "infirmary",
+  "floor": "gaol",
+  "say": "Most of it is names, and most of the names are crossed out. The last pages are different:",
+  "src": "story:infirmary",
+  "key": "most of it is names, and most of the names are crossed out. the last pages are different:"
+ },
+ {
+  "id": "c58ddba2bb",
+  "group": "infirmary",
+  "floor": "gaol",
+  "say": "“Salt shipment from the Deep Mine. Lord Fennick says the prisoners who dug it are not to be released. Ever. Not to be named.”",
+  "src": "story:infirmary",
+  "key": "\"salt shipment from the deep mine. lord fennick says the prisoners who dug it are not to be released. ever. not to be named.\""
+ },
+ {
+  "id": "c0bcdf70a9",
+  "group": "infirmary",
+  "floor": "gaol",
+  "say": "“The sea in the lower block again. The Salt Lords say the island isn’t sinking. The Salt Lords live on the hill.”",
+  "src": "story:infirmary",
+  "key": "\"the sea in the lower block again. the salt lords say the island isn't sinking. the salt lords live on the hill.\""
+ },
+ {
+  "id": "629c5cec57",
+  "group": "infirmary",
+  "floor": "gaol",
+  "say": "“Comet in the sky three nights now. Half the guards gone. The Warden says no one leaves their post.”",
+  "src": "story:infirmary",
+  "key": "\"comet in the sky three nights now. half the guards gone. the warden says no one leaves their post.\""
+ },
+ {
+  "id": "3e81bb6638",
+  "group": "infirmary",
+  "floor": "gaol",
+  "say": "“Water to the knee. No one leaves.”",
+  "src": "story:infirmary",
+  "key": "\"water to the knee. no one leaves.\""
+ },
+ {
+  "id": "7dbe400472",
+  "group": "lowerblock",
+  "floor": "gaol",
+  "say": "The lower block is drowned to the waist. In the middle of it the floor has fallen in, and the sea comes and goes through the hole like breath: in, and the water rises around you; out, and something pulls at your legs.",
+  "src": "story:lowerblock",
+  "key": "the lower block is drowned to the waist. in the middle of it the floor has fallen in, and the sea comes and goes through the hole like breath: in, and the water rises around you; out, and something pulls at your legs."
+ },
+ {
+  "id": "2d34d5da26",
+  "group": "lowerblock",
+  "floor": "gaol",
+  "say": "Don’t step in the hole.",
+  "src": "story:lowerblock",
+  "key": "don't step in the hole."
+ },
+ {
+  "id": "6e2398c52c",
+  "group": "evidence",
+  "floor": "gaol",
+  "say": "Behind the infirmary, an iron cage, and in it sacks stacked to the ceiling, each with a name chalked on it. Most of the names are crossed out. Yours aren’t.",
+  "src": "story:evidence",
+  "key": "behind the infirmary, an iron cage, and in it sacks stacked to the ceiling, each with a name chalked on it. most of the names are crossed out. yours aren't."
+ },
+ {
+  "id": "65279640d3",
+  "group": "evidence",
+  "floor": "gaol",
+  "say": "On a hook by the cage hangs a key as long as your hand.",
+  "src": "story:evidence",
+  "key": "on a hook by the cage hangs a key as long as your hand."
+ },
+ {
+  "id": "db7ac17d4e",
+  "group": "evidence",
+  "floor": "gaol",
+  "say": "You take the long key from its hook. The Warden’s hall is the only way out.",
+  "src": "story:evidence",
+  "key": "you take the long key from its hook. the warden's hall is the only way out."
+ },
+ {
+  "id": "e37c2781f4",
+  "group": "halldoor",
+  "floor": "gaol",
+  "say": "A door of black iron with a lock as big as your head. Beyond it, slow and heavy, something sloshes back and forth: footsteps, on their rounds.",
+  "src": "story:halldoor",
+  "key": "a door of black iron with a lock as big as your head. beyond it, slow and heavy, something sloshes back and forth: footsteps, on their rounds."
+ },
+ {
+  "id": "513ed20508",
+  "group": "halldoor",
+  "floor": "gaol",
+  "say": "The key must be somewhere in the Gaol.",
+  "src": "story:halldoor",
+  "key": "the key must be somewhere in the gaol."
+ },
+ {
+  "id": "2f5c217d6b",
+  "group": "halldoor",
+  "floor": "gaol",
+  "say": "The key hangs in the evidence room, through the infirmary.",
+  "src": "story:halldoor",
+  "key": "the key hangs in the evidence room, through the infirmary."
+ },
+ {
+  "id": "4aefc3d96b",
+  "group": "halldoor",
+  "floor": "gaol",
+  "say": "The long key turns. Beyond the door is the Warden’s hall, tall as a chapel, and at the far end, under a grate where grey light leaks down, is the way out.",
+  "src": "story:halldoor",
+  "key": "the long key turns. beyond the door is the warden's hall, tall as a chapel, and at the far end, under a grate where grey light leaks down, is the way out."
+ },
+ {
+  "id": "7eb3157a7b",
+  "group": "halldoor",
+  "floor": "gaol",
+  "say": "Between you and the light, keys ringing at every step, the Warden is making his rounds.",
+  "src": "story:halldoor",
+  "key": "between you and the light, keys ringing at every step, the warden is making his rounds."
+ },
+ {
+  "id": "edcce62730",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "That blow goes below zero. And below zero, there is nothing to roll.",
+  "src": "js/battle.js:807",
+  "re": "^⟪n⟫ had .+? hp left, and takes .+?\\. that is below #, and below # there is nothing to roll\\.$"
+ },
+ {
+  "id": "6539b082ef",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Dead. The dark takes another one.",
+  "src": "js/battle.js:807",
+  "re": "^⟪n⟫ is dead, killed by .+?\\.$"
+ },
+ {
+  "id": "56e2fae4f9",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Already down at zero, and struck again. That is below zero. And below zero, there is nothing to roll.",
+  "src": "js/battle.js:807",
+  "re": "^⟪n⟫ was already down at # hp, and takes .+? more\\. that is below #, and below # there is nothing to roll\\.$"
+ },
+ {
+  "id": "2df22c61af",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "That should have been death. The Pilgrim's Shroud takes their place instead, and falls to dust. One hit point.",
+  "src": "js/battle.js:807",
+  "key": "⟪n⟫ should be dead. the pilgrim's shroud takes their place and falls to dust. # hp."
+ },
+ {
+  "id": "e8eddd298f",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A killing blow, and at this table that means Broken. The die comes up four.",
+  "src": "js/battle.js:830",
+  "re": "^⟪n⟫ takes .+? with .+? hp left, and is broken\\. the d# comes up #\\.$"
+ },
+ {
+  "id": "30b1207729",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Down to zero hit points. Broken. The die comes up four.",
+  "src": "js/battle.js:830",
+  "key": "⟪n⟫ drops to # hp: broken. the d# comes up #."
+ },
+ {
+  "id": "988adb9f16",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "The die says four: dead. But the Pilgrim's Shroud takes their place, and falls to dust. One hit point.",
+  "src": "js/battle.js:830",
+  "key": "the d# says #: dead. but the pilgrim's shroud takes ⟪n⟫'s place and falls to dust. # hp."
+ },
+ {
+  "id": "0fdc42459f",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "The Warden goes down on one knee in the black water, and for a moment you think it’s over.",
+  "src": "js/battle.js:706",
+  "key": "the warden goes down on one knee in the black water, and for a moment you think it's over."
+ },
+ {
+  "id": "d6ca990a5e",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Then he laughs, a wet, bubbling sound, and tears off his mask. Underneath it, the sea has been at his face for months. “No one leaves,” he says. “No one ever leaves.”",
+  "src": "js/battle.js:706",
+  "key": "then he laughs, a wet, bubbling sound, and tears off his mask. underneath it, the sea has been at his face for months. \"no one leaves,\" he says. \"no one ever leaves.\""
+ },
+ {
+  "id": "b9730cd58f",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "He bellows down the hall for his guards. Nothing answers but the water.",
+  "src": "js/battle.js:706",
+  "key": "he bellows down the hall for his guards. nothing answers but the water."
+ },
+ {
+  "id": "6a472696a3",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "He has thrown off his armor. From now on he hits harder and acts twice each round.",
+  "src": "js/battle.js:706",
+  "key": "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round."
+ },
+ {
+  "id": "774d66ab1b",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "He bellows down the hall, “GUARDS!”, and the guard you put down stands back up in the water, still on duty.",
+  "src": "js/battle.js:706",
+  "key": "he bellows down the hall, \"guards!\", and the guard you put down stands back up in the water, still on duty."
+ },
+ {
+  "id": "b46088c4f8",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guard fights on at half strength.",
+  "src": "js/battle.js:706",
+  "key": "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guard fights on at half strength."
+ },
+ {
+  "id": "aec56c3383",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "He bellows down the hall, “GUARDS!”, and the guards you put down stand back up in the water, still on duty.",
+  "src": "js/battle.js:706",
+  "key": "he bellows down the hall, \"guards!\", and the guards you put down stand back up in the water, still on duty."
+ },
+ {
+  "id": "06111a8e2b",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guards fight on at half strength.",
+  "src": "js/battle.js:706",
+  "key": "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guards fight on at half strength."
+ },
+ {
+  "id": "2927a88b73",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Down to zero hit points, and Broken. The die comes up one.",
+  "re": "^⟪n⟫ drops to 0 hp and is broken\\. the d4 comes up 1\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "fffe314a42",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Down to zero hit points, and Broken. The die comes up two.",
+  "re": "^⟪n⟫ drops to 0 hp and is broken\\. the d4 comes up 2\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "032bcdc96a",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Down to zero hit points, and Broken. The die comes up three.",
+  "re": "^⟪n⟫ drops to 0 hp and is broken\\. the d4 comes up 3\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "3dd521a015",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "By the book, that blow is death. But at this table a killing blow is Broken instead: down to zero hit points. The die comes up one.",
+  "re": "^⟪n⟫ takes \\d+ with \\d+ hp left\\. by the book that is death, but at this table a killing blow is broken instead: ⟪n⟫ drops to 0 hp\\. the d4 comes up 1\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "63312c1ccc",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "By the book, that blow is death. But at this table a killing blow is Broken instead: down to zero hit points. The die comes up two.",
+  "re": "^⟪n⟫ takes \\d+ with \\d+ hp left\\. by the book that is death, but at this table a killing blow is broken instead: ⟪n⟫ drops to 0 hp\\. the d4 comes up 2\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "f2639ab3d1",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "By the book, that blow is death. But at this table a killing blow is Broken instead: down to zero hit points. The die comes up three.",
+  "re": "^⟪n⟫ takes \\d+ with \\d+ hp left\\. by the book that is death, but at this table a killing blow is broken instead: ⟪n⟫ drops to 0 hp\\. the d4 comes up 3\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "f80d0e99f5",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Down in the filth, senseless, and out for a few rounds. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death.",
+  "re": "^⟪n⟫ goes down in the filth, senseless\\. out for \\d+ rounds?, then ⟪n⟫ wakes with \\d+ hp\\. until then",
+  "src": "spoken.json"
+ },
+ {
+  "id": "b9a0170558",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Down in the filth, senseless. A while later, they come round.",
+  "re": "^⟪n⟫ goes down in the filth, senseless\\. a while later ⟪n⟫ comes round, with \\d+ hp\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "6cbb71507c",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "An eye, lost. It won't heal right: Presence goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death.",
+  "re": "^⟪n⟫ loses an eye \\(d6: 6\\)\\. it won't heal right: presence -1, for good\\. ⟪n⟫ can't act for",
+  "src": "spoken.json"
+ },
+ {
+  "id": "39fcd93077",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "An eye, lost. It won't heal right: Presence goes down by one, for good. A while later, they get up again.",
+  "re": "^⟪n⟫ loses an eye \\(d6: 6\\)\\. it won't heal right: presence -1, for good\\. a while later",
+  "src": "spoken.json"
+ },
+ {
+  "id": "f06ef7220e",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A broken arm. It won't heal right: Strength goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death.",
+  "re": "^⟪n⟫'s (left|right) arm is broken \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. ⟪n⟫ can't act for",
+  "src": "spoken.json"
+ },
+ {
+  "id": "048b38a46d",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A broken arm. It won't heal right: Strength goes down by one, for good. A while later, they get up again.",
+  "re": "^⟪n⟫'s (left|right) arm is broken \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. a while later",
+  "src": "spoken.json"
+ },
+ {
+  "id": "3c7a7dc13b",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "An arm, hacked half off. It won't heal right: Strength goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death.",
+  "re": "^⟪n⟫'s (left|right) arm is hacked half off \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. ⟪n⟫ can't act for",
+  "src": "spoken.json"
+ },
+ {
+  "id": "af653938e7",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "An arm, hacked half off. It won't heal right: Strength goes down by one, for good. A while later, they get up again.",
+  "re": "^⟪n⟫'s (left|right) arm is hacked half off \\(d6: \\d\\)\\. it won't heal right: strength -1, for good\\. a while later",
+  "src": "spoken.json"
+ },
+ {
+  "id": "698dfef735",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A broken leg. It won't heal right: Agility goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death.",
+  "re": "^⟪n⟫'s (left|right) leg is broken \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. ⟪n⟫ can't act for",
+  "src": "spoken.json"
+ },
+ {
+  "id": "71e19691bf",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A broken leg. It won't heal right: Agility goes down by one, for good. A while later, they get up again.",
+  "re": "^⟪n⟫'s (left|right) leg is broken \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. a while later",
+  "src": "spoken.json"
+ },
+ {
+  "id": "aa53cd3a47",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A leg, hacked half off. It won't heal right: Agility goes down by one, for good. Down for a few rounds, and then back up. Until then, the enemy will go for whoever is still standing. But one more wound, and that is death.",
+  "re": "^⟪n⟫'s (left|right) leg is hacked half off \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. ⟪n⟫ can't act for",
+  "src": "spoken.json"
+ },
+ {
+  "id": "893750e5c4",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "A leg, hacked half off. It won't heal right: Agility goes down by one, for good. A while later, they get up again.",
+  "re": "^⟪n⟫'s (left|right) leg is hacked half off \\(d6: \\d\\)\\. it won't heal right: agility -1, for good\\. a while later",
+  "src": "spoken.json"
+ },
+ {
+  "id": "b9e33a0736",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Haemorrhage. Still on their feet, at zero hit points, and bleeding badly. Unless the wound is treated, they bleed to death within the hour. A black poultice will stop it, or the basilica's priests, or a healing power. Sleep won't.",
+  "re": "^haemorrhage\\. ⟪n⟫ stays on their feet, at 0 hp, bleeding badly\\. unless the wound is treated, ⟪n⟫ bleeds to death in 1 hour ",
+  "src": "spoken.json"
+ },
+ {
+  "id": "883dfe40fd",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Haemorrhage. Still on their feet, at zero hit points, and bleeding badly. Unless the wound is treated, they bleed to death in two hours. A black poultice will stop it, or the basilica's priests, or a healing power. Sleep won't.",
+  "re": "^haemorrhage\\. ⟪n⟫ stays on their feet, at 0 hp, bleeding badly\\. unless the wound is treated, ⟪n⟫ bleeds to death in 2 hours ",
+  "src": "spoken.json"
+ },
+ {
+  "id": "c4bde184f4",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Until then, every test they make is at difficulty eighteen. And at zero hit points, one more wound is death.",
+  "re": "^until then every test ⟪n⟫ makes is dr 18\\. and at 0 hp, one more wound and ⟪n⟫ is dead\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "cfe74fd285",
+  "group": "battle",
+  "floor": "gaol",
+  "say": "Until then, every test they make is at difficulty sixteen, and eighteen in the last hour. And at zero hit points, one more wound is death.",
+  "re": "^until then every test ⟪n⟫ makes is dr 16, and dr 18 in the last hour\\. and at 0 hp, one more wound and ⟪n⟫ is dead\\.$",
+  "src": "spoken.json"
+ },
+ {
+  "id": "a7d677dd85",
+  "group": "preacher",
+  "floor": "skarnvik",
+  "say": "A man in a torn robe stands on an upturned salt barrel with his arms raised to the comet. A yellow comet is daubed on his chest in paint, or worse.",
+  "src": "story:preacher",
+  "key": "a man in a torn robe stands on an upturned salt barrel with his arms raised to the comet. a yellow comet is daubed on his chest in paint, or worse."
+ },
+ {
+  "id": "9ce7df7441",
+  "group": "preacher",
+  "floor": "skarnvik",
+  "say": "“IT IS A BAPTISM,” he screams at nobody. “THE SEA COMES UP TO WASH SKARN CLEAN. THE BRIGHT MOUTHS WILL SING YOU UNDER!”",
+  "src": "story:preacher",
+  "key": "\"it is a baptism,\" he screams at nobody. \"the sea comes up to wash skarn clean. the bright mouths will sing you under!\""
+ },
+ {
+  "id": "c160e99947",
+  "group": "preacher",
+  "floor": "skarnvik",
+  "say": "He leans down, suddenly quiet, and his breath smells of salt. “The comet’s own. They gather under the square, where the water is coming up from below. They are waiting for it. Go down and see. Go down and drown.”",
+  "src": "story:preacher",
+  "key": "he leans down, suddenly quiet, and his breath smells of salt. \"the comet's own. they gather under the square, where the water is coming up from below. they are waiting for it. go down and see. go down and drown.\""
+ },
+ {
+  "id": "f22ce57fbc",
+  "group": "preacher",
+  "floor": "skarnvik",
+  "say": "Then he straightens up and starts screaming again.",
+  "src": "story:preacher",
+  "key": "then he straightens up and starts screaming again."
+ },
+ {
+  "id": "b90fcc31a5",
+  "group": "preacher",
+  "floor": "skarnvik",
+  "say": "He bites the coin, weeps, and lays a hand on your head. The blessing is in a language that hurts the teeth. One more Omen.",
+  "src": "story:preacher",
+  "key": "he bites the coin, weeps, and lays a hand on ⟪n⟫'s head. the blessing is in a language that hurts the teeth. +# omen."
+ },
+ {
+  "id": "236b8d6f64",
+  "group": "preacher",
+  "floor": "skarnvik",
+  "say": "The preacher is still on his barrel, still screaming at the comet. His voice is going.",
+  "src": "story:preacher",
+  "key": "the preacher is still on his barrel, still screaming at the comet. his voice is going."
+ },
+ {
+  "id": "3a8c24fb33",
+  "group": "fishwife",
+  "floor": "skarnvik",
+  "say": "A fishwife stands shin-deep in what used to be the fish market, gutting something that is still moving. “Three streets,” she says, without looking up. “The sea’s come up three streets since spring. And the Salt Lords say it’s the tide.”",
+  "src": "story:fishwife",
+  "key": "a fishwife stands shin-deep in what used to be the fish market, gutting something that is still moving. \"three streets,\" she says, without looking up. \"the sea's come up three streets since spring. and the salt lords say it's the tide.\""
+ },
+ {
+  "id": "43ab11dc58",
+  "group": "fishwife",
+  "floor": "skarnvik",
+  "say": "“They pay double for men to dig the Deep Mine now. My Henrik went for the wages at midsummer.” She cuts the head off the thing in her hands. “Nobody comes back from the Deep Mine. Nobody. And the salt keeps coming up out of it, finer every year.”",
+  "src": "story:fishwife",
+  "key": "\"they pay double for men to dig the deep mine now. my henrik went for the wages at midsummer.\" she cuts the head off the thing in her hands. \"nobody comes back from the deep mine. nobody. and the salt keeps coming up out of it, finer every year.\""
+ },
+ {
+  "id": "bd1208758c",
+  "group": "fishwife",
+  "floor": "skarnvik",
+  "say": "“Don’t come down here after dark. The drowned walk up out of the water at night, looking for their houses. Knocking on doors that are under the sea.”",
+  "src": "story:fishwife",
+  "key": "\"don't come down here after dark. the drowned walk up out of the water at night, looking for their houses. knocking on doors that are under the sea.\""
+ },
+ {
+  "id": "aa5becd369",
+  "group": "fishwife",
+  "floor": "skarnvik",
+  "say": "The fishwife is hauling her boat up the street on a rope, fast, looking back over her shoulder at the water. “Are you mad? Get indoors! They’re up!”",
+  "src": "story:fishwife",
+  "key": "the fishwife is hauling her boat up the street on a rope, fast, looking back over her shoulder at the water. \"are you mad? get indoors! they're up!\""
+ },
+ {
+  "id": "dbffcadfcc",
+  "group": "fishwife",
+  "floor": "skarnvik",
+  "say": "It is black and greasy and tastes of smoke and the bottom of the sea. It is the best thing you have eaten in years.",
+  "src": "story:fishwife",
+  "key": "it is black and greasy and tastes of smoke and the bottom of the sea. it is the best thing you have eaten in years."
+ },
+ {
+  "id": "1a08377e16",
+  "group": "fishwife",
+  "floor": "skarnvik",
+  "say": "“You again. Buying, or gawping?”",
+  "src": "story:fishwife",
+  "key": "\"you again. buying, or gawping?\""
+ },
+ {
+  "id": "658c45105f",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "Two hanged men turn slowly in the rain, and a crow works at one of them. The ropes creak.",
+  "src": "story:gallows",
+  "key": "two hanged men turn slowly in the rain, and a crow works at one of them. the ropes creak."
+ },
+ {
+  "id": "4c6075104a",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "The one on the right is humming, very softly: a work song you half remember from the cells, the one the old miners sang.",
+  "src": "story:gallows",
+  "key": "the one on the right is humming, very softly: a work song you half remember from the cells, the one the old miners sang."
+ },
+ {
+  "id": "914e25a8f9",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "You stand close, under his feet, and the words come through the rain.",
+  "src": "story:gallows",
+  "key": "⟪n⟫ stands close, under his feet, and the words come through the rain:"
+ },
+ {
+  "id": "158a4c2a56",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "“...down the white stair, down below the Exchange, where the saints lie in the salt, and the saints are singing too...”",
+  "src": "story:gallows",
+  "key": "\"...down the white stair, down below the exchange, where the saints lie in the salt, and the saints are singing too...\""
+ },
+ {
+  "id": "a342c7a107",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "The humming stops. The dead face turns, very slowly, toward you. The crow flies off.",
+  "src": "story:gallows",
+  "key": "the humming stops. the dead face turns, very slowly, toward ⟪n⟫. the crow flies off."
+ },
+ {
+  "id": "ba1ec3b17b",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "Whatever the words are, the rain drowns them out. The humming goes on.",
+  "src": "story:gallows",
+  "key": "whatever the words are, the rain drowns them out. the humming goes on."
+ },
+ {
+  "id": "fd3a6134d7",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "WANTED, by order of the Salt Lords: the escaped prisoners of the Brine Gaol. Dead will do.",
+  "src": "story:gallows",
+  "key": "wanted, by order of the salt lords: the escaped prisoners of the brine gaol. dead will do."
+ },
+ {
+  "id": "581e6c49cd",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "Under it, faces, washed by the rain to nothing at all. One of them could be yours. Nobody in the square is looking at them, or at you.",
+  "src": "story:gallows",
+  "key": "under it, faces, washed by the rain to nothing at all. one of them could be yours. nobody in the square is looking at them, or at you."
+ },
+ {
+  "id": "97e1f9b64d",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "On a third rope, new since you came up out of the Brine: Brann Two-Fingers. The Salt Lords’ men went down after you got out, and found him where you left him.",
+  "src": "story:gallows",
+  "key": "on a third rope, new since you came up out of the brine: brann two-fingers. the salt lords' men went down after you got out, and found him where you left him."
+ },
+ {
+  "id": "22e9f72fed",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "The third rope hangs empty, swinging, and the noose has been cut. From the inside.",
+  "src": "story:gallows",
+  "key": "the third rope hangs empty, swinging, and the noose has been cut. from the inside."
+ },
+ {
+  "id": "9d6b2be209",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "The third rope is gone. Somebody burned it, and the ash has washed away.",
+  "src": "story:gallows",
+  "key": "the third rope is gone. somebody burned it, and the ash has washed away."
+ },
+ {
+  "id": "0a136ee3eb",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "On a third rope, new since you came up out of the Brine: Osk the Weasel. The Salt Lords’ men went down after you got out, and found him where you left him.",
+  "src": "story:gallows",
+  "key": "on a third rope, new since you came up out of the brine: osk the weasel. the salt lords' men went down after you got out, and found him where you left him."
+ },
+ {
+  "id": "41bb46aefb",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "On a third rope, new since you came up out of the Brine: Tobbe Saltlung. The Salt Lords’ men went down after you got out, and found him where you left him.",
+  "src": "story:gallows",
+  "key": "on a third rope, new since you came up out of the brine: tobbe saltlung. the salt lords' men went down after you got out, and found him where you left him."
+ },
+ {
+  "id": "bbb104b36a",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "On a third rope, new since you came up out of the Brine: Jorl Nine-Lives. The Salt Lords’ men went down after you got out, and found him where you left him.",
+  "src": "story:gallows",
+  "key": "on a third rope, new since you came up out of the brine: jorl nine-lives. the salt lords' men went down after you got out, and found him where you left him."
+ },
+ {
+  "id": "2dfc9ba4ed",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "The hanged men turn in the rain. The one on the right is silent now, and his face is turned toward the harbor.",
+  "src": "story:gallows",
+  "key": "the hanged men turn in the rain. the one on the right is silent now, and his face is turned toward the harbor."
+ },
+ {
+  "id": "1dbc026f01",
+  "group": "gallows",
+  "floor": "skarnvik",
+  "say": "On a third rope, new: a man with shackle-scars on his wrists. They say he was the last one left alive in the Brine.",
+  "src": "story:gallows",
+  "key": "on a third rope, new: a man with shackle-scars on his wrists. they say he was the last one left alive in the brine."
+ },
+ {
+  "id": "beaccc1d05",
+  "group": "priest",
+  "floor": "skarnvik",
+  "say": "A gaunt priest swings a censer at the rain, as if he could smoke it away. “The basilica is open to the faithful,” he says. “And to the paying.”",
+  "src": "story:priest",
+  "key": "a gaunt priest swings a censer at the rain, as if he could smoke it away. \"the basilica is open to the faithful,\" he says. \"and to the paying.\""
+ },
+ {
+  "id": "b5c03d58dc",
+  "group": "priest",
+  "floor": "skarnvik",
+  "say": "He glances up at the Hill, at the watchmen in white. “The saints hold the island up. Everybody knew that, once. It is in the oldest hymns.”",
+  "src": "story:priest",
+  "key": "he glances up at the hill, at the watchmen in white. \"the saints hold the island up. everybody knew that, once. it is in the oldest hymns.\""
+ },
+ {
+  "id": "24b6f5be79",
+  "group": "priest",
+  "floor": "skarnvik",
+  "say": "“Now the Salt Lords say saints are a superstition. And they take them away to be cleaned.”",
+  "src": "story:priest",
+  "key": "\"now the salt lords say saints are a superstition. and they take them away to be cleaned.\""
+ },
+ {
+  "id": "e1b5364158",
+  "group": "priest",
+  "floor": "skarnvik",
+  "say": "“The old crypts, under Gallows Square. The water comes up through them now, black and warm. We stopped burying people down there in the spring.”",
+  "src": "story:priest",
+  "key": "\"the old crypts, under gallows square. the water comes up through them now, black and warm. we stopped burying people down there in the spring.\""
+ },
+ {
+  "id": "56f16c0952",
+  "group": "priest",
+  "floor": "skarnvik",
+  "say": "The priest is still swinging his censer at the rain.",
+  "src": "story:priest",
+  "key": "the priest is still swinging his censer at the rain."
+ },
+ {
+  "id": "ca2ecaf01e",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "An old man leaning on a spade, ankle-deep in a grave he is digging in the rain. “Busy season,” he says, and does not stop.",
+  "src": "story:gravedigger",
+  "key": "an old man leaning on a spade, ankle-deep in a grave he is digging in the rain. \"busy season,\" he says, and does not stop."
+ },
+ {
+  "id": "b98a5bbfe6",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "“Nobody’s, yet. I dig them ahead now. Since the comet they fill faster than I can dig them.”",
+  "src": "story:gravedigger",
+  "key": "\"nobody's, yet. i dig them ahead now. since the comet they fill faster than i can dig them.\""
+ },
+ {
+  "id": "660c925252",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "He stops digging. “They opened the old saint’s tomb behind the basilica, last spring. Salt Lords’ men, at night, with a wagon. Paid me to look the other way, so I looked the other way.”",
+  "src": "story:gravedigger",
+  "key": "he stops digging. \"they opened the old saint's tomb behind the basilica, last spring. salt lords' men, at night, with a wagon. paid me to look the other way, so i looked the other way.\""
+ },
+ {
+  "id": "1459776c49",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "He spits into the grave. “It was empty when they finished. And it wasn’t empty before.”",
+  "src": "story:gravedigger",
+  "key": "he spits into the grave. \"it was empty when they finished. and it wasn't empty before.\""
+ },
+ {
+  "id": "79a70809d5",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "“The little door in the hill? The bell-ringers’ door.” He leans on his spade. “Brother Haskel had the last key, and he went down there and never came up. But old Brother Osric, before him, I buried with his own key round his neck. There. Under the yew.”",
+  "src": "story:gravedigger",
+  "key": "\"the little door in the hill? the bell-ringers' door.\" he leans on his spade. \"brother haskel had the last key, and he went down there and never came up. but old brother osric, before him, i buried with his own key round his neck. there. under the yew.\""
+ },
+ {
+  "id": "075ca3693f",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "He looks at you sideways. “Ten silver, and I’ll have him up. Or dig him up yourselves, and I never saw it.”",
+  "src": "story:gravedigger",
+  "key": "he looks at you sideways. \"ten silver, and i'll have him up. or dig him up yourselves, and i never saw it.\""
+ },
+ {
+  "id": "1673e7b5e8",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "One of you digs down through the wet earth to the coffin, and through the coffin to Brother Osric, and takes the key from round his neck. Iron, as long as your hand, with a little bell for a bow. You have the bell-ringers' key.",
+  "src": "story:gravedigger",
+  "key": "⟪n⟫ digs down through the wet earth to the coffin, and through the coffin to brother osric, and takes the key from round his neck. iron, as long as your hand, with a little bell for a bow. you have the bell-ringers' key."
+ },
+ {
+  "id": "868c93707b",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "The grave fills with black water as fast as you dig. Brother Osric is keeping his key, for today.",
+  "src": "story:gravedigger",
+  "key": "the grave fills with black water as fast as you dig. brother osric is keeping his key, for today."
+ },
+ {
+  "id": "52087f4dc6",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "He digs fast, for an old man, and doesn’t look at the face. The key comes up on a rotten cord: iron, as long as your hand, with a little bell for a bow. You have the bell-ringers’ key.",
+  "src": "story:gravedigger",
+  "key": "he digs fast, for an old man, and doesn't look at the face. the key comes up on a rotten cord: iron, as long as your hand, with a little bell for a bow. you have the bell-ringers' key."
+ },
+ {
+  "id": "b307cd3cec",
+  "group": "gravedigger",
+  "floor": "skarnvik",
+  "say": "“Still busy,” says the gravedigger.",
+  "src": "story:gravedigger",
+  "key": "\"still busy,\" says the gravedigger."
+ },
+ {
+  "id": "31b711b3e7",
+  "group": "watchman",
+  "floor": "skarnvik",
+  "say": "A watchman in a salt-white tabard looks you up and down, and doesn’t like what he sees. “Move along.”",
+  "src": "story:watchman",
+  "key": "a watchman in a salt-white tabard looks you up and down, and doesn't like what he sees. \"move along.\""
+ },
+ {
+  "id": "7465ac849f",
+  "group": "watchman",
+  "floor": "skarnvik",
+  "say": "“Closed to the likes of you. The Lords count their salt in there. Nobody goes in without a Lord’s seal.”",
+  "src": "story:watchman",
+  "key": "\"closed to the likes of you. the lords count their salt in there. nobody goes in without a lord's seal.\""
+ },
+ {
+  "id": "19b77ac513",
+  "group": "watchman",
+  "floor": "skarnvik",
+  "say": "His hand goes to his halberd. “Nobody’s sinking. It’s the tide. Lord Fennick says it’s the tide.”",
+  "src": "story:watchman",
+  "key": "his hand goes to his halberd. \"nobody's sinking. it's the tide. lord fennick says it's the tide.\""
+ },
+ {
+  "id": "baf0e9b643",
+  "group": "watchman",
+  "floor": "skarnvik",
+  "say": "He says it like a prayer he has said a great many times.",
+  "src": "story:watchman",
+  "key": "he says it like a prayer he has said a great many times."
+ },
+ {
+  "id": "c03982ebdd",
+  "group": "watchman",
+  "floor": "skarnvik",
+  "say": "He says it like a prayer he has said a great many times. Fennick: the name in the Gaol ledger.",
+  "src": "story:watchman",
+  "key": "he says it like a prayer he has said a great many times. fennick: the name in the gaol ledger."
+ },
+ {
+  "id": "d7502c9f43",
+  "group": "beggar",
+  "floor": "skarnvik",
+  "say": "“Spare a coin for a man who saw too much?” A blind beggar in a doorway, wrapped in a blanket, holds out a wooden bowl.",
+  "src": "story:beggar",
+  "key": "\"spare a coin for a man who saw too much?\" a blind beggar in a doorway, wrapped in a blanket, holds out a wooden bowl."
+ },
+ {
+  "id": "59744c03fa",
+  "group": "beggar",
+  "floor": "skarnvik",
+  "say": "He bites the coin. “Kind. Here’s something for it. I worked the Deep Mine, before my eyes went. Twenty years.”",
+  "src": "story:beggar",
+  "key": "he bites the coin. \"kind. here's something for it. i worked the deep mine, before my eyes went. twenty years.\""
+ },
+ {
+  "id": "250999e2b2",
+  "group": "beggar",
+  "floor": "skarnvik",
+  "say": "He leans close. “The salt down there is warm. Salt isn’t warm. Think about that.”",
+  "src": "story:beggar",
+  "key": "he leans close. \"the salt down there is warm. salt isn't warm. think about that.\""
+ },
+ {
+  "id": "8e6214fd1b",
+  "group": "beggar",
+  "floor": "skarnvik",
+  "say": "“Bless you. Bless you. Don’t go down the Deep Mine.”",
+  "src": "story:beggar",
+  "key": "\"bless you. bless you. don't go down the deep mine.\""
+ },
+ {
+  "id": "f20641a2a2",
+  "group": "graves",
+  "floor": "skarnvik",
+  "say": "Old graves, sinking at angles into the wet ground of Church Hill. Rain runs down the stones and into the names.",
+  "src": "story:graves",
+  "key": "old graves, sinking at angles into the wet ground of church hill. rain runs down the stones and into the names."
+ },
+ {
+  "id": "7951e66edf",
+  "group": "graves",
+  "floor": "skarnvik",
+  "say": "HERE LIES A SALT-CUTTER. THE SALT KEPT HIM.",
+  "src": "story:graves",
+  "key": "here lies a salt-cutter. the salt kept him."
+ },
+ {
+  "id": "f0adf3f6f4",
+  "group": "graves",
+  "floor": "skarnvik",
+  "say": "SAINT AGNE’S BELL-RINGER. THE BELL IS SILENT NOW.",
+  "src": "story:graves",
+  "key": "saint agne's bell-ringer. the bell is silent now."
+ },
+ {
+  "id": "6868bec456",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "Behind the graves, half under ivy, an old arched door is set into the stone of the hill itself. Rust has run down from its hinges like old blood.",
+  "src": "story:belldoor",
+  "key": "behind the graves, half under ivy, an old arched door is set into the stone of the hill itself. rust has run down from its hinges like old blood."
+ },
+ {
+  "id": "6b66b70669",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "It doesn’t move.",
+  "src": "story:belldoor",
+  "key": "it doesn't move."
+ },
+ {
+  "id": "5b3715305b",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "Something gives with a shriek of rust. The door swings in on a stair that winds down inside the hill, worn into a gutter by centuries of feet.",
+  "src": "story:belldoor",
+  "key": "something gives with a shriek of rust. the door swings in on a stair that winds down inside the hill, worn into a gutter by centuries of feet."
+ },
+ {
+  "id": "d034a09e08",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "Cold air comes up it, and on the air, very far down: picks. And under the picks, something singing.",
+  "src": "story:belldoor",
+  "key": "cold air comes up it, and on the air, very far down: picks. and under the picks, something singing."
+ },
+ {
+  "id": "0ef2428179",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "The door doesn’t care.",
+  "src": "story:belldoor",
+  "key": "the door doesn't care."
+ },
+ {
+  "id": "f13e8de644",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "It doesn’t move. The bell-ringers’ way into Church Hill.",
+  "src": "story:belldoor",
+  "key": "it doesn't move. the bell-ringers' way into church hill."
+ },
+ {
+  "id": "df882d9993",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "The key turns as if it had been waiting. The door swings in on a stair that winds down inside the hill, worn into a gutter by centuries of feet.",
+  "src": "story:belldoor",
+  "key": "the key turns as if it had been waiting. the door swings in on a stair that winds down inside the hill, worn into a gutter by centuries of feet."
+ },
+ {
+  "id": "b919e30520",
+  "group": "belldoor",
+  "floor": "skarnvik",
+  "say": "The little door in the hill stands open. Worn steps wind down into the dark, and up them comes a sound like picks, far away, and something like singing.",
+  "src": "story:belldoor",
+  "key": "the little door in the hill stands open. worn steps wind down into the dark, and up them comes a sound like picks, far away, and something like singing."
+ },
+ {
+  "id": "eb4b267960",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: undefined, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
+  "src": "story:freed",
+  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: undefined, from the cell down the corridor. out of the brine, fed, and very nearly clean."
+ },
+ {
+  "id": "79a9e949e7",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“You got out! I knew you would. I told everyone you would. Nobody believed me, because there’s nobody up here who was ever down there.”",
+  "src": "story:freed",
+  "key": "\"you got out! i knew you would. i told everyone you would. nobody believed me, because there's nobody up here who was ever down there.\""
+ },
+ {
+  "id": "37e141c41d",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“I said I know where they put everything. I do.” He counts on his fingers.",
+  "src": "story:freed",
+  "key": "\"i said i know where they put everything. i do.\" he counts on his fingers."
+ },
+ {
+  "id": "b94828a654",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“One: the Brine is where they put the diggers from the Deep Mine, once the diggers started talking. About the salt, and what was singing under it.”",
+  "src": "story:freed",
+  "key": "\"one: the brine is where they put the diggers from the deep mine, once the diggers started talking. about the salt, and what was singing under it.\""
+ },
+ {
+  "id": "14125f9be9",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“Two: the saints. They took the old saint out of her tomb behind the basilica last spring, out the front, with a wagon. But the bell-ringers had their own way into that hill, older than the tomb: the bell-ringer’s stair, behind the graves. Nobody watches it. Nobody remembers it but old lags like me. The door was never locked, mind. It sticks. You lift it on its hinges.”",
+  "src": "story:freed",
+  "key": "\"two: the saints. they took the old saint out of her tomb behind the basilica last spring, out the front, with a wagon. but the bell-ringers had their own way into that hill, older than the tomb: the bell-ringer's stair, behind the graves. nobody watches it. nobody remembers it but old lags like me. the door was never locked, mind. it sticks. you lift it on its hinges.\""
+ },
+ {
+  "id": "725b99436d",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“One: the Brine is where they put the diggers from the Deep Mine, once the diggers started talking. About the salt, and what was singing under it.” It is what the Gaol ledger said.",
+  "src": "story:freed",
+  "key": "\"one: the brine is where they put the diggers from the deep mine, once the diggers started talking. about the salt, and what was singing under it.\" it is what the gaol ledger said."
+ },
+ {
+  "id": "95482c8dd0",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“Before they took me, I hid something where the watch would never look: in the watch-house wall.” He is gone a long time, and comes back with something wrapped in a rag.",
+  "src": "story:freed",
+  "key": "\"before they took me, i hid something where the watch would never look: in the watch-house wall.\" he is gone a long time, and comes back with something wrapped in a rag."
+ },
+ {
+  "id": "874468c811",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“For getting me out.”",
+  "src": "story:freed",
+  "key": "\"for getting me out.\""
+ },
+ {
+  "id": "79095720d3",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "\"Thought you'd never ask.\" He finishes the bottle and keeps the rat. He takes the dead one's place.",
+  "src": "story:freed",
+  "key": "\"thought you'd never ask.\" he finishes the bottle and keeps the rat. ⟪n⟫ takes the dead one's place."
+ },
+ {
+  "id": "59a03bc24e",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: Brann Two-Fingers, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
+  "src": "story:freed",
+  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: brann two-fingers, from the cell down the corridor. out of the brine, fed, and very nearly clean."
+ },
+ {
+  "id": "9ab11399b4",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: Osk the Weasel, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
+  "src": "story:freed",
+  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: osk the weasel, from the cell down the corridor. out of the brine, fed, and very nearly clean."
+ },
+ {
+  "id": "86cdb24478",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: Tobbe Saltlung, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
+  "src": "story:freed",
+  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: tobbe saltlung, from the cell down the corridor. out of the brine, fed, and very nearly clean."
+ },
+ {
+  "id": "3e6ff13919",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "A man in a stolen cloak grins at you out of a corner of the Gutter, and it takes you a moment: Jorl Nine-Lives, from the cell down the corridor. Out of the Brine, fed, and very nearly clean.",
+  "src": "story:freed",
+  "key": "a man in a stolen cloak grins at you out of a corner of the gutter, and it takes you a moment: jorl nine-lives, from the cell down the corridor. out of the brine, fed, and very nearly clean."
+ },
+ {
+  "id": "3fa0e02db3",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "A man in a stolen cloak watches you from a corner of the Gutter. Shackle-scars on both wrists. “You’re asking about the two who came up out of the Brine,” he says. “They got me out. They’re dead now, aren’t they.”",
+  "src": "story:freed",
+  "key": "a man in a stolen cloak watches you from a corner of the gutter. shackle-scars on both wrists. \"you're asking about the two who came up out of the brine,\" he says. \"they got me out. they're dead now, aren't they.\""
+ },
+ {
+  "id": "6c7a8e29d9",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "He spits. “I’m undefined. If you’re finishing what they started, I’ll help.”",
+  "src": "story:freed",
+  "key": "he spits. \"i'm undefined. if you're finishing what they started, i'll help.\""
+ },
+ {
+  "id": "f85c4c5d7d",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "“For them. For you, then.”",
+  "src": "story:freed",
+  "key": "\"for them. for you, then.\""
+ },
+ {
+  "id": "f0a47bf294",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "He spits. “I’m Brann Two-Fingers. If you’re finishing what they started, I’ll help.”",
+  "src": "story:freed",
+  "key": "he spits. \"i'm brann two-fingers. if you're finishing what they started, i'll help.\""
+ },
+ {
+  "id": "79251fb10f",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "He spits. “I’m Osk the Weasel. If you’re finishing what they started, I’ll help.”",
+  "src": "story:freed",
+  "key": "he spits. \"i'm osk the weasel. if you're finishing what they started, i'll help.\""
+ },
+ {
+  "id": "9df5370161",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "He spits. “I’m Tobbe Saltlung. If you’re finishing what they started, I’ll help.”",
+  "src": "story:freed",
+  "key": "he spits. \"i'm tobbe saltlung. if you're finishing what they started, i'll help.\""
+ },
+ {
+  "id": "fd4fa5678b",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "He spits. “I’m Jorl Nine-Lives. If you’re finishing what they started, I’ll help.”",
+  "src": "story:freed",
+  "key": "he spits. \"i'm jorl nine-lives. if you're finishing what they started, i'll help.\""
+ },
+ {
+  "id": "f61ec9a989",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "undefined is still in his corner of the Gutter, out of the rain, with his rat on a string.",
+  "src": "story:freed",
+  "key": "undefined is still in his corner of the gutter, out of the rain, with his rat on a string."
+ },
+ {
+  "id": "b47994e78e",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "Brann Two-Fingers is still in his corner of the Gutter, out of the rain, with his rat on a string.",
+  "src": "story:freed",
+  "key": "brann two-fingers is still in his corner of the gutter, out of the rain, with his rat on a string."
+ },
+ {
+  "id": "19cd888289",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "Osk the Weasel is still in his corner of the Gutter, out of the rain, with his rat on a string.",
+  "src": "story:freed",
+  "key": "osk the weasel is still in his corner of the gutter, out of the rain, with his rat on a string."
+ },
+ {
+  "id": "ce3283b22b",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "Tobbe Saltlung is still in his corner of the Gutter, out of the rain, with his rat on a string.",
+  "src": "story:freed",
+  "key": "tobbe saltlung is still in his corner of the gutter, out of the rain, with his rat on a string."
+ },
+ {
+  "id": "b42668b7f5",
+  "group": "freed",
+  "floor": "skarnvik",
+  "say": "Jorl Nine-Lives is still in his corner of the Gutter, out of the rain, with his rat on a string.",
+  "src": "story:freed",
+  "key": "jorl nine-lives is still in his corner of the gutter, out of the rain, with his rat on a string."
+ },
+ {
+  "id": "fc32777028",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "A woman in mourning black stands at her door with a lit candle, as if she has been waiting there a long time. She looks at your faces, and then at your wrists.",
+  "src": "story:kin",
+  "key": "a woman in mourning black stands at her door with a lit candle, as if she has been waiting there a long time. she looks at your faces, and then at your wrists."
+ },
+ {
+  "id": "8b9609f2f5",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“You came up out of the Brine. Everyone knows. Did you know Old Sigrun? I’m her daughter.”",
+  "src": "story:kin",
+  "key": "\"you came up out of the brine. everyone knows. did you know old sigrun? i'm her daughter.\""
+ },
+ {
+  "id": "cf925228bc",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“She drowned in her chains.” She already knew. She has been in black since the spring. But she wanted somebody to say it.",
+  "src": "story:kin",
+  "key": "\"she drowned in her chains.\" she already knew. she has been in black since the spring. but she wanted somebody to say it."
+ },
+ {
+  "id": "a3a7ebf929",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“She dug in the Deep Mine, before. Came home white with salt and wouldn’t sleep. Said the salt down there was warm, and it bled when you cut it, and at night it sang. She said so to the wrong people. That’s why they put her in the Brine.”",
+  "src": "story:kin",
+  "key": "\"she dug in the deep mine, before. came home white with salt and wouldn't sleep. said the salt down there was warm, and it bled when you cut it, and at night it sang. she said so to the wrong people. that's why they put her in the brine.\""
+ },
+ {
+  "id": "1c7e6fa71e",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“She drowned in her chains.” She looks down. At your feet. At the boots.",
+  "src": "story:kin",
+  "key": "\"she drowned in her chains.\" she looks down. at your feet. at the boots."
+ },
+ {
+  "id": "302ed2d607",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“I made those boots,” she says. “I made those boots for her.”",
+  "src": "story:kin",
+  "key": "\"i made those boots,\" she says. \"i made those boots for her.\""
+ },
+ {
+  "id": "4fe647eb29",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "You take them off and stand in the rain in your bare feet while she holds them like a child. Then, because you gave them back, she tells you why they took her.",
+  "src": "story:kin",
+  "key": "you take them off and stand in the rain in your bare feet while she holds them like a child. then, because you gave them back, she tells you why they took her."
+ },
+ {
+  "id": "1028e03935",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "She says a word after you, an old word, from before the Salt Lords. Something in the rain hears it. Each of you loses an Omen.",
+  "src": "story:kin",
+  "key": "she says a word after you, an old word, from before the salt lords. something in the rain hears it. each of you loses an omen."
+ },
+ {
+  "id": "e743e98f1b",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "You tell her all of it: the cell, the chains, the water to the chin, the eyes you closed. You leave out what happened after.",
+  "src": "story:kin",
+  "key": "you tell her all of it: the cell, the chains, the water to the chin, the eyes you closed. you leave out what happened after."
+ },
+ {
+  "id": "8c52384702",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "She weeps without a sound. \"Then she wasn't alone.\" She presses something into your hand: the one thing of her she kept.",
+  "src": "story:kin",
+  "key": "she weeps without a sound. \"then she wasn't alone.\" she presses something into ⟪n⟫'s hand: the one thing of her she kept."
+ },
+ {
+  "id": "b5349e782d",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Old Sigrun’s daughter is at her door with her candle, as always. She nods to you.",
+  "src": "story:kin",
+  "key": "old sigrun's daughter is at her door with her candle, as always. she nods to you."
+ },
+ {
+  "id": "08204a0356",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Old Sigrun’s daughter watches you pass from her doorway, and doesn’t blink until you’re gone.",
+  "src": "story:kin",
+  "key": "old sigrun's daughter watches you pass from her doorway, and doesn't blink until you're gone."
+ },
+ {
+  "id": "de8b2cf57c",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“You came up out of the Brine. Everyone knows. Did you know Matthis the Cook? I’m his wife.”",
+  "src": "story:kin",
+  "key": "\"you came up out of the brine. everyone knows. did you know matthis the cook? i'm his wife.\""
+ },
+ {
+  "id": "c4c3a91fdc",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“He drowned in his chains.” She already knew. She has been in black since the spring. But she wanted somebody to say it.",
+  "src": "story:kin",
+  "key": "\"he drowned in his chains.\" she already knew. she has been in black since the spring. but she wanted somebody to say it."
+ },
+ {
+  "id": "3ea620f876",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“He dug in the Deep Mine, before. Came home white with salt and wouldn’t sleep. Said the salt down there was warm, and it bled when you cut it, and at night it sang. He said so to the wrong people. That’s why they put him in the Brine.”",
+  "src": "story:kin",
+  "key": "\"he dug in the deep mine, before. came home white with salt and wouldn't sleep. said the salt down there was warm, and it bled when you cut it, and at night it sang. he said so to the wrong people. that's why they put him in the brine.\""
+ },
+ {
+  "id": "442711e393",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“He drowned in his chains.” She looks down. At your feet. At the boots.",
+  "src": "story:kin",
+  "key": "\"he drowned in his chains.\" she looks down. at your feet. at the boots."
+ },
+ {
+  "id": "2e04e6963a",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“I made those boots,” she says. “I made those boots for him.”",
+  "src": "story:kin",
+  "key": "\"i made those boots,\" she says. \"i made those boots for him.\""
+ },
+ {
+  "id": "b6a292c0ae",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "She weeps without a sound. \"Then he wasn't alone.\" She presses something into your hand: the one thing of his she kept.",
+  "src": "story:kin",
+  "key": "she weeps without a sound. \"then he wasn't alone.\" she presses something into ⟪n⟫'s hand: the one thing of his she kept."
+ },
+ {
+  "id": "9cee78797e",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Matthis the Cook’s wife is at her door with her candle, as always. She nods to you.",
+  "src": "story:kin",
+  "key": "matthis the cook's wife is at her door with her candle, as always. she nods to you."
+ },
+ {
+  "id": "38f01d50fb",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Matthis the Cook’s wife watches you pass from her doorway, and doesn’t blink until you’re gone.",
+  "src": "story:kin",
+  "key": "matthis the cook's wife watches you pass from her doorway, and doesn't blink until you're gone."
+ },
+ {
+  "id": "704c9f6b83",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“You came up out of the Brine. Everyone knows. Did you know Little Ragna? I’m her mother.”",
+  "src": "story:kin",
+  "key": "\"you came up out of the brine. everyone knows. did you know little ragna? i'm her mother.\""
+ },
+ {
+  "id": "3d039f5f07",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Little Ragna’s mother is at her door with her candle, as always. She nods to you.",
+  "src": "story:kin",
+  "key": "little ragna's mother is at her door with her candle, as always. she nods to you."
+ },
+ {
+  "id": "3ba07472c0",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Little Ragna’s mother watches you pass from her doorway, and doesn’t blink until you’re gone.",
+  "src": "story:kin",
+  "key": "little ragna's mother watches you pass from her doorway, and doesn't blink until you're gone."
+ },
+ {
+  "id": "029d28ec6a",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“You came up out of the Brine. Everyone knows. Did you know Grey Ottar? I’m his sister.”",
+  "src": "story:kin",
+  "key": "\"you came up out of the brine. everyone knows. did you know grey ottar? i'm his sister.\""
+ },
+ {
+  "id": "548400e867",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Grey Ottar’s sister is at her door with her candle, as always. She nods to you.",
+  "src": "story:kin",
+  "key": "grey ottar's sister is at her door with her candle, as always. she nods to you."
+ },
+ {
+  "id": "234543d2f1",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "Grey Ottar’s sister watches you pass from her doorway, and doesn’t blink until you’re gone.",
+  "src": "story:kin",
+  "key": "grey ottar's sister watches you pass from her doorway, and doesn't blink until you're gone."
+ },
+ {
+  "id": "28ad50f229",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "A woman in mourning black stands at her door with a lit candle. “They say two came up out of the Brine Gaol. Did they say anything about Old Sigrun? She was my mother.”",
+  "src": "story:kin",
+  "key": "a woman in mourning black stands at her door with a lit candle. \"they say two came up out of the brine gaol. did they say anything about old sigrun? she was my mother.\""
+ },
+ {
+  "id": "0df3047d8e",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“She drowned in her chains.” She nods. She already knew. She wanted somebody to say it.",
+  "src": "story:kin",
+  "key": "\"she drowned in her chains.\" she nods. she already knew. she wanted somebody to say it."
+ },
+ {
+  "id": "08f98a43ce",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "A woman in mourning black stands at her door with a lit candle. “They say two came up out of the Brine Gaol. Did they say anything about Matthis the Cook? He was my husband.”",
+  "src": "story:kin",
+  "key": "a woman in mourning black stands at her door with a lit candle. \"they say two came up out of the brine gaol. did they say anything about matthis the cook? he was my husband.\""
+ },
+ {
+  "id": "58c795dd2a",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "“He drowned in his chains.” She nods. She already knew. She wanted somebody to say it.",
+  "src": "story:kin",
+  "key": "\"he drowned in his chains.\" she nods. she already knew. she wanted somebody to say it."
+ },
+ {
+  "id": "ee4137fc3c",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "A woman in mourning black stands at her door with a lit candle. “They say two came up out of the Brine Gaol. Did they say anything about Little Ragna? She was my child.”",
+  "src": "story:kin",
+  "key": "a woman in mourning black stands at her door with a lit candle. \"they say two came up out of the brine gaol. did they say anything about little ragna? she was my child.\""
+ },
+ {
+  "id": "8bb40bef86",
+  "group": "kin",
+  "floor": "skarnvik",
+  "say": "A woman in mourning black stands at her door with a lit candle. “They say two came up out of the Brine Gaol. Did they say anything about Grey Ottar? He was my brother.”",
+  "src": "story:kin",
+  "key": "a woman in mourning black stands at her door with a lit candle. \"they say two came up out of the brine gaol. did they say anything about grey ottar? he was my brother.\""
+ },
+ {
+  "id": "fafcfe4ddb",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "Out of the rain comes a man with a rope round his neck and the cut end dragging behind him. His face is black. His bare feet point the wrong way.",
+  "src": "story:hangedman",
+  "key": "out of the rain comes a man with a rope round his neck and the cut end dragging behind him. his face is black. his bare feet point the wrong way."
+ },
+ {
+  "id": "88e6f86c61",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Brann Two-Fingers, from the cell down the corridor in the Brine. “You walked away,” he says, with no breath at all. “I heard you walk away.”",
+  "src": "story:hangedman",
+  "key": "it is brann two-fingers, from the cell down the corridor in the brine. \"you walked away,\" he says, with no breath at all. \"i heard you walk away.\""
+ },
+ {
+  "id": "e79e948883",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Brann Two-Fingers, from the cell down the corridor in the Brine. “You said you’d come back,” he says, with no breath at all. “You said.”",
+  "src": "story:hangedman",
+  "key": "it is brann two-fingers, from the cell down the corridor in the brine. \"you said you'd come back,\" he says, with no breath at all. \"you said.\""
+ },
+ {
+  "id": "f27cfa5a1f",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Osk the Weasel, from the cell down the corridor in the Brine. “You walked away,” he says, with no breath at all. “I heard you walk away.”",
+  "src": "story:hangedman",
+  "key": "it is osk the weasel, from the cell down the corridor in the brine. \"you walked away,\" he says, with no breath at all. \"i heard you walk away.\""
+ },
+ {
+  "id": "23db5155f9",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Osk the Weasel, from the cell down the corridor in the Brine. “You said you’d come back,” he says, with no breath at all. “You said.”",
+  "src": "story:hangedman",
+  "key": "it is osk the weasel, from the cell down the corridor in the brine. \"you said you'd come back,\" he says, with no breath at all. \"you said.\""
+ },
+ {
+  "id": "a719921a3b",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Tobbe Saltlung, from the cell down the corridor in the Brine. “You walked away,” he says, with no breath at all. “I heard you walk away.”",
+  "src": "story:hangedman",
+  "key": "it is tobbe saltlung, from the cell down the corridor in the brine. \"you walked away,\" he says, with no breath at all. \"i heard you walk away.\""
+ },
+ {
+  "id": "7a74cb03fc",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Tobbe Saltlung, from the cell down the corridor in the Brine. “You said you’d come back,” he says, with no breath at all. “You said.”",
+  "src": "story:hangedman",
+  "key": "it is tobbe saltlung, from the cell down the corridor in the brine. \"you said you'd come back,\" he says, with no breath at all. \"you said.\""
+ },
+ {
+  "id": "504475e66b",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Jorl Nine-Lives, from the cell down the corridor in the Brine. “You walked away,” he says, with no breath at all. “I heard you walk away.”",
+  "src": "story:hangedman",
+  "key": "it is jorl nine-lives, from the cell down the corridor in the brine. \"you walked away,\" he says, with no breath at all. \"i heard you walk away.\""
+ },
+ {
+  "id": "1a4232a70e",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Jorl Nine-Lives, from the cell down the corridor in the Brine. “You said you’d come back,” he says, with no breath at all. “You said.”",
+  "src": "story:hangedman",
+  "key": "it is jorl nine-lives, from the cell down the corridor in the brine. \"you said you'd come back,\" he says, with no breath at all. \"you said.\""
+ },
+ {
+  "id": "05ba518812",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Brann Two-Fingers, from the cell down the corridor in the Brine. “Where are they?” he says, with no breath at all. “The two who left me. Where are they?” He doesn’t wait for an answer.",
+  "src": "story:hangedman",
+  "key": "it is brann two-fingers, from the cell down the corridor in the brine. \"where are they?\" he says, with no breath at all. \"the two who left me. where are they?\" he doesn't wait for an answer."
+ },
+ {
+  "id": "240c1a62b5",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Osk the Weasel, from the cell down the corridor in the Brine. “Where are they?” he says, with no breath at all. “The two who left me. Where are they?” He doesn’t wait for an answer.",
+  "src": "story:hangedman",
+  "key": "it is osk the weasel, from the cell down the corridor in the brine. \"where are they?\" he says, with no breath at all. \"the two who left me. where are they?\" he doesn't wait for an answer."
+ },
+ {
+  "id": "08dbfde132",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Tobbe Saltlung, from the cell down the corridor in the Brine. “Where are they?” he says, with no breath at all. “The two who left me. Where are they?” He doesn’t wait for an answer.",
+  "src": "story:hangedman",
+  "key": "it is tobbe saltlung, from the cell down the corridor in the brine. \"where are they?\" he says, with no breath at all. \"the two who left me. where are they?\" he doesn't wait for an answer."
+ },
+ {
+  "id": "2ffa6c9a87",
+  "group": "hangedman",
+  "floor": "skarnvik",
+  "say": "It is Jorl Nine-Lives, from the cell down the corridor in the Brine. “Where are they?” he says, with no breath at all. “The two who left me. Where are they?” He doesn’t wait for an answer.",
+  "src": "story:hangedman",
+  "key": "it is jorl nine-lives, from the cell down the corridor in the brine. \"where are they?\" he says, with no breath at all. \"the two who left me. where are they?\" he doesn't wait for an answer."
+ },
+ {
+  "id": "99703f72c8",
+  "group": "exchange",
+  "floor": "skarnvik",
+  "say": "Columns, a pediment carved with salt crystals, and iron-barred doors as tall as two men. Watchmen in salt-white stand at either side. Inside, faintly, under the rain, something is turning.",
+  "src": "story:exchange",
+  "key": "columns, a pediment carved with salt crystals, and iron-barred doors as tall as two men. watchmen in salt-white stand at either side. inside, faintly, under the rain, something is turning."
+ },
+ {
+  "id": "a31cf3a34d",
+  "group": "exchange",
+  "floor": "skarnvik",
+  "say": "Barred. A watchman lowers his halberd across your chest. “Not without a Lord’s seal.”",
+  "src": "story:exchange",
+  "key": "barred. a watchman lowers his halberd across your chest. \"not without a lord's seal.\""
+ },
+ {
+  "id": "2a42f9c38a",
+  "group": "exchange",
+  "floor": "skarnvik",
+  "say": "Under the clink of counting, deep down, far below the street: a slow grinding, like a millstone the size of a house.",
+  "src": "story:exchange",
+  "key": "under the clink of counting, deep down, far below the street: a slow grinding, like a millstone the size of a house."
+ },
+ {
+  "id": "7adab60728",
+  "group": "exchange",
+  "floor": "skarnvik",
+  "say": "And under that, so faint you can't be sure... singing.",
+  "src": "story:exchange",
+  "key": "and under that, so faint ⟪n⟫ isn't sure, singing."
+ },
+ {
+  "id": "890b958c31",
+  "group": "exchange",
+  "floor": "skarnvik",
+  "say": "The rain is too loud, and a watchman is starting to look at you.",
+  "src": "story:exchange",
+  "key": "the rain is too loud, and a watchman is starting to look at you."
+ },
+ {
+  "id": "2bbbce819b",
+  "group": "your-own-wretches",
+  "floor": "skarnvik",
+  "say": "To make your own wretches you roll them up yourself from the Mork Borg rulebook: their abilities, hit points, Omens, silver, gear and terrible traits, on the book’s own tables. This game doesn’t give you those tables. They’re the book’s, and the people who made it should be paid for them.",
+  "src": "js/game.js:444",
+  "key": "to make your own wretches you roll them up yourself from the mörk borg rulebook: their abilities, hit points, omens, silver, gear and terrible traits, on the book's own tables. this game doesn't give you those tables. they're the book's, and the people who made it should be paid for them."
+ },
+ {
+  "id": "fb00fe27d2",
+  "group": "your-own-wretches",
+  "floor": "skarnvik",
+  "say": "Do you own Mork Borg?",
+  "src": "js/game.js:444",
+  "key": "do you own mörk borg?"
+ },
+ {
+  "id": "284f5aab3d",
+  "group": "the-salt-lords-watch",
+  "floor": "skarnvik",
+  "say": "Two watchmen in salt-white step into your way, halberds down. One of them holds up a wanted poster, wet through, and looks from it to your faces, and to your wrists.",
+  "src": "js/game.js:746",
+  "key": "two watchmen in salt-white step into your way, halberds down. one of them holds up a wanted poster, wet through, and looks from it to your faces, and to your wrists."
+ },
+ {
+  "id": "ec71351356",
+  "group": "the-salt-lords-watch",
+  "floor": "skarnvik",
+  "say": "“Gaol-pale,” he says. “Where did you two crawl up from?”",
+  "src": "js/game.js:746",
+  "key": "\"gaol-pale,\" he says. \"where did you two crawl up from?\""
+ },
+ {
+  "id": "1252e12792",
+  "group": "the-salt-lords-watch",
+  "floor": "skarnvik",
+  "say": "Two watchmen in salt-white step into your way, halberds down. \"Seal? No seal. Then it's the street toll: five silver, by order of the Salt Lords.\"",
+  "src": "js/game.js:746",
+  "re": "^two watchmen in salt-white step into your way, halberds down\\. \"seal\\? no seal\\. then it's the street toll: .+? silver, by order of the salt lords\\.\"$"
+ },
+ {
+  "id": "c654bbea67",
+  "group": "the-salt-lords-watch",
+  "floor": "skarnvik",
+  "say": "The silver goes into a tabard. “Move along.”",
+  "src": "js/game.js:757",
+  "key": "the silver goes into a tabard. \"move along.\""
+ },
+ {
+  "id": "40cd8bda7e",
+  "group": "the-salt-lords-watch",
+  "floor": "skarnvik",
+  "say": "“...Fine. Move along. And wash, for the saints’ sake.” They go off down the street with their halberds on their shoulders.",
+  "src": "js/game.js:757",
+  "key": "\"...fine. move along. and wash, for the saints' sake.\" they go off down the street with their halberds on their shoulders."
+ },
+ {
+  "id": "fe01705982",
+  "group": "the-salt-lords-watch",
+  "floor": "skarnvik",
+  "say": "“Liar.” The halberds come up.",
+  "src": "js/game.js:761",
+  "key": "\"liar.\" the halberds come up."
+ },
+ {
+  "id": "a382b6149f",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Fennick.” The Stranger says the name the way you would spit out a tooth. “The diggers from the Deep Mine: not to be released, not to be named. So they did find something down there, and the Salt Lords buried it in the Brine with the men who found it.”",
+  "src": "js/game.js:1068",
+  "key": "\"fennick.\" the stranger says the name the way you would spit out a tooth. \"the diggers from the deep mine: not to be released, not to be named. so they did find something down there, and the salt lords buried it in the brine with the men who found it.\""
+ },
+ {
+  "id": "7ae7856d1f",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "He presses ten silver into your hand. “For your memory. Keep it sharp.”",
+  "src": "js/game.js:1068",
+  "key": "he presses ten silver into your hand. \"for your memory. keep it sharp.\""
+ },
+ {
+  "id": "ea0464a317",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“The old hymns say seven saints hold Skarn up, one under each hill. The priests stopped singing those hymns the year the Salt Lords built their Exchange.”",
+  "src": "js/game.js:1076",
+  "key": "\"the old hymns say seven saints hold skarn up, one under each hill. the priests stopped singing those hymns the year the salt lords built their exchange.\""
+ },
+ {
+  "id": "a4ad4a19a1",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Church Hill had one. Saint Agne. The bell-ringers kept her: they rang every dawn so she’d know she wasn’t forgotten, until the Salt Lords forbade the bell. The last of them went down into the hill and never came up.”",
+  "src": "js/game.js:1076",
+  "key": "\"church hill had one. saint agne. the bell-ringers kept her: they rang every dawn so she'd know she wasn't forgotten, until the salt lords forbade the bell. the last of them went down into the hill and never came up.\""
+ },
+ {
+  "id": "8b3fb9c2bd",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Find the bell-ringers’ way into Church Hill. It’s behind the graves. The gravedigger buried most of them; he’ll know how it opens.”",
+  "src": "js/game.js:1076",
+  "key": "\"find the bell-ringers' way into church hill. it's behind the graves. the gravedigger buried most of them; he'll know how it opens.\""
+ },
+ {
+  "id": "ae4b1abc56",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "The Stranger looks at you a long time before he speaks.",
+  "src": "js/game.js:1076",
+  "key": "the stranger looks at you a long time before he speaks."
+ },
+ {
+  "id": "5efe27e434",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Cut to the knee.” The Stranger is quiet for a long time. “And four of her sisters gone already. Their salt in the Exchange.”",
+  "src": "js/game.js:1088",
+  "key": "\"cut to the knee.\" the stranger is quiet for a long time. \"and four of her sisters gone already. their salt in the exchange.\""
+ },
+ {
+  "id": "6f10fa7599",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "He reads the overseer’s writ twice. “Leave the crown, so the hill stands until the Exchange has its fill. They know. They know exactly what they’re doing.”",
+  "src": "js/game.js:1088",
+  "key": "he reads the overseer's writ twice. \"leave the crown, so the hill stands until the exchange has its fill. they know. they know exactly what they're doing.\""
+ },
+ {
+  "id": "a52052b46c",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "He presses fifty silver into your hand without counting it. “Then that’s where they grind them. Under the Exchange, down the white stair the old miners sang about. That’s where we go next. Not yet. Get stronger.”",
+  "src": "js/game.js:1088",
+  "key": "he presses fifty silver into your hand without counting it. \"then that's where they grind them. under the exchange, down the white stair the old miners sang about. that's where we go next. not yet. get stronger.\""
+ },
+ {
+  "id": "b36d10a982",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Under the Exchange. The white stair. Get stronger, and come back.”",
+  "src": "js/game.js:1098",
+  "key": "\"under the exchange. the white stair. get stronger, and come back.\""
+ },
+ {
+  "id": "0c22f6b9cf",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Saint Agne. Under Church Hill. Find the bell-ringers’ way in.”",
+  "src": "js/game.js:1105",
+  "key": "\"saint agne. under church hill. find the bell-ringers' way in.\""
+ },
+ {
+  "id": "7b82a2f94a",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Rising, you say. From under. Not rain, not a spring.” The Stranger presses forty silver into your hand without counting it.",
+  "src": "js/game.js:1114",
+  "key": "\"rising, you say. from under. not rain, not a spring.\" the stranger presses forty silver into your hand without counting it."
+ },
+ {
+  "id": "af30cbd5d8",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Then it’s true. The island isn’t sinking. Something is pulling it down. And the Salt Lords are getting rich while it happens.”",
+  "src": "js/game.js:1114",
+  "key": "\"then it's true. the island isn't sinking. something is pulling it down. and the salt lords are getting rich while it happens.\""
+ },
+ {
+  "id": "124a29623f",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“And I think I know where to look.”",
+  "src": "js/game.js:1114",
+  "key": "\"and i think i know where to look.\""
+ },
+ {
+  "id": "89e867837f",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "A stranger with a sewn-shut eye takes your wrists in a cold grip, one each, and turns them over. Shackle-scars.",
+  "src": "js/game.js:1124",
+  "key": "a stranger with a sewn-shut eye takes your wrists in a cold grip, one each, and turns them over. shackle-scars."
+ },
+ {
+  "id": "3664ee947d",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Gaol-pale. You came up out of the Brine, didn’t you? Nobody comes up out of the Brine.”",
+  "src": "js/game.js:1124",
+  "key": "\"gaol-pale. you came up out of the brine, didn't you? nobody comes up out of the brine.\""
+ },
+ {
+  "id": "b2aee2e447",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“The island is sinking, and the Salt Lords say it isn’t. Ask yourself why they aren’t afraid.”",
+  "src": "js/game.js:1124",
+  "key": "\"the island is sinking, and the salt lords say it isn't. ask yourself why they aren't afraid.\""
+ },
+ {
+  "id": "3308c58c94",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "“Go under the basilica, into the Undercroft. Go all the way down. Tell me what the water is doing down there.”",
+  "src": "js/game.js:1124",
+  "key": "\"go under the basilica, into the undercroft. go all the way down. tell me what the water is doing down there.\""
+ },
+ {
+  "id": "e8af7a667c",
+  "group": "stranger",
+  "floor": "skarnvik",
+  "say": "The Stranger hasn’t moved from the gallows’ shadow.",
+  "src": "js/game.js:1124",
+  "key": "the stranger hasn't moved from the gallows' shadow."
+ },
+ {
+  "id": "369693f3ce",
+  "group": "skarnvik",
+  "floor": "skarnvik",
+  "say": "You come up through a sewer grate in Gallows Square, an hour before dawn, and nobody looks twice. Why would they? Your faces are on posters on the gallows, so faded by rain you can barely tell they were ever faces.",
+  "src": "js/game.js:1138",
+  "key": "you come up through a sewer grate in gallows square, an hour before dawn, and nobody looks twice. why would they? your faces are on posters on the gallows, so faded by rain you can barely tell they were ever faces."
+ },
+ {
+  "id": "1117093e9b",
+  "group": "skarnvik",
+  "floor": "skarnvik",
+  "say": "The city has changed while you were inside. There is a comet over the harbor. Half the old docks are under black water, and the fishermen are moving their boats up into the streets. The dead walk in the low graveyards. The Salt Lords’ men walk everywhere else.",
+  "src": "js/game.js:1138",
+  "key": "the city has changed while you were inside. there is a comet over the harbor. half the old docks are under black water, and the fishermen are moving their boats up into the streets. the dead walk in the low graveyards. the salt lords' men walk everywhere else."
+ },
+ {
+  "id": "f34618d580",
+  "group": "skarnvik",
+  "floor": "skarnvik",
+  "say": "And nobody, nobody, is talking about why the island is sinking.",
+  "src": "js/game.js:1138",
+  "key": "and nobody, nobody, is talking about why the island is sinking."
+ },
+ {
+  "id": "4b31009288",
+  "group": "not-yet",
+  "floor": "skarnvik",
+  "say": "One of you has bled out, and should be dead. The Pilgrim's Shroud takes their place and falls to dust. One hit point, and the bleeding has stopped.",
+  "src": "js/game.js:1319",
+  "key": "⟪n⟫ has bled out, and should be dead. the pilgrim's shroud takes their place and falls to dust. # hp, and the bleeding has stopped."
+ },
+ {
+  "id": "c193ed7e9a",
+  "group": "dead",
+  "floor": "skarnvik",
+  "say": "One of you sits down against the wall, and doesn't get up. The haemorrhage was never treated, and the hours ran out.",
+  "src": "js/game.js:1329",
+  "key": "⟪n⟫ sits down against the wall, and doesn't get up. the haemorrhage was never treated, and the hours ran out."
+ },
+ {
+  "id": "a8948ae3d5",
+  "group": "dead",
+  "floor": "skarnvik",
+  "say": "Bled to death.",
+  "src": "js/game.js:1329",
+  "key": "⟪n⟫ has bled to death."
+ },
+ {
+  "id": "852f85bd82",
+  "group": "skarnvik",
+  "floor": "skarnvik",
+  "say": "You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. Somebody has to finish it. It might as well be you.",
+  "src": "js/game.js:1763",
+  "key": "you have lived in skarnvik all your short lives. you heard about the two who came up out of the brine gaol, and what they found, and how they died. somebody has to finish it. it might as well be you."
+ },
+ {
+  "id": "94601126f8",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "You wake on the cold floor of the basilica’s vestry, under a painting of a saint with her eyes scratched out. The other priests are already at their prayers, or pretending to be.",
+  "src": "js/game.js:809",
+  "key": "you wake on the cold floor of the basilica's vestry, under a painting of a saint with her eyes scratched out. the other priests are already at their prayers, or pretending to be."
+ },
+ {
+  "id": "66656e8409",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "The vestry: a cot, a cold font, and the other priests not quite looking at you.",
+  "src": "js/game.js:810",
+  "key": "the vestry: a cot, a cold font, and the other priests not quite looking at you."
+ },
+ {
+  "id": "b22db1727c",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "You wake in your crypt-house in the graveyard on Church Hill, between two coffins and a pile of books that should not exist. The dead were quiet company, as always.",
+  "src": "js/game.js:811",
+  "key": "you wake in your crypt-house in the graveyard on church hill, between two coffins and a pile of books that should not exist. the dead were quiet company, as always."
+ },
+ {
+  "id": "9aa00226bc",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "Your crypt-house: a pallet between two coffins, your books, the candle stubs.",
+  "src": "js/game.js:812",
+  "key": "your crypt-house: a pallet between two coffins, your books, the candle stubs."
+ },
+ {
+  "id": "c53a2a4d07",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "You wake in the House of Vael, up on the Hill, in the last room with a bed in it. Everything else worth selling has been sold, and the Salt Lords’ men watch the door.",
+  "src": "js/game.js:813",
+  "key": "you wake in the house of vael, up on the hill, in the last room with a bed in it. everything else worth selling has been sold, and the salt lords' men watch the door."
+ },
+ {
+  "id": "61a2543af2",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "The House of Vael. Everything worth selling is sold, but the bed is still a bed.",
+  "src": "js/game.js:814",
+  "key": "the house of vael. everything worth selling is sold, but the bed is still a bed."
+ },
+ {
+  "id": "9de69d90bf",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "You wake in your narrow house in Lantern Row, under bundles of herbs drying in the rafters, to the smell of rot and rosemary.",
+  "src": "js/game.js:815",
+  "key": "you wake in your narrow house in lantern row, under bundles of herbs drying in the rafters, to the smell of rot and rosemary."
+ },
+ {
+  "id": "92a5572f36",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "Your house: herbs in the rafters, jars on every shelf, a bed that smells of both.",
+  "src": "js/game.js:816",
+  "key": "your house: herbs in the rafters, jars on every shelf, a bed that smells of both."
+ },
+ {
+  "id": "f914b8d5e8",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "You wake in the old watch-house in the Gutter, where the deserters keep the door barred and the brazier lit. Nobody here asks which war you walked away from.",
+  "src": "js/game.js:817",
+  "key": "you wake in the old watch-house in the gutter, where the deserters keep the door barred and the brazier lit. nobody here asks which war you walked away from."
+ },
+ {
+  "id": "0119976ead",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "The old watch-house. Your blanket by the brazier is where you left it.",
+  "src": "js/game.js:818",
+  "key": "the old watch-house. your blanket by the brazier is where you left it."
+ },
+ {
+  "id": "1c5ce33f0f",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "You wake in your corner of the alley, in a nest of rags, with a wall at your back and a rat you have come to an arrangement with.",
+  "src": "js/game.js:819",
+  "key": "you wake in your corner of the alley, in a nest of rags, with a wall at your back and a rat you have come to an arrangement with."
+ },
+ {
+  "id": "3983f9e455",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "Your corner of the alley. A nest of rags, a wall at your back.",
+  "src": "js/game.js:820",
+  "key": "your corner of the alley. a nest of rags, a wall at your back."
+ },
+ {
+  "id": "2c483b4390",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "A crypt-house in the graveyard. The door is chained from the inside, and something in there is breathing, slowly.",
+  "src": "js/game.js:823",
+  "key": "a crypt-house in the graveyard. the door is chained from the inside, and something in there is breathing, slowly."
+ },
+ {
+  "id": "2bff99d9d2",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "The House of Vael. The shutters are nailed shut, and a Salt Lords’ notice of debt is nailed over the door.",
+  "src": "js/game.js:824",
+  "key": "the house of vael. the shutters are nailed shut, and a salt lords' notice of debt is nailed over the door."
+ },
+ {
+  "id": "265fb64937",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "A narrow house hung with herbs. Somebody inside tells you to go away, and means it.",
+  "src": "js/game.js:825",
+  "key": "a narrow house hung with herbs. somebody inside tells you to go away, and means it."
+ },
+ {
+  "id": "6184ceeccc",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "The old watch-house. Deserters squat in it. A voice behind the boards tells you to keep walking.",
+  "src": "js/game.js:826",
+  "key": "the old watch-house. deserters squat in it. a voice behind the boards tells you to keep walking."
+ },
+ {
+  "id": "c17db7bbb7",
+  "group": "homes",
+  "floor": "skarnvik",
+  "say": "A nest of rags in a corner of the alley. It smells like somebody lives here, and they would not like you in it.",
+  "src": "js/game.js:827",
+  "key": "a nest of rags in a corner of the alley. it smells like somebody lives here, and they would not like you in it."
+ },
+ {
+  "id": "dce123b61e",
+  "group": "undercroft",
+  "floor": "undercroft",
+  "say": "The crypt stair spits you out into a low hall. The air is wet and old, like breath held for a hundred years.",
+  "src": "story:undercroft",
+  "key": "the crypt stair spits you out into a low hall. the air is wet and old, like breath held for a hundred years."
+ },
+ {
+  "id": "5fc3cac9fd",
+  "group": "undercroft",
+  "floor": "undercroft",
+  "say": "Somewhere ahead, claws click on stone. Under that, so faint you might be imagining it, something is dragging itself along.",
+  "src": "story:undercroft",
+  "key": "somewhere ahead, claws click on stone. under that, so faint you might be imagining it, something is dragging itself along."
+ },
+ {
+  "id": "09c2552902",
+  "group": "undercroft",
+  "floor": "undercroft",
+  "say": "One of you holds their breath and counts: rats to the west, something slow in the deep crypt, and boots, many boots, by a door. Everything that moves on this floor is on your map.",
+  "src": "story:undercroft",
+  "key": "⟪n⟫ holds their breath and counts: rats to the west, something slow in the deep crypt, and boots, many boots, by a door. everything that moves on this floor is on your map."
+ },
+ {
+  "id": "89703e5ccf",
+  "group": "undercroft",
+  "floor": "undercroft",
+  "say": "Only your own heartbeat, and the drip of water. The dark keeps its secrets.",
+  "src": "story:undercroft",
+  "key": "only your own heartbeat, and the drip of water. the dark keeps its secrets."
+ },
+ {
+  "id": "509081b1bd",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "In the middle of a cramped chapel stands a basin of black stone, full to the brim with something pink. Not water: it doesn’t ripple when you breathe on it, and the flagstones around it are bone-dry.",
+  "src": "story:font",
+  "key": "in the middle of a cramped chapel stands a basin of black stone, full to the brim with something pink. not water: it doesn't ripple when you breathe on it, and the flagstones around it are bone-dry."
+ },
+ {
+  "id": "1956aa288e",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "It smells of rosewater and old pennies. It does not belong down here. It might be a blessing. Things down here rarely are.",
+  "src": "story:font",
+  "key": "it smells of rosewater and old pennies. it does not belong down here. it might be a blessing. things down here rarely are."
+ },
+ {
+  "id": "4e93cd023e",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "One of you drinks. Warmth runs down the throat and spreads.",
+  "src": "story:font",
+  "key": "⟪n⟫ drinks. warmth runs down the throat and spreads. +# hp."
+ },
+ {
+  "id": "443c474f5a",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The basin grinds a hand's width aside. Behind it, low in the wall, a crack breathes cold air. You pry out a loose stone, then another: a hidden niche. Something is wrapped in rotten velvet inside.",
+  "src": "story:font",
+  "key": "the basin grinds a hand's width aside. behind it, low in the wall, a crack breathes cold air. ⟪n⟫ pries out a loose stone, then another: a hidden niche. something is wrapped in rotten velvet inside."
+ },
+ {
+  "id": "6ca0ef53a9",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The basin won’t move. Something under it clicks, almost mockingly. Maybe it needs a stronger back, or a luckier one, another time.",
+  "src": "story:font",
+  "key": "the basin won't move. something under it clicks, almost mockingly. maybe it needs a stronger back, or a luckier one, another time."
+ },
+ {
+  "id": "802588b2c4",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "Salt and sweetness. Saint’s tears. Whatever wept them was holy once, and it still mends what it touches.",
+  "src": "story:font",
+  "key": "salt and sweetness. saint's tears. whatever wept them was holy once, and it still mends what it touches."
+ },
+ {
+  "id": "aea3604dd5",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The drop rolls around the mouth and teaches nothing, except that it tastes of nothing you know.",
+  "src": "story:font",
+  "key": "⟪n⟫ rolls the drop around the mouth and learns nothing, except that it tastes of nothing they know."
+ },
+ {
+  "id": "6e75f5d56d",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "It fizzes on your tongue, and for a heartbeat you see the comet from above, looking down at you. Comet water. It will show you something, once.",
+  "src": "story:font",
+  "key": "it fizzes on your tongue, and for a heartbeat you see the comet from above, looking down at you. comet water. it will show you something, once."
+ },
+ {
+  "id": "b2b67a069b",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "One of you drinks, and it burns all the way down. The font seems pleased.",
+  "src": "story:font",
+  "key": "⟪n⟫ drinks, and it burns all the way down. # damage. the font seems pleased."
+ },
+ {
+  "id": "334e374d6f",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "Your lip blisters. Lye and old blood. Whoever filled this font wanted it to hurt.",
+  "src": "story:font",
+  "key": "your lip blisters. lye and old blood. whoever filled this font wanted it to hurt."
+ },
+ {
+  "id": "488c0fb4af",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The black font, still brimming with pink.",
+  "src": "story:font",
+  "key": "the black font, still brimming with pink."
+ },
+ {
+  "id": "35f2ef08b2",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The black font, still brimming with pink (saint’s tears).",
+  "src": "story:font",
+  "key": "the black font, still brimming with pink (saint's tears)."
+ },
+ {
+  "id": "4d8cde0b2a",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The black font, still brimming with pink (comet water).",
+  "src": "story:font",
+  "key": "the black font, still brimming with pink (comet water)."
+ },
+ {
+  "id": "6223ac02fe",
+  "group": "font",
+  "floor": "undercroft",
+  "say": "The black font, still brimming with pink (lye and blood).",
+  "src": "story:font",
+  "key": "the black font, still brimming with pink (lye and blood)."
+ },
+ {
+  "id": "7bb5994ba6",
+  "group": "dais",
+  "floor": "undercroft",
+  "say": "The ceiling goes up and up until your torchlight gives out. In the middle of the vault a dais of black stone rises in three steps, and every step is carved: rats, hundreds of them, gnawing their way up toward a saint who smiles as she is eaten.",
+  "src": "story:dais",
+  "key": "the ceiling goes up and up until your torchlight gives out. in the middle of the vault a dais of black stone rises in three steps, and every step is carved: rats, hundreds of them, gnawing their way up toward a saint who smiles as she is eaten."
+ },
+ {
+  "id": "03bb54bb38",
+  "group": "dais",
+  "floor": "undercroft",
+  "say": "There are words cut around her feet.",
+  "src": "story:dais",
+  "key": "there are words cut around her feet."
+ },
+ {
+  "id": "1694d00a0a",
+  "group": "dais",
+  "floor": "undercroft",
+  "say": "It is a prayer for being eaten gladly. One of you says it under their breath, and for a moment the comet looks away. One more Omen.",
+  "src": "story:dais",
+  "key": "it is a prayer for being eaten gladly. ⟪n⟫ says it under their breath, and for a moment the comet looks away. +# omen."
+ },
+ {
+  "id": "da4066ab59",
+  "group": "dais",
+  "floor": "undercroft",
+  "say": "The letters crawl. One of them crawls into an eye. One damage.",
+  "src": "story:dais",
+  "key": "the letters crawl. one of them crawls into ⟪n⟫'s eye. # damage."
+ },
+ {
+  "id": "47119e3df0",
+  "group": "crypt",
+  "floor": "undercroft",
+  "say": "Steps lead down into a crypt flooded with black water, ankle-deep and still. Coffin lids float in it like rafts.",
+  "src": "story:crypt",
+  "key": "steps lead down into a crypt flooded with black water, ankle-deep and still. coffin lids float in it like rafts."
+ },
+ {
+  "id": "48db9b20a6",
+  "group": "crypt",
+  "floor": "undercroft",
+  "say": "Something under the water catches your torchlight and winks. Something else, further in, makes a slow ring of ripples.",
+  "src": "story:crypt",
+  "key": "something under the water catches your torchlight and winks. something else, further in, makes a slow ring of ripples."
+ },
+ {
+  "id": "f20233b3ba",
+  "group": "crypt",
+  "floor": "undercroft",
+  "say": "Fingers close on a purse that rotted around its coins.",
+  "src": "story:crypt",
+  "key": "⟪n⟫'s fingers close on a purse that rotted around its coins. #s."
+ },
+ {
+  "id": "289543f077",
+  "group": "crypt",
+  "floor": "undercroft",
+  "say": "Fingers close on something cold that was waiting to be found.",
+  "src": "story:crypt",
+  "key": "⟪n⟫'s fingers close on something cold that was waiting to be found."
+ },
+ {
+  "id": "e9ba82edb1",
+  "group": "crypt",
+  "floor": "undercroft",
+  "say": "A leech as long as your forearm, fat and grateful. It drinks its share before it is torn off.",
+  "src": "story:crypt",
+  "key": "a leech as long as your forearm, fat and grateful. # damage before ⟪n⟫ tears it off."
+ },
+ {
+  "id": "4acd7e5be1",
+  "group": "deepstair",
+  "floor": "undercroft",
+  "say": "The stair goes down into black water, and the water is rising: you watch it climb a step while you stand there. It isn’t rain and it isn’t a spring. It’s coming up from under the island.",
+  "src": "story:deepstair",
+  "key": "the stair goes down into black water, and the water is rising: you watch it climb a step while you stand there. it isn't rain and it isn't a spring. it's coming up from under the island."
+ },
+ {
+  "id": "23227de370",
+  "group": "deepstair",
+  "floor": "undercroft",
+  "say": "Somewhere below, under all that water, a woman is weeping, patiently, as if she has been at it for a hundred years.",
+  "src": "story:deepstair",
+  "key": "somewhere below, under all that water, a woman is weeping, patiently, as if she has been at it for a hundred years."
+ },
+ {
+  "id": "1293cc9227",
+  "group": "hollowStair",
+  "floor": "hollow",
+  "say": "The stair winds down inside the hill, around and around. The walls are bones at first: the bell-ringers buried their own right here on the stair, so they could go on hearing the bell.",
+  "src": "story:hollowStair",
+  "key": "the stair winds down inside the hill, around and around. the walls are bones at first: the bell-ringers buried their own right here on the stair, so they could go on hearing the bell."
+ },
+ {
+  "id": "92d84fbe2a",
+  "group": "hollowStair",
+  "floor": "hollow",
+  "say": "Then the bones stop, and somewhere far below, the stone turns white.",
+  "src": "story:hollowStair",
+  "key": "then the bones stop, and somewhere far below, the stone turns white."
+ },
+ {
+  "id": "f7d1f3c78c",
+  "group": "hollowStair",
+  "floor": "hollow",
+  "say": "From down there comes a sound you know from the Brine: picks. Many picks, working. And under them, so faint you could be imagining it, singing.",
+  "src": "story:hollowStair",
+  "key": "from down there comes a sound you know from the brine: picks. many picks, working. and under them, so faint you could be imagining it, singing."
+ },
+ {
+  "id": "64d78f3ab8",
+  "group": "bellchamber",
+  "floor": "hollow",
+  "say": "A round chamber cut into the rock, its roof lost in the dark. In the middle, where it fell, lies the bell-ringers’ bell: bronze, taller than a man, cracked from lip to crown, its rope still on it.",
+  "src": "story:bellchamber",
+  "key": "a round chamber cut into the rock, its roof lost in the dark. in the middle, where it fell, lies the bell-ringers' bell: bronze, taller than a man, cracked from lip to crown, its rope still on it."
+ },
+ {
+  "id": "20e1bb22f4",
+  "group": "bellchamber",
+  "floor": "hollow",
+  "say": "Around the lip, in old letters: I RING THAT SHE MAY KNOW SHE IS NOT FORGOTTEN.",
+  "src": "story:bellchamber",
+  "key": "around the lip, in old letters: i ring that she may know she is not forgotten."
+ },
+ {
+  "id": "b3bc0c4cbf",
+  "group": "bell",
+  "floor": "hollow",
+  "say": "Cracked from lip to crown. I RING THAT SHE MAY KNOW SHE IS NOT FORGOTTEN. The rope is rotten, but the clapper is still in it.",
+  "src": "story:bell",
+  "key": "cracked from lip to crown. i ring that she may know she is not forgotten. the rope is rotten, but the clapper is still in it."
+ },
+ {
+  "id": "1330035d9e",
+  "group": "bell",
+  "floor": "hollow",
+  "say": "One of you swings the clapper into the cracked bronze, and the bell gives one note, so low and so loud you feel it in your teeth and your knees and the roots of your hair.",
+  "src": "story:bell",
+  "key": "⟪n⟫ swings the clapper into the cracked bronze, and the bell gives one note, so low and so loud you feel it in your teeth and your knees and the roots of your hair."
+ },
+ {
+  "id": "6b2dd33ed7",
+  "group": "bell",
+  "floor": "hollow",
+  "say": "And far below, something answers: a voice, singing one long note back up through the hill. Each of you: one more Omen.",
+  "src": "story:bell",
+  "key": "and far below, something answers: a voice, singing one long note back up through the hill. each of you: +# omen."
+ },
+ {
+  "id": "25849c72de",
+  "group": "bell",
+  "floor": "hollow",
+  "say": "The picks have stopped. Everything down there heard it.",
+  "src": "story:bell",
+  "key": "the picks have stopped. everything down there heard it."
+ },
+ {
+  "id": "e1aa4fbb6e",
+  "group": "bell",
+  "floor": "hollow",
+  "say": "The clapper won’t swing. Not yet.",
+  "src": "story:bell",
+  "key": "the clapper won't swing. not yet."
+ },
+ {
+  "id": "670984f347",
+  "group": "bell",
+  "floor": "hollow",
+  "say": "The bell lies where it fell. You can still feel the note you rang in your teeth.",
+  "src": "story:bell",
+  "key": "the bell lies where it fell. you can still feel the note you rang in your teeth."
+ },
+ {
+  "id": "99c2f44828",
+  "group": "haskel",
+  "floor": "hollow",
+  "say": "A cot, a cold brazier, a rope for a bell that isn’t there. In the corner sits what is left of the last bell-ringer, Brother Haskel, with a book in his lap.",
+  "src": "story:haskel",
+  "key": "a cot, a cold brazier, a rope for a bell that isn't there. in the corner sits what is left of the last bell-ringer, brother haskel, with a book in his lap."
+ },
+ {
+  "id": "a451642d4f",
+  "group": "haskel",
+  "floor": "hollow",
+  "say": "“Seven saints hold up Skarn, one under each of the seven hills, standing on the floor of the sea with the island on their shoulders. Ours is Agne. We ring every dawn so she knows she is not forgotten, and she holds.”",
+  "src": "story:haskel",
+  "key": "\"seven saints hold up skarn, one under each of the seven hills, standing on the floor of the sea with the island on their shoulders. ours is agne. we ring every dawn so she knows she is not forgotten, and she holds.\""
+ },
+ {
+  "id": "cc7023b3a6",
+  "group": "haskel",
+  "floor": "hollow",
+  "say": "“The Salt Lords have forbidden the dawn bell. It disturbs the counting at the Exchange, they say.”",
+  "src": "story:haskel",
+  "key": "\"the salt lords have forbidden the dawn bell. it disturbs the counting at the exchange, they say.\""
+ },
+ {
+  "id": "068d7a9ec8",
+  "group": "haskel",
+  "floor": "hollow",
+  "say": "“Men in the hill. Picks, at night. They came in from the east, from under the Hill. Agne’s song has changed.”",
+  "src": "story:haskel",
+  "key": "\"men in the hill. picks, at night. they came in from the east, from under the hill. agne's song has changed.\""
+ },
+ {
+  "id": "0a43f054e6",
+  "group": "haskel",
+  "floor": "hollow",
+  "say": "“They have cut down the bell. I am the last. I am going down to her, and”",
+  "src": "story:haskel",
+  "key": "\"they have cut down the bell. i am the last. i am going down to her, and\""
+ },
+ {
+  "id": "d57dd6fb1e",
+  "group": "haskel",
+  "floor": "hollow",
+  "say": "And that’s where it stops.",
+  "src": "story:haskel",
+  "key": "and that's where it stops."
+ },
+ {
+  "id": "f13468fe43",
+  "group": "camp",
+  "floor": "hollow",
+  "say": "Lanterns on poles, rails on the floor, and carts heaped with salt that glitters pink where it was freshly cut. The walls are white and wet. Men in salt-caked aprons look up from their picks.",
+  "src": "story:camp",
+  "key": "lanterns on poles, rails on the floor, and carts heaped with salt that glitters pink where it was freshly cut. the walls are white and wet. men in salt-caked aprons look up from their picks."
+ },
+ {
+  "id": "a94b74e3ec",
+  "group": "camp",
+  "floor": "hollow",
+  "say": "“Who let you down here?”",
+  "src": "story:camp",
+  "key": "\"who let you down here?\""
+ },
+ {
+  "id": "1cd3b41be6",
+  "group": "cart",
+  "floor": "hollow",
+  "say": "A cart heaped with fresh-cut salt. It is warm. Where the pick went in, the salt is pink, and wet, and it smells of the sea and of skin. At the Exchange, a cart like this is worth more than the house you were born in.",
+  "src": "story:cart",
+  "key": "a cart heaped with fresh-cut salt. it is warm. where the pick went in, the salt is pink, and wet, and it smells of the sea and of skin. at the exchange, a cart like this is worth more than the house you were born in."
+ },
+ {
+  "id": "fcc7d786df",
+  "group": "cart",
+  "floor": "hollow",
+  "say": "You fill your pockets. Thrumm will pay for it, and ask no questions.",
+  "src": "story:cart",
+  "key": "you fill your pockets. thrumm will pay for it, and ask no questions. +#s."
+ },
+ {
+  "id": "668e7fa32c",
+  "group": "cart",
+  "floor": "hollow",
+  "say": "Somewhere below, the singing falters, for just a moment.",
+  "src": "story:cart",
+  "key": "somewhere below, the singing falters, for just a moment."
+ },
+ {
+  "id": "7e304dee7f",
+  "group": "cart",
+  "floor": "hollow",
+  "say": "A cart heaped with fresh-cut salt. It is warm. Where the pick went in, the salt is pink, and wet, and it smells of the sea and of skin.",
+  "src": "story:cart",
+  "key": "a cart heaped with fresh-cut salt. it is warm. where the pick went in, the salt is pink, and wet, and it smells of the sea and of skin."
+ },
+ {
+  "id": "55f0ca8dd6",
+  "group": "saltcaves",
+  "floor": "hollow",
+  "say": "The salt grows in teeth from the walls here, white and pink, and it is warm to the touch, like a cheek.",
+  "src": "story:saltcaves",
+  "key": "the salt grows in teeth from the walls here, white and pink, and it is warm to the touch, like a cheek."
+ },
+ {
+  "id": "483d76db7c",
+  "group": "saltcaves",
+  "floor": "hollow",
+  "say": "Things move in it: cutters who ate the salt they cut, crusted to the knee, to the waist, to the eyes. They still swing their picks. They don’t know what at.",
+  "src": "story:saltcaves",
+  "key": "things move in it: cutters who ate the salt they cut, crusted to the knee, to the waist, to the eyes. they still swing their picks. they don't know what at."
+ },
+ {
+  "id": "4c02cee779",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "The hill is hollow.",
+  "src": "story:hollow",
+  "key": "the hill is hollow."
+ },
+ {
+  "id": "3b8d8981b6",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "The cave is as tall as the basilica, and in the middle of it stands Saint Agne: a woman of white salt three storeys tall, her arms raised, holding up the roof of the world. Her face is turned up, and calm. Below the knees there is nothing left of her. They have cut her away, cart by cart, and the hill groans on her shoulders.",
+  "src": "story:hollow",
+  "key": "the cave is as tall as the basilica, and in the middle of it stands saint agne: a woman of white salt three storeys tall, her arms raised, holding up the roof of the world. her face is turned up, and calm. below the knees there is nothing left of her. they have cut her away, cart by cart, and the hill groans on her shoulders."
+ },
+ {
+  "id": "7e0a8e3bec",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "And she is singing.",
+  "src": "story:hollow",
+  "key": "and she is singing."
+ },
+ {
+  "id": "bdda7f9b7f",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "Under her, a big hooded man in a long black coat turns round, a lantern in his fist and a writ in his belt. “This is the Lords’ work,” he says. “Back to it, lads.”",
+  "src": "story:hollow",
+  "key": "under her, a big hooded man in a long black coat turns round, a lantern in his fist and a writ in his belt. \"this is the lords' work,\" he says. \"back to it, lads.\""
+ },
+ {
+  "id": "d83ef54d97",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "One of you points up at her face. The cutters look at the saint, and at their picks, and at each other. One by one they put the picks down and walk off into the dark.",
+  "src": "story:hollow",
+  "key": "⟪n⟫ points up at her face. the cutters look at the saint, and at their picks, and at each other. one by one they put the picks down and walk off into the dark."
+ },
+ {
+  "id": "1152676b05",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "Only the overseer stays. “Cowards,” he says, and hefts his cudgel.",
+  "src": "story:hollow",
+  "key": "only the overseer stays. \"cowards,\" he says, and hefts his cudgel."
+ },
+ {
+  "id": "946882c691",
+  "group": "hollow",
+  "floor": "hollow",
+  "say": "“Back to work,” says the overseer, and the cutters come at you with their picks.",
+  "src": "story:hollow",
+  "key": "\"back to work,\" says the overseer, and the cutters come at you with their picks."
+ },
+ {
+  "id": "3183f59c03",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "The overseer’s lantern swings your way. Not while he’s standing.",
+  "src": "story:agne",
+  "key": "the overseer's lantern swings your way. not while he's standing."
+ },
+ {
+  "id": "e89d7c9c1f",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Up close she is not stone and not salt but both, and warm, like a hand. Her song comes up through your feet. There are words in it, if you listen with your bones:",
+  "src": "story:agne",
+  "key": "up close she is not stone and not salt but both, and warm, like a hand. her song comes up through your feet. there are words in it, if you listen with your bones:"
+ },
+ {
+  "id": "70a0dc13b9",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Seven of us. One under each hill. We stood on the floor of the sea when the sea was young, and took Skarn on our shoulders, and we have held it every day since.",
+  "src": "story:agne",
+  "key": "seven of us. one under each hill. we stood on the floor of the sea when the sea was young, and took skarn on our shoulders, and we have held it every day since."
+ },
+ {
+  "id": "7c7028df74",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Four of my sisters are cut away already. Their salt is in the Exchange, and in the Salt Lords’ bread, and in the mouths of the Bright. The island sinks because we are fewer.",
+  "src": "story:agne",
+  "key": "four of my sisters are cut away already. their salt is in the exchange, and in the salt lords' bread, and in the mouths of the bright. the island sinks because we are fewer."
+ },
+ {
+  "id": "f053c6e24f",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "I am cut to the knee. I hold. I hold.",
+  "src": "story:agne",
+  "key": "i am cut to the knee. i hold. i hold."
+ },
+ {
+  "id": "17997cd8a2",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Saint Agne holds up the hill, and sings.",
+  "src": "story:agne",
+  "key": "saint agne holds up the hill, and sings."
+ },
+ {
+  "id": "78b2548761",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "You pray, and you don’t know the words, and it doesn’t matter. Her song goes through you like warm water. Every wound closes. Every hit point back, and one more Omen each.",
+  "src": "story:agne",
+  "key": "you pray, and you don't know the words, and it doesn't matter. her song goes through you like warm water. every wound closes. all hp, and +# omen each."
+ },
+ {
+  "id": "83933a4711",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "You knock the props out of the cutters' tunnel, and the roof comes down in a roar of salt. Nobody is coming in that way again.",
+  "src": "story:agne",
+  "key": "⟪n⟫ knocks the props out of the cutters' tunnel, and the roof comes down in a roar of salt. nobody is coming in that way again."
+ },
+ {
+  "id": "adaa2b0c8f",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is undefined days further off.",
+  "src": "story:agne",
+  "key": "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is undefined days further off."
+ },
+ {
+  "id": "541ddedf5c",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "Salt comes down, but not enough of it, and most of it on you.",
+  "src": "story:agne",
+  "key": "salt comes down, but not enough of it, and most of it on you."
+ },
+ {
+  "id": "831d90bc6c",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "You cut. It comes away warm and pink, and heavy, a fortune in your hands.",
+  "src": "story:agne",
+  "key": "you cut. it comes away warm and pink, and heavy, a fortune in your hands. +#s."
+ },
+ {
+  "id": "961a47aa8e",
+  "group": "agne",
+  "floor": "hollow",
+  "say": "She doesn’t stop singing. That is the worst of it. The hill groans, and somewhere in Skarn the sea comes up another step. A day is lost.",
+  "src": "story:agne",
+  "key": "she doesn't stop singing. that is the worst of it. the hill groans, and somewhere in skarn the sea comes up another step. a day is lost."
+ },
+ {
+  "id": "2d1af652f8",
+  "group": "tunnel",
+  "floor": "hollow",
+  "say": "The cutters’ tunnel runs on east into the dark, rails and all, sloping down. A wind comes up it that smells of lamp oil and money. It runs under the Hill.",
+  "src": "story:tunnel",
+  "key": "the cutters' tunnel runs on east into the dark, rails and all, sloping down. a wind comes up it that smells of lamp oil and money. it runs under the hill."
+ },
+ {
+  "id": "eb938adaab",
+  "group": "tunnel",
+  "floor": "hollow",
+  "say": "Under the Exchange. Not yet.",
+  "src": "story:tunnel",
+  "key": "under the exchange. not yet."
+ },
+ {
+  "id": "84254e6b47",
+  "group": "tunnel",
+  "floor": "hollow",
+  "say": "The cutters’ tunnel is choked with fallen salt, wall to wall. Nobody is coming in this way again.",
+  "src": "story:tunnel",
+  "key": "the cutters' tunnel is choked with fallen salt, wall to wall. nobody is coming in this way again."
+ }
+]

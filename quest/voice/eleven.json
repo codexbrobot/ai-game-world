@@ -1,0 +1,8 @@
+{
+ "_": "How the narration is recorded (quest/tools/voice/clips.cjs): ElevenLabs, through the Claude connector, one take per line, into one flow.",
+ "voice_id": "ybjoxm7ASLDUFh2pC2eM",
+ "voice": "Jasper Vayne - Epic Grim Dark Narrator",
+ "model_id": "eleven_v4",
+ "flow_id": "HlF0Kk7CTFFdpkMSNkYj",
+ "generations_count": 1
+}
