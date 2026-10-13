@@ -6,8 +6,9 @@
 //   node quest/tools/voice/clips.cjs status     how far along the script is
 //
 // The connector hands back each recording as a signed link (good for two hours) in the result of
-// creative_get_flow_run_status, and the session's transcript keeps those results, so fetch reads them from
-// there instead of anyone copying links by hand. A recording is matched to its line by its words.
+// creative_get_flow_run_status, and the session keeps those results (in its transcript, or in tool-results/
+// when one is too long to show), so fetch reads them from there instead of anyone copying links by hand.
+// A recording is matched to its line by its words.
 //
 // quest/voice/clips/ is a cache; the recordings that ship are the bundles in assets/voice/ (bundle.cjs).
 const fs = require('fs');
@@ -32,7 +33,7 @@ const have = (id) => fs.existsSync(path.join(CLIPS, `${id}.webm`)) || id in bund
 function transcripts() {
   const dir = path.join(os.homedir(), '.claude', 'projects');
   const out = [];
-  const visit = (d) => { if (!fs.existsSync(d)) return; for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) visit(p); else if (e.name.endsWith('.jsonl')) out.push(p); } };
+  const visit = (d) => { if (!fs.existsSync(d)) return; for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) visit(p); else if (e.name.endsWith('.jsonl') || (e.name.endsWith('.txt') && d.endsWith('tool-results'))) out.push(p); } };
   visit(dir);
   return out;
 }
@@ -52,6 +53,7 @@ function recordings() {
     }
   };
   for (const f of transcripts()) {
+    if (f.endsWith('.txt')) { const t = fs.readFileSync(f, 'utf8'); if (t.includes('content_generation')) dig(t); continue; }
     for (const line of fs.readFileSync(f, 'utf8').split('\n')) {
       if (!line.includes('content_generation') || !line.includes('media')) continue;
       try { dig(JSON.parse(line)); } catch (e) { /* a partial line */ }
