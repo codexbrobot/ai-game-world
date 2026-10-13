@@ -410,8 +410,6 @@ body.in-battle .dice-layer { align-items: center; padding: 0 10px 18vh; }
 /* ---------- classes, rows, enemy tricks, the Calendar ---------- */
 .sheet .cls { margin: 4px 0 0; font-size: 14px; }
 .sheet .cls b { text-transform: uppercase; letter-spacing: 0.06em; }
-.cls-pick { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; }
-.cls-pick select { flex: 1; min-height: 40px; font: inherit; text-transform: none; letter-spacing: 0; background: var(--ink); color: var(--yellow); border: 0; padding: 0 8px; }
 .pc-card .row-tag { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--pink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-card.row-front { transform: translateY(-6px); }
 .pc-card.row-front.active { transform: translateY(-10px); }

@@ -423,22 +423,12 @@
   function renderCreate() {
     $('createActions').hidden = false;
     $('customActions').hidden = true;
-    const options = (pc) => Object.entries(Q.CLASSES).map(([k, c]) => `<option value="${k}"${pc.cls === k ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
-    $('sheets').innerHTML = rolled.map((pc, i) => `
+    // the pair is rolled together, and rolled again together: no keeping the good one
+    $('sheets').innerHTML = rolled.map((pc) => `
       <div class="sheet">${sheetHtml(pc, true)}
-        ${pc.custom ? '<button type="button" class="ghost reroll edit-own">Edit by hand</button>'
-          : `<label class="cls-pick">Class <select data-i="${i}">${options(pc)}</select></label>
-        <button type="button" class="ghost reroll" data-i="${i}">Roll this one again</button>`}
+        ${pc.custom ? '<button type="button" class="ghost reroll edit-own">Edit by hand</button>' : ''}
       </div>`).join('');
     document.querySelectorAll('.edit-own').forEach((b) => b.addEventListener('click', () => renderCustom(rolled)));
-    document.querySelectorAll('.reroll[data-i]').forEach((b) => b.addEventListener('click', () => {
-      rolled[+b.dataset.i] = rollBeside(rolled[+b.dataset.i].cls, rolled[1 - +b.dataset.i]);
-      renderCreate();
-    }));
-    document.querySelectorAll('.cls-pick select').forEach((sel) => sel.addEventListener('change', () => {
-      rolled[+sel.dataset.i] = rollBeside(sel.value, rolled[1 - +sel.dataset.i]);
-      renderCreate();
-    }));
   }
 
   // Both again.

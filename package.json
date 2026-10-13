@@ -5,12 +5,14 @@
   "description": "A Neverwinter Nights-style game set in the world of Mörk Borg.",
   "scripts": {
     "build": "node build.mjs",
-    "build:quest": "esbuild quest/src/engine.js --bundle --minify --format=iife --target=es2019 --outfile=quest/js/engine.js"
+    "build:quest": "esbuild quest/src/engine.js --bundle --minify --format=iife --target=es2019 --outfile=quest/js/engine.js",
+    "test:quest": "npm run build:quest && node quest/tests/run.cjs"
   },
   "dependencies": {
     "three": "0.170.0"
   },
   "devDependencies": {
-    "esbuild": "0.24.0"
+    "esbuild": "0.24.0",
+    "playwright": "^1.56.1"
   }
 }
