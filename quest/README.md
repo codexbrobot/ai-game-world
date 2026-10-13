@@ -10,7 +10,7 @@ Serve the folder and open it in a browser; it works on a phone too:
 cd quest && python3 -m http.server 8765   # then open http://localhost:8765
 ```
 
-Opening `index.html` straight from disk doesn't work, because WebGL won't load textures from `file://`. The only network request is for Google Fonts; the pictures load from `assets/`. The game saves to your browser as you go.
+Opening `index.html` straight from disk doesn't work, because WebGL won't load textures from `file://`. The only network request is for Google Fonts; the pictures, the narration and the recorded sounds load from `assets/`. The game saves to your browser as you go.
 
 To publish it as a single web page (a claude.ai artifact, for example), run `python tools/build_page.py`. It writes `dist/quest.html` with the CSS and scripts inlined; publish that page together with the `assets/` folder.
 
@@ -20,7 +20,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 |---|---|---|
 | Walk and strafe (free movement) | drag the left half of the screen (a joystick appears) | W A S D |
 | Step a square, turn a quarter (step movement) | the arrow pad | W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn |
-| Settings (movement, water, Omens, sound) | ⚙ (or Settings on the title screen) | |
+| Settings (movement, water, Omens, sound, the narrator) | ⚙ (or Settings on the title screen) | |
 | Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
 | Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–7 |
 | Spend an Omen when one is offered | tap the yellow button on the dice | O |
@@ -192,9 +192,13 @@ The modifiers are added to the 3d6 roll before it becomes an ability score, as i
 | `js/data.js` | The floor maps (the Brine Gaol, the Undercroft, Skarnvik) (tiles, floor heights and ceiling heights), the bestiary and its groups, loot and the shop |
 | `js/art.js` | The town picture, the map, and the grain overlay |
 | `js/dice.js` | The dice thrown on screen for every roll in a battle |
-| `js/sound.js` | Every sound, synthesized with Web Audio: effects, ambience per place, mute |
+| `js/sound.js` | Every sound, in Web Audio: the effects, synthesized; the monsters' voices and each place's bed, recorded (with the synthesized ones as the fallback); mute |
+| `js/sfx-data.js` | Where the recorded sounds are in `assets/sfx/` (written by `tools/voice/sfx.cjs`) |
+| `js/voice.js` | The narrator: matches each paragraph of a DM box to its recording and plays them in order |
+| `js/voice-data.js` | What each paragraph sounds like and where its recording is in `assets/voice/` (written by `tools/voice/bundle.cjs`) |
 | `js/game.js` | Game state, the party, the town, what happens on each square, saving, the HUD and input |
-| `assets/` | The generated pictures (WebP) |
+| `assets/` | The generated pictures (WebP), the narration (`voice/`) and the recorded sounds (`sfx/`), Opus in WebM |
+| `voice/`, `tools/voice/` | The narration script and the tools that record and pack it (see *Voice and sound*) |
 | `tools/make_art.py` | Generates and grades the pictures |
 | `tools/build_page.py` | Bundles the game into one page for publishing |
 
@@ -205,7 +209,7 @@ Edit the maps in `js/data.js` (the key is at the top of the file). A floor can b
 Every roll in a battle is thrown on screen by `js/dice.js`: the dice tumble in, land on the number actually rolled, and a caption gives the sum (for example *Strength 14 + 1 = 15 vs DR 12*). The rules in `js/rules.js` report each die they roll, so what you see is what was rolled. Animations are skipped for anyone who prefers reduced motion.
 
 
-The browser tests are in `tests/` (see `tests/README.md`): `npm run test:quest` from the repository root plays the game headless and checks the Gaol, the town, day and night, Saint Agne's Hollow, the Broken table and the wretches page.
+The browser tests are in `tests/` (see `tests/README.md`): `npm run test:quest` from the repository root plays the game headless and checks the Gaol, the town, day and night, Saint Agne's Hollow, the Broken table, the wretches page, the narrator and the recorded sounds.
 ## Art
 
 To remake the art (with ChatGPT or anything else), see [`ART.md`](ART.md): every picture the game uses, the shape and transparency each needs, and `tools/import_art.py` to bring new ones in.
@@ -229,6 +233,26 @@ pip install -r requirements.txt
 python make_art.py candidates zombie --seeds 1 2 3   # contact sheets of three tries in tools/sheets/
 python make_art.py build                             # render the chosen seeds into assets/
 ```
+
+## Voice and sound
+
+Every box the DM shows is read aloud: 357 recordings, 48 minutes in all, made with [ElevenLabs](https://elevenlabs.io) (the voice *Jasper Vayne – Epic Grim Dark Narrator*, model `eleven_v4`, one take per line), trimmed of silence and squeezed to 16 kbps Opus (6.7 MB). They come in a few dozen small bundles, one per scene, and the game fetches a bundle the first time one of its boxes opens. Turn him off in Settings. Browsers that can't play WebM Opus (older Safari) stay quiet.
+
+The monsters' voices (two takes each) and a seamless loop for each place (the Gaol, the Undercroft, the city in the rain, the Hollow) are ElevenLabs sound effects too, 667 KB in `assets/sfx/`. Every other sound is still synthesized in `js/sound.js`, and so are those until the recordings load.
+
+A paragraph finds its recording by its words alone: tags, quote marks and case don't count, the wretches' names stand in as one token, and so does every number. Where a paragraph has a name or a number in it, the narrator says something that fits any (*"One of you…"*); those words, and the patterns for the Broken table, are in `voice/spoken.json`.
+
+When the text changes:
+
+```sh
+node quest/tools/voice/script.cjs          # every paragraph the game can show, into voice/script.json; lists any that need words in spoken.json
+node quest/tools/voice/clips.cjs todo 20   # the next lines nobody has recorded, to record (one take each) with the ElevenLabs connector
+node quest/tools/voice/clips.cjs fetch     # download what was recorded in this session, squeezed to Opus (voice/clips/, not in git)
+node quest/tools/voice/bundle.cjs          # pack assets/voice/ and js/voice-data.js (recordings already in a bundle are kept)
+node quest/tools/voice/check.cjs           # every paragraph, with real names in, must land on its own recording
+```
+
+`script.cjs` walks every branch of every story scene (`tools/voice/explore.cjs` plays them against a stand-in DM), reads every `say()` in the game and the battle code, and runs the Broken table for every result. The sounds are listed in `voice/sfx.json`; `node quest/tools/voice/sfx.cjs` fetches and packs them.
 
 ## Licence note
 
