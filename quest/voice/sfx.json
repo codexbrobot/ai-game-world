@@ -1,0 +1,25 @@
+{
+  "_": "Sound effects made with ElevenLabs (eleven_text_to_sound_v2), two takes of each monster so they don't repeat, and a loop for each place. tools/voice/sfx.cjs fetches them by prompt and builds assets/sfx/ and js/sfx-data.js. The synthesized sounds in js/sound.js stay as the fallback.",
+  "monsters": {
+    "guard": "A drowned prison guard: a heavy ring of iron keys jangles, then a wet, gurgling grunt. Dark fantasy horror creature, close, dry.",
+    "prisoner": "A drowned prisoner's waterlogged throat tries to moan a name, gargling and choking, iron chains clinking. Horror creature, close.",
+    "warden": "A huge drowned jailer bellows from the bottom of a flooded stone hall, a deep gurgling roar, a heavy chain dragging through water. Horror.",
+    "rats": "A swarm of rats squeaking and chittering, claws scrabbling on wet stone, close.",
+    "zombie": "A rotting corpse groans, low, hungry and wet, close by. Horror creature.",
+    "skeleton": "A skeleton's dry bones rattle and clatter as it moves, a rusty blade scraping on stone.",
+    "cultist": "A hooded cultist hums a low, droning, wordless chant, eerie and slightly echoing in a stone corridor.",
+    "drowned": "A drowned fisherman's corpse moans through a throat full of seawater, bubbling and gurgling, water dripping off it.",
+    "watch": "A gruff armoured city guard gives a short wordless bark, chainmail rattles, a halberd butt strikes cobblestones.",
+    "hanged": "A gallows rope creaks under strain, then a breathless, strangled rasping hiss. Horror.",
+    "cutter": "A pickaxe strikes hard salt rock twice, crystal chips scattering, then a tired man's grunt, underground mine.",
+    "saltwight": "Salt crystals crack and crunch over a dried-out body, then a dry, cracking, inhuman groan. Horror creature.",
+    "overseer": "A wooden cudgel strikes rock, then a big man gives an angry wordless bark, echoing in a cave.",
+    "abbess": "A ghostly woman wails a long, mournful high keen that falls in pitch, a cracked bell rings faintly, cathedral echo. Horror."
+  },
+  "ambience": {
+    "gaol": "Inside a flooded stone dungeon prison: water dripping into deep pools, a distant chain shifting in water, low hollow drone. Dark ambience loop, no music.",
+    "undercroft": "An ancient crypt under a cathedral: stale air moving through stone passages, distant drips, faint rat scratching, deep low hum. Dark ambience loop, no music.",
+    "town": "A medieval harbor town at night in steady rain: rain on cobblestones and slate roofs, gutters running, distant sea against a stone quay. Ambience loop, no music, no voices.",
+    "hollow": "A vast underground salt cave: low resonant hum of the rock, faint distant pickaxes, and very far away an eerie wordless female choir singing one note. Dark ambience loop."
+  }
+}

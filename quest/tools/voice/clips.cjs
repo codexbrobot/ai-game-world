@@ -102,6 +102,8 @@ function status() {
   console.log(`${done} of ${lines.length} recorded, ${waiting} generated but not downloaded, ${lines.length - done - waiting} to go (${chars} characters)`);
 }
 
+module.exports = { recordings, flat };
+if (require.main !== module) return;
 const [cmd, arg] = process.argv.slice(2);
 if (cmd === 'todo') {
   const next = lines.filter((l) => !have(l.id) && !generated[l.id]).slice(0, +arg || 10);

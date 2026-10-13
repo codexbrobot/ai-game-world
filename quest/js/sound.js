@@ -5,6 +5,10 @@
 // Q.Sound.ambience(where, id) the bed under everything: 'crawl' (floor id), 'town', or null for silence
 // Q.Sound.duck(on)            quieten the ambience (battles, menus)
 // Q.Sound.hush(on)            quieten it further while the narrator speaks
+//
+// Every sound is made here, in Web Audio, except the monsters' voices and the places' beds, which are
+// recordings (assets/sfx/, listed in js/sfx-data.js, made with ElevenLabs) once they have loaded; until then,
+// or if they can't load, the synthesized ones play.
 // Q.Sound.toggle()            mute or unmute; remembered in the browser
 //
 // Browsers only allow audio after the player touches the page, so nothing sounds until the first tap or key.
@@ -53,6 +57,7 @@ var Q = window.Q || (window.Q = {});
     const b = brownBuf.getChannelData(0);
     let last = 0;
     for (let i = 0; i < b.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; b[i] = last * 3.5; }
+    loadMonsters();
     if (ambState.where) startAmbience();
   }
   ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, init, { passive: true }));
@@ -146,6 +151,57 @@ var Q = window.Q || (window.Q = {});
     [[1, 1], [2.0, 0.5], [2.76, 0.35], [5.4, 0.18], [8.9, 0.08]].forEach(([k, g]) => tone(dest, t, { f: f * k, d: d / Math.sqrt(k), gain: gain * g, a: 0.004 }));
   }
 
+  // ---------- recordings ----------
+  const RECORDED_GAIN = 0.8; // a recorded voice, against the synthesized ones
+  const LOOP_GAIN = 0.6;
+  const voices = {}; // monster kind -> [AudioBuffer]
+  const loops = new Map(); // place -> Promise<AudioBuffer | null>
+  const loopBuf = new Map(); // place -> AudioBuffer, once loaded
+  const decode = (buf) => new Promise((resolve) => {
+    try { ctx.decodeAudioData(buf, resolve, () => resolve(null)); } catch (e) { resolve(null); }
+  });
+  const fetchBuf = (url) => fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+  let monstersAsked = false;
+  function loadMonsters() {
+    if (monstersAsked || !ctx || !Q.SFX) return;
+    monstersAsked = true;
+    fetchBuf('assets/sfx/monsters.webm').then(async (all) => {
+      if (!all) { monstersAsked = false; return; }
+      for (const [kind, takes] of Object.entries(Q.SFX.monsters)) {
+        const list = [];
+        for (const [off, len] of takes) { const b = await decode(all.slice(off, off + len)); if (b) list.push(b); }
+        if (list.length) voices[kind] = list;
+      }
+    });
+  }
+  // a monster's voice into d at t: a recording if there is one, else the synthesized one
+  function speak(kind, d, t) {
+    const list = voices[kind];
+    if (!list) { if (VOICES[kind]) VOICES[kind](d, t); return; }
+    const src = ctx.createBufferSource();
+    src.buffer = list[Math.floor(Math.random() * list.length)];
+    src.playbackRate.value = rnd(0.94, 1.06);
+    const g = ctx.createGain();
+    g.gain.value = RECORDED_GAIN;
+    src.connect(g).connect(d);
+    src.start(t);
+  }
+  // the place's loop, once it has loaded (and then the ambience starts again with it)
+  function placeLoop(place) {
+    if (!place || !Q.SFX || !Q.SFX.ambience[place]) return null;
+    if (loopBuf.has(place)) return loopBuf.get(place);
+    if (!loops.has(place)) {
+      loops.set(place, fetchBuf(`assets/sfx/${place}.webm`).then((b) => b && decode(b)).then((buf) => {
+        if (!buf) { loops.delete(place); return null; }
+        loopBuf.set(place, buf);
+        if (ctx && ambPlace() === place) startAmbience();
+        return buf;
+      }));
+    }
+    return null;
+  }
+  const ambPlace = () => (ambState.where === 'town' ? 'town' : ambState.where === 'crawl' ? ambState.ix : null);
+
   // ---------- the effects ----------
   const VOICES = {
     rats(d, t) { for (let i = 0; i < 4; i++) tone(d, t + i * rnd(0.06, 0.11), { type: 'triangle', f: rnd(2600, 3600), f2: rnd(1800, 2400), d: 0.05, gain: 0.12 }); },
@@ -229,12 +285,12 @@ var Q = window.Q || (window.Q = {});
       const d = out({ gain: 0.6, verb: 0.5, pan: o.pan }), t = now();
       [98, 104, 139, 147].forEach((f) => tone(d, t, { type: 'sawtooth', f, d: 1.4, a: 0.006, gain: 0.12, lp: 3200, lp2: 260 }));
       noise(d, t, { filter: 'lowpass', f: 400, d: 0.5, gain: 0.25, brown: true });
-      if (VOICES[o.kind]) VOICES[o.kind](d, t + 0.12);
+      speak(o.kind, d, t + 0.12);
     },
     voice(o) {
       const near = Math.max(0, 1 - (o.dist || 0) / 7);
       const d = out({ gain: 0.25 + near * 0.6, verb: 0.6, pan: o.pan });
-      if (VOICES[o.kind]) VOICES[o.kind](d, now());
+      speak(o.kind, d, now());
     },
     // a door grinding up into the lintel
     door() {
@@ -345,7 +401,9 @@ var Q = window.Q || (window.Q = {});
   }
 
   // A held drone: looped noise through a filter, with a slow wobble.
+  let recordedBed = false; // a recorded loop is playing: it is the bed
   function bed(o) {
+    if (recordedBed) return;
     const src = ctx.createBufferSource();
     src.buffer = o.brown ? brownBuf : noiseBuf; src.loop = true;
     const f = ctx.createBiquadFilter();
@@ -362,6 +420,7 @@ var Q = window.Q || (window.Q = {});
   }
 
   function hum(freqs, gain) {
+    if (recordedBed) return;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, now());
     g.gain.linearRampToValueAtTime(gain, now() + 4);
@@ -388,6 +447,18 @@ var Q = window.Q || (window.Q = {});
     if (!ctx) return;
     stopAmbience();
     const { where, ix } = ambState;
+    const buf = placeLoop(ambPlace());
+    recordedBed = !!buf;
+    if (buf) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, now());
+      g.gain.linearRampToValueAtTime(LOOP_GAIN, now() + 3);
+      src.connect(g).connect(ambBus);
+      src.start();
+      ambNodes.push(src, g);
+    }
     if (where === 'crawl') {
       bed({ f: 140, gain: 0.1, brown: true, rate: 0.05 });
       hum([41.2, 41.9, 61.7], 0.01);
@@ -446,5 +517,7 @@ var Q = window.Q || (window.Q = {});
     get on() { return !muted; },
     // for tests: render an effect offline and report its level
     _fx: FX,
+    // what has loaded, for the tests
+    get recorded() { return { voices: Object.keys(voices), loops: [...loopBuf.keys()], bed: recordedBed }; },
   };
 })();

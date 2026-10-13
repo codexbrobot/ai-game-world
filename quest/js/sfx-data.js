@@ -1,0 +1,4 @@
+// Written by quest/tools/voice/sfx.cjs from quest/voice/sfx.json: the recorded sounds, and where they are.
+'use strict';
+var Q = window.Q || (window.Q = {});
+Q.SFX = {"monsters":{"guard":[[0,13408],[13408,9128]],"prisoner":[[22536,8680],[31216,7489]],"warden":[[38705,8063],[46768,12743]],"rats":[[59511,14308],[73819,4517]],"zombie":[[78336,7325],[85661,8038]],"skeleton":[[93699,11761],[105460,2327]],"cultist":[[107787,13204],[120991,8903]],"drowned":[[129894,8447],[138341,8640]],"watch":[[146981,12888],[159869,4385]],"hanged":[[164254,4733],[168987,4855]],"cutter":[[173842,8052],[181894,7464]],"saltwight":[[189358,8899],[198257,4454]],"overseer":[[202711,3048],[205759,5581]],"abbess":[[211340,9618],[220958,7353]]},"ambience":{"gaol":"gaol","undercroft":"undercroft","town":"town","hollow":"hollow"}};
