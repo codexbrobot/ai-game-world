@@ -4,6 +4,7 @@
 // Q.Sound.play(name, opts)    a one-shot effect (see FX below)
 // Q.Sound.ambience(where, id) the bed under everything: 'crawl' (floor id), 'town', or null for silence
 // Q.Sound.duck(on)            quieten the ambience (battles, menus)
+// Q.Sound.hush(on)            quieten it further while the narrator speaks
 // Q.Sound.toggle()            mute or unmute; remembered in the browser
 //
 // Browsers only allow audio after the player touches the page, so nothing sounds until the first tap or key.
@@ -16,7 +17,8 @@ var Q = window.Q || (window.Q = {});
   try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) { /* storage may be unavailable */ }
 
   let ctx = null, master = null, fxBus = null, ambBus = null, verbSend = null, noiseBuf = null, brownBuf = null;
-  let ambState = { where: null, ix: 0 }, ambNodes = [], ambTimers = [], ducked = false;
+  let ambState = { where: null, ix: 0 }, ambNodes = [], ambTimers = [], ducked = false, hushed = false;
+  const ambLevel = () => (ducked ? 0.35 : 1) * (hushed ? 0.45 : 1);
 
   function init() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
@@ -29,7 +31,7 @@ var Q = window.Q || (window.Q = {});
     comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.2;
     master.connect(comp).connect(ctx.destination);
     fxBus = ctx.createGain(); fxBus.connect(master);
-    ambBus = ctx.createGain(); ambBus.gain.value = ducked ? 0.35 : 1; ambBus.connect(master);
+    ambBus = ctx.createGain(); ambBus.gain.value = ambLevel(); ambBus.connect(master);
     // the crypt: a long, dark reverb from decaying noise
     const verb = ctx.createConvolver();
     const len = Math.floor(ctx.sampleRate * 2.8);
@@ -428,7 +430,11 @@ var Q = window.Q || (window.Q = {});
     },
     duck(on) {
       ducked = !!on;
-      if (ctx) ambBus.gain.setTargetAtTime(ducked ? 0.35 : 1, now(), 0.3);
+      if (ctx) ambBus.gain.setTargetAtTime(ambLevel(), now(), 0.3);
+    },
+    hush(on) {
+      hushed = !!on;
+      if (ctx) ambBus.gain.setTargetAtTime(ambLevel(), now(), 0.4);
     },
     toggle() {
       muted = !muted;

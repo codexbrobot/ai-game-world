@@ -1601,12 +1601,14 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       row.appendChild(el);
     }
     box.hidden = false;
+    if (Q.Voice && Q.Voice.speak) Q.Voice.speak($('modalBody'), S ? S.party.flatMap((p) => [p.name, p.name.split(' ')[0]]) : []);
     const first = row.querySelector('button:not(:disabled)');
     if (first) first.focus({ preventScroll: true });
     document.querySelector('#modal .card').scrollTop = 0;
   }
 
   function closeModal() {
+    if (Q.Voice && Q.Voice.stop) Q.Voice.stop();
     $('modal').hidden = true;
     modalOpen = false;
     if (world && S && S.where === 'crawl' && !busy && !S.over) world.resume();
@@ -1680,7 +1682,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   }
   function showSettings() {
     const on = !Q.Sound || Q.Sound.on;
-    const current = { move: moveMode, sound: on ? 'on' : 'off', omens: Q.prefs.omens, flood: Q.prefs.flood ? 'on' : 'off', broken: Q.prefs.broken };
+    const current = { move: moveMode, sound: on ? 'on' : 'off', voice: Q.Voice && Q.Voice.enabled ? 'on' : 'off', omens: Q.prefs.omens, flood: Q.prefs.flood ? 'on' : 'off', broken: Q.prefs.broken };
     const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${current[key] === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
     modal('Settings', `<div class="settings">
       <div class="opt"><b>Movement</b><div class="choices">
@@ -1700,6 +1702,10 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
         ${opt('broken', 'below', '0 or below', 'house rule: even a killing blow rolls on the table')}
       </div></div>
       <div class="opt"><b>Sound</b><div class="choices">${opt('sound', 'on', 'On')}${opt('sound', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Narrator</b><div class="choices">
+        ${opt('voice', 'on', 'On', Q.Voice && Q.Voice.supported ? 'the DM reads the boxes aloud' : 'this browser can’t play the recordings')}
+        ${opt('voice', 'off', 'Off', 'read them yourself')}
+      </div></div>
       <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
       if (b.dataset.set === 'flood') {
@@ -1718,7 +1724,8 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
         moveMode = b.dataset.val;
         try { localStorage.setItem(MOVE_KEY, moveMode); } catch (e) { /* ignore */ }
         applyMove();
-      } else if (Q.Sound && (b.dataset.val === 'on') !== Q.Sound.on) Q.Sound.toggle();
+      } else if (b.dataset.set === 'voice') { if (Q.Voice) Q.Voice.set({ enabled: b.dataset.val === 'on' }); }
+      else if (Q.Sound && (b.dataset.val === 'on') !== Q.Sound.on) Q.Sound.toggle();
       showSettings();
     }));
   }

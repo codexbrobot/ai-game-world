@@ -189,4 +189,5 @@ async function main() {
   }
 }
 
-main();
+module.exports = { collect };
+if (require.main === module) main();
