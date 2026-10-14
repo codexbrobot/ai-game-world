@@ -24,7 +24,8 @@ module.exports = {
       });
       if (st.modal) { const b = await t.page.$('#modalButtons button'); if (b) await b.click(); continue; }
       if (!st.battle && i > 5000) break;
-      if (st.ratsDead && !diedAt) { diedAt = Date.now(); await S(() => Q.debug().party.forEach((p) => { p.strength = -3; })); }
+      // then weak blows, so the cultist outlasts the fade (the Gaol pair's d6 weapons could end it first)
+      if (st.ratsDead && !diedAt) { diedAt = Date.now(); await S(() => Q.debug().party.forEach((p) => { p.strength = -3; p.weapon = { name: 'Femur', die: 1 }; })); }
       if (diedAt && !faded && st.op === 0) faded = true;
       else if (faded) { samples++; if (st.op > highest) t.log(`seen again ${Date.now() - diedAt}ms after it fell: opacity ${st.op} (${st.cls})`); highest = Math.max(highest, st.op); }
       if (diedAt && Date.now() - diedAt > 12000) break;
