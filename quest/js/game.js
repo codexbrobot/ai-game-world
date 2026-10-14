@@ -1387,7 +1387,8 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     renderHud();
   }
 
-  // Into the chasm: everyone takes the fall, then climbs back out.
+  // Into the chasm: everyone takes the fall, and climbs out by the ladder bolted to its wall. Down there,
+  // under the black water, the breath runs out: a point of HP every few seconds, but never the last one.
   async function fall() {
     log('The edge crumbles. You fall into the dark.', 'hurt');
     sfx('fall');
@@ -1397,9 +1398,23 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       await hurt(pc, dmg, 'a fall');
     }
     if (!alive().length) return;
-    log('You claw your way back up to the ledge.', 'dim');
-    world.haulBack();
+    log('Black water over your heads. Somewhere on the wall, an <b>iron ladder</b>: climb.', 'hurt');
   }
+  const PIT_EVERY = 3000;
+  let pitClock = 0;
+  setInterval(() => {
+    if (!S || S.over || S.where !== 'crawl' || !world || !world.inPit || !world.inPit() || busy || modalOpen) { pitClock = 0; return; }
+    pitClock += 500;
+    if (pitClock < PIT_EVERY) return;
+    pitClock = 0;
+    const hurtOnes = alive().filter((p) => p.hp > 1);
+    if (!hurtOnes.length) return;
+    for (const pc of hurtOnes) pc.hp -= 1;
+    sfx('hurt');
+    flashHurt();
+    log('No air down here. <b>−1 HP</b> each. Find the ladder.', 'hurt');
+    renderHud();
+  }, 500);
 
   async function hurt(pc, dmg, cause) {
     sfx('hurt');

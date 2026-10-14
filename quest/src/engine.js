@@ -307,6 +307,7 @@ export function createWorld(container, hooks) {
     }
     // things on the floor
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) placeItem(x, y);
+    buildLadders();
     buildWater();
     buildSky();
     buildRain();
@@ -932,7 +933,7 @@ export function createWorld(container, hooks) {
     for (let cy = minY; cy <= maxY; cy++) {
       for (let cx = minX; cx <= maxX; cx++) {
         if (solid(cx, cy)) return { cx, cy, door: !!doorAt(cx, cy), use: !!useOf(tile(cx, cy)) };
-        if (floorH(cx, cy) - fromH > CLIMB) return { cx, cy, ledge: true };
+        if (floorH(cx, cy) - fromH > CLIMB && !ladderUp(cellOf(player.x), cellOf(player.z), cx, cy)) return { cx, cy, ledge: true };
       }
     }
     return null;
@@ -1002,9 +1003,56 @@ export function createWorld(container, hooks) {
       else hooks.onBump && hooks.onBump();
       return;
     }
-    if (floorH(tx, tz) - floorH(cx, cz) > CLIMB) { hooks.onBump && hooks.onBump(); return; }
+    if (floorH(tx, tz) - floorH(cx, cz) > CLIMB && !ladderUp(cx, cz, tx, tz)) { hooks.onBump && hooks.onBump(); return; }
     begin((tx + 0.5) * CELL, (tz + 0.5) * CELL, player.a, true);
   }
+
+  // Every pit has an iron ladder up one wall, so whoever falls in can climb out: from one of its cells to
+  // the floor beside it (north first, then west, east, south).
+  const pitAt = (x, y) => level.h[y] !== undefined && level.h[y][x] !== undefined && level.h[y][x] <= CHASM + 0.01;
+  function buildLadders() {
+    level.ladders = new Map(); // "x,y" of the pit cell -> [x, y] of the floor it climbs to
+    const seen = new Set();
+    const mat = new THREE.MeshLambertMaterial({ color: 0x3b2f24 });
+    for (let y = 0; y < level.H; y++) for (let x = 0; x < level.W; x++) {
+      if (!pitAt(x, y) || seen.has(x + ',' + y)) continue;
+      // the whole pit, then its first cell with firm floor beside it
+      const pit = [[x, y]];
+      seen.add(x + ',' + y);
+      for (let i = 0; i < pit.length; i++) {
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = pit[i][0] + dx, ny = pit[i][1] + dy;
+          if (pitAt(nx, ny) && !seen.has(nx + ',' + ny)) { seen.add(nx + ',' + ny); pit.push([nx, ny]); }
+        }
+      }
+      let found = null;
+      for (const [px, py] of pit) {
+        for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+          const tx = px + dx, ty = py + dy;
+          if (!found && tx >= 0 && ty >= 0 && tx < level.W && ty < level.H && !solid(tx, ty) && !pitAt(tx, ty)) found = { px, py, tx, ty, dx, dy };
+        }
+      }
+      if (!found) continue;
+      level.ladders.set(found.px + ',' + found.py, [found.tx, found.ty]);
+      // two rails and rungs, against the pit wall, from the bottom to just over the lip
+      const g = new THREE.Group();
+      const bottom = CHASM, top = floorH(found.tx, found.ty) + 0.35, tall = top - bottom;
+      const along = new THREE.Vector3(-found.dy, 0, found.dx); // across the wall
+      for (const side of [-0.32, 0.32]) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.07, tall, 0.07), mat);
+        rail.position.set(along.x * side, bottom + tall / 2, along.z * side);
+        g.add(rail);
+      }
+      for (let r = bottom + 0.3; r < top - 0.1; r += 0.34) {
+        const rung = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(along.x) * 0.64 + 0.05, 0.05, Math.abs(along.z) * 0.64 + 0.05), mat);
+        rung.position.set(0, r, 0);
+        g.add(rung);
+      }
+      g.position.set((found.px + 0.5 + found.dx * 0.45) * CELL, 0, (found.py + 0.5 + found.dy * 0.45) * CELL);
+      level.root.add(g);
+    }
+  }
+  const ladderUp = (fx, fy, tx, ty) => { const l = level.ladders && level.ladders.get(fx + ',' + fy); return !!l && l[0] === tx && l[1] === ty; };
 
   // The on-screen arrows for step mode (and for anyone who prefers buttons).
   const pad = document.createElement('div');
@@ -1104,11 +1152,12 @@ export function createWorld(container, hooks) {
         }
       }
     } else {
-      // stepping up stairs: ease, don't snap
-      player.y += (ground - player.y) * Math.min(1, dt * 14);
+      // stepping up stairs: ease, don't snap (and a ladder out of a pit is a climb)
+      player.y += (ground - player.y) * Math.min(1, dt * (ground - player.y > CLIMB ? 3.5 : 14));
       player.vy = 0;
     }
     if (floorH(cx, cy) > CHASM + 0.01 && Math.abs(player.y - ground) < 0.05) player.safe = { x: player.x, z: player.z };
+    if (floorH(cx, cy) > CHASM + 0.01) falling = false; // out of the pit: the next fall counts
     const key = cx + ',' + cy;
     if (key !== player.cell) {
       player.cell = key;
@@ -1740,6 +1789,8 @@ export function createWorld(container, hooks) {
     get paused() { return paused; },
     refreshTile(cx, cy) { placeItem(cx, cy); },
     openDoor(cx, cy) { const d = doorAt(cx, cy); if (d) { d.locked = false; d.opening = true; } },
+    // standing at the bottom of a pit
+    inPit() { return !!level && pitAt(cellOf(player.x), cellOf(player.z)) && player.y < CHASM + EYE + 0.1; },
     // After a fall: climb back out to the last firm ground.
     haulBack() {
       player.x = player.safe.x; player.z = player.safe.z; player.y = floorH(cellOf(player.x), cellOf(player.z)) + EYE; player.vy = 0; falling = false;
