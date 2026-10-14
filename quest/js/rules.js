@@ -142,6 +142,27 @@ var Q = window.Q || (window.Q = {});
     return pc;
   }
 
+  // The two every new game starts with in the Brine Gaol, so a first run has people to care about and a fair
+  // chance of getting out. Their abilities and HP are set; their things in the evidence room are rolled as
+  // usual, but never worse than a d6 weapon and light armor. Heirs are rolled (or made from the book) as ever.
+  const PAIR = [
+    { cls: 'deserter', name: 'Varg Hollowtooth', strength: 2, agility: 0, presence: -1, toughness: 1, maxHp: 11, omens: 1,
+      trait: 'Still salutes officers. Then spits.',
+      why: 'Walked off the walls at Grift when the regiment started eating its dead. The Salt Lords’ watch found him asleep in a Skarnvik hayloft and gave him to the Brine.' },
+    { cls: 'scum', name: 'Wren Sixpence', strength: 0, agility: 2, presence: 1, toughness: 0, maxHp: 7, omens: 2,
+      trait: 'Counts everything twice: coins, doors, the guards’ steps.',
+      why: 'Cut a purse on the Salt Quay and found a Salt Lord’s seal in it. She tried to sell it back to him. He paid her in the Brine.' },
+  ];
+  function rollPair() {
+    return PAIR.map((p) => {
+      const pc = Object.assign(rollWretch(p.cls), p, { hp: p.maxHp, premade: true });
+      if (pc.weapon.die < 6) { const w = pick(WEAPONS.filter((x) => x.die === 6)); pc.weapon = { name: w.name, die: w.die }; }
+      if (pc.armor.tier < 1) pc.armor = { name: ARMOR[1].name, tier: 1 };
+      pc.powers = powersFor(pc);
+      return pc;
+    });
+  }
+
   function healthWord(hp, max) {
     if (hp >= max) return 'Unhurt';
     const r = hp / max;
@@ -268,6 +289,6 @@ var Q = window.Q || (window.Q = {});
 
   Object.assign(Q, {
     DR, d, roll, pick, fmt, abilityFromRoll, WEAPONS, ARMOR, ARMOR_DIE, SCROLLS,
-    CLASSES, classOf, powersFor, rollWretch, healthWord, test, attack, defend, broken, morale, gettingBetter, HOUR_STEPS, haemDR, drOf,
+    CLASSES, classOf, powersFor, rollWretch, rollPair, healthWord, test, attack, defend, broken, morale, gettingBetter, HOUR_STEPS, haemDR, drOf,
   });
 })();

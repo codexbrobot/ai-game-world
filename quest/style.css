@@ -104,6 +104,9 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 }
 .sheet .pcname { font-family: var(--display); font-weight: 900; font-size: 34px; line-height: 1; margin: 0; }
 .sheet .trait { font-style: italic; margin: 6px 0 12px; }
+.sheet .why { font-size: 14px; margin: -6px 0 12px; color: rgba(0, 0, 0, 0.7); }
+.char .why { font-size: 14px; margin: -4px 0 10px; color: var(--dim); }
+.create-actions #btnReroll.small { font-size: 13px; padding-left: 10px; padding-right: 10px; margin-right: auto; }
 .abs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; clear: right; }
 .ab { background: var(--ink); color: var(--yellow); text-align: center; padding: 6px 2px 4px; }
 .ab span { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bone); }

@@ -423,6 +423,12 @@
   function renderCreate() {
     $('createActions').hidden = false;
     $('customActions').hidden = true;
+    // a new game starts with Varg and Wren; rolling your own (or making them from the book) is a step aside
+    const pair = rolled.every((pc) => pc.premade);
+    $('createKicker').textContent = pair ? 'Two in the Brine Gaol. These two are yours.' : 'You are nobodies. Here are your nobodies.';
+    $('btnReroll').textContent = pair ? 'Roll your own instead' : 'Roll both again';
+    $('btnReroll').classList.toggle('small', pair);
+    $('btnCustom').hidden = pair;
     // the pair is rolled together, and rolled again together: no keeping the good one
     $('sheets').innerHTML = rolled.map((pc) => `
       <div class="sheet">${sheetHtml(pc, true)}
@@ -529,6 +535,7 @@
       <h2 class="pcname">${esc(pc.name)}${pc.dead ? ' <span class="pink">(dead)</span>' : ''}</h2>
       ${cls ? `<p class="cls"><b>${esc(cls.name)}</b> · ${esc(cls.blurb)}</p>` : ''}
       <p class="trait">${esc(pc.trait)}</p>
+      ${pc.why ? `<p class="why">${esc(pc.why)}</p>` : ''}
       <div class="abs">${ab('Strength', pc.strength)}${ab('Agility', pc.agility)}${ab('Presence', pc.presence)}${ab('Toughness', pc.toughness)}</div>
       <dl class="gear">
         <dt>HP</dt><dd>${Math.max(0, pc.hp)} / ${pc.maxHp}${pc.bleeding ? ' <em class="pink">haemorrhaging</em>' : ''}</dd>
@@ -589,6 +596,7 @@
       <img class="face" src="${Q.portraitUrl(pc.name)}" alt="" onerror="this.remove()">
       ${cls ? `<p class="cls"><b>${esc(cls.name)}</b><br>${esc(cls.blurb)}</p>` : ''}
       <p class="trait">${esc(pc.trait)}</p>
+      ${pc.why ? `<p class="why">${esc(pc.why)}</p>` : ''}
       <div class="vitals">
         <span><small>HP</small><b>${Math.max(0, pc.hp)}/${pc.maxHp}</b></span>
         <span><small>Omens</small><b>${pc.omens}</b></span>
@@ -1778,9 +1786,12 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     heirs = keep && S ? S : null;
     S = null;
     if (world) world.pause();
-    const keys = Object.keys(Q.CLASSES).sort(() => Math.random() - 0.5);
-    rolled = [Q.rollWretch(keys[0])];
-    rolled.push(rollBeside(keys[1], rolled[0]));
+    // a new game: the two from the Gaol (Q.rollPair); heirs are rolled
+    if (heirs) {
+      const keys = Object.keys(Q.CLASSES).sort(() => Math.random() - 0.5);
+      rolled = [Q.rollWretch(keys[0])];
+      rolled.push(rollBeside(keys[1], rolled[0]));
+    } else rolled = Q.rollPair();
     renderCreate();
     show('create');
   }
@@ -1851,7 +1862,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     $('btnNew').addEventListener('click', () => {
       if (loadSave()) {
         modal('Start over?', '<p>Your wretches in progress will be forgotten.</p>', [
-          { label: 'Roll new wretches', action: () => { clearSave(); startCreate(); } },
+          { label: 'Start over', action: () => { clearSave(); startCreate(); } },
           { label: 'Keep them', ghost: true },
         ]);
       } else startCreate();

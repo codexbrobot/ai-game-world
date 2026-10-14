@@ -35,7 +35,7 @@ if anything fails, including any error in the page.
 | `05-hollow` | Saint Agne's Hollow, from the Stranger and the gravedigger's key to the saint's three choices and back |
 | `06-broken` | The Broken table, each result, the haemorrhage countdown, death below 0, in and out of a fight, and the Settings choice |
 | `07-battle` | Fallen foes stay gone while the fight goes on |
-| `08-wretches` | Rolling both again, and making your own wretches from the book |
+| `08-wretches` | A new game's two (Varg and Wren, gear never worse than a d6 and leather), rolling your own instead, rolling both again, and making your own wretches from the book |
 | `09-voice` | Every paragraph finds its recording; the narrator reads the waking box in order, stops when it closes, reads the Broken table with a real name in it, and Settings turns him off |
 | `10-sound` | The monsters' recorded voices load, and each place's loop takes over from the synthesized bed |
 
