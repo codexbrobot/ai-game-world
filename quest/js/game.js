@@ -1660,10 +1660,9 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     Q.prefs.omens = m === 'manual' ? 'manual' : 'auto';
     try { localStorage.setItem(OMEN_KEY, Q.prefs.omens); } catch (e) { /* ignore */ }
   };
-  // The flood (being tried out): water over the dungeon floors.
-  const FLOOD_KEY = 'quest-borg-flood';
+  // The flood: black water over the dungeon floors, always (an old "dry" choice from the test is forgotten).
   Q.prefs.flood = true;
-  try { if (localStorage.getItem(FLOOD_KEY) === 'dry') Q.prefs.flood = false; } catch (e) { /* ignore */ }
+  try { localStorage.removeItem('quest-borg-flood'); } catch (e) { /* ignore */ }
   // When the Broken table is rolled: at exactly 0 HP, as the book says, or on any wound that takes you to 0
   // or below (a common house rule: a killing blow rolls on the table too).
   const BROKEN_KEY = 'quest-borg-broken';
@@ -1682,16 +1681,12 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
   }
   function showSettings() {
     const on = !Q.Sound || Q.Sound.on;
-    const current = { move: moveMode, sound: on ? 'on' : 'off', voice: Q.Voice && Q.Voice.enabled ? 'on' : 'off', omens: Q.prefs.omens, flood: Q.prefs.flood ? 'on' : 'off', broken: Q.prefs.broken };
+    const current = { move: moveMode, sound: on ? 'on' : 'off', voice: Q.Voice && Q.Voice.enabled ? 'on' : 'off', omens: Q.prefs.omens, broken: Q.prefs.broken };
     const opt = (key, val, label, note) => `<button type="button" data-set="${key}" data-val="${val}" class="${current[key] === val ? 'on' : 'ghost'}">${label}${note ? `<small class="choice-note">${note}</small>` : ''}</button>`;
     modal('Settings', `<div class="settings">
       <div class="opt"><b>Movement</b><div class="choices">
         ${opt('move', 'free', 'Free', 'walk anywhere, look around, like DOOM')}
         ${opt('move', 'grid', 'Steps', 'a square at a time, quarter turns, old school')}
-      </div></div>
-      <div class="opt"><b>Water (test)</b><div class="choices">
-        ${opt('flood', 'on', 'Flooded', 'black water over the dungeon floors')}
-        ${opt('flood', 'off', 'Dry', 'the old stone floors')}
       </div></div>
       <div class="opt"><b>Omens</b><div class="choices">
         ${opt('omens', 'auto', 'Auto', 'offered on the dice after a bad roll')}
@@ -1708,14 +1703,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       </div></div>
       <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
-      if (b.dataset.set === 'flood') {
-        Q.prefs.flood = b.dataset.val === 'on';
-        try { localStorage.setItem(FLOOD_KEY, Q.prefs.flood ? 'on' : 'dry'); } catch (e) { /* ignore */ }
-        if (world) {
-          world.setWater(Q.prefs.flood);
-          if (S && S.where === 'crawl') enterFloor(S.floorIx, null, world.pose());
-        }
-      } else if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
+      if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
       else if (b.dataset.set === 'broken') {
         Q.prefs.broken = b.dataset.val === 'below' ? 'below' : 'exact';
         try { localStorage.setItem(BROKEN_KEY, Q.prefs.broken); } catch (e) { /* ignore */ }

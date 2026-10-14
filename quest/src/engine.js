@@ -1054,9 +1054,10 @@ export function createWorld(container, hooks) {
     if (!bx) player.x += vx; else touch(bx);
     const bz = blockedAt(player.x, player.z + vz, here);
     if (!bz) player.z += vz; else touch(bz);
-    const before = Math.floor(player.phase / Math.PI);
+    // the head bobs every footfall, but you hear one a stride (each bob is a quick half-step at this speed)
+    const before = Math.floor(player.phase / (2 * Math.PI));
     player.phase += Math.hypot(vx, vz) * 3.2;
-    if (Math.floor(player.phase / Math.PI) !== before) stepped();
+    if (Math.floor(player.phase / (2 * Math.PI)) !== before) stepped();
   }
 
   // A footfall: a ring in the water if you're wading, and the sound of it.

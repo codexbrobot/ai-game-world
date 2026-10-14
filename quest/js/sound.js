@@ -263,15 +263,16 @@ var Q = window.Q || (window.Q = {});
   const FX = {
     // footsteps: a scuff and a thump; wet in the Vault
     step(o) {
-      const d = out({ gain: 1.7, verb: 0.15, pan: rnd(-0.15, 0.15) }), t = now();
-      noise(d, t, { f: rnd(380, 620), q: 1.4, d: 0.07, gain: 0.25 });
-      tone(d, t, { f: rnd(70, 85), f2: 45, d: 0.09, gain: 0.35 });
-      if (o.wet) noise(d, t + 0.02, { filter: 'highpass', f: 2800, d: 0.06, gain: 0.05 });
+      // a soft scuff of a boot on stone, a little different each time; quiet, it's heard a lot
+      const d = out({ gain: rnd(0.45, 0.6), verb: 0.12, pan: rnd(-0.12, 0.12) }), t = now();
+      noise(d, t, { filter: 'lowpass', f: rnd(320, 480), f2: rnd(150, 220), q: 0.7, a: 0.008, d: rnd(0.07, 0.11), gain: 0.22, brown: true });
+      tone(d, t, { f: rnd(62, 72), f2: 44, a: 0.006, d: 0.07, gain: 0.12 });
+      if (o.wet) noise(d, t + 0.015, { filter: 'bandpass', f: rnd(1300, 1800), q: 1.5, d: 0.05, gain: 0.03 });
       if (o.splash > 0) {
         // wading: a slosh, deeper the deeper you are
         const deep = Math.min(1, o.splash * 1.6);
-        noise(d, t, { f: rnd(700, 1100), f2: rnd(1800, 2600), q: 1.2, a: 0.02, d: 0.16 + deep * 0.1, gain: 0.22 + deep * 0.2 });
-        noise(d, t + 0.05, { filter: 'lowpass', f: 500, d: 0.12, gain: 0.12 + deep * 0.15 });
+        noise(d, t, { f: rnd(600, 900), f2: rnd(1300, 1800), q: 1, a: 0.03, d: 0.18 + deep * 0.1, gain: 0.12 + deep * 0.12 });
+        noise(d, t + 0.05, { filter: 'lowpass', f: 450, d: 0.14, gain: 0.08 + deep * 0.1 });
       }
     },
     // a drop of water somewhere in the dark
