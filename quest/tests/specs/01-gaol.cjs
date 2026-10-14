@@ -4,6 +4,7 @@ module.exports = {
   name: 'The Brine Gaol: the whole escape',
   async run(t) {
     const { S, check, choose, waitModal, body } = t;
+    let m0;
     const walkUntilModal = async (max = 5) => {
       for (let i = 0; i < max; i++) {
         const m = await t.title(); if (m) return m;
@@ -59,6 +60,18 @@ module.exports = {
     }
     const f1 = await t.flags();
     check(f1.freed && f1.knowsEvidence, 'breaking the lock frees him, and he tells you about the evidence room', f1);
+
+    // the guard room: the guards sit at their cards until you're in and the DM has set the scene
+    const guards = () => S(() => Q.debug().floors.find((f) => f.id === 'gaol').groups.find((g) => g.members.length === 2 && g.members.every((m) => m.key === 'g')));
+    check((await guards()).dormant && !(await guards()).alert, 'the guards sit at their table, not noticing you yet');
+    await t.tp('gaol', 8, 3, 'S', 500);
+    m0 = await walkUntilModal();
+    const still = await guards();
+    check(m0 === 'The guard room' && still.alive && still.dormant, 'walking in, the DM sets the scene before they move', { m0, still: { alive: still.alive, dormant: still.dormant } });
+    await choose(/Raise the femur/);
+    await t.fight();
+    check(!(await guards()).alive, 'then they look up, and the fight is on');
+    await t.closeAll();
 
     // the infirmary's ledger
     await t.tp('gaol', 2, 3, 'S', 500);

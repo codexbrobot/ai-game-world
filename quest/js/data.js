@@ -30,6 +30,8 @@ var Q = window.Q || (window.Q = {});
         water: 0.4, waterTint: 0x070806,
       },
       groups: { r: ['r', 'r'], g: ['g', 'g'], P: ['P'], q: ['q', 'r'], W: ['W', 'g'] },
+      // the guards at the card table sit there until you're in the guard room and the DM has set the scene
+      asleep: 'g',
       rows: [
         '################',
         '#.@#.L#.P#..#.r#',

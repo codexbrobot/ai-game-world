@@ -43,7 +43,7 @@
       grid.forEach((row, y) => row.forEach((t, x) => {
         const band = (f.groups || {})[t];
         if (!band) return;
-        const dormant = band.some((key) => Q.MONSTERS[key].dormant);
+        const dormant = band.some((key) => Q.MONSTERS[key].dormant) || (f.asleep || '').includes(t);
         groups.push({ id: `g${ix}-${id++}`, x: (x + 0.5) * CELL, z: (y + 0.5) * CELL, members: band.map((key) => ({ key })), alive: true, alert: false, ...(dormant ? { dormant: true } : {}) });
         row[x] = '.';
       }));

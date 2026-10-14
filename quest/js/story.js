@@ -291,6 +291,7 @@ Then he’s gone into the dark ahead of you, laughing or weeping. You may see hi
         await dm.say('The guard room', `A table, a brazier long dead, and cards laid out for a game nobody finished. The guards are still here. They drowned at their posts, and they are <em>still on duty</em>, swollen with seawater, waiting for a shift that ended months ago to end.
 
 They look up.`, [{ label: 'Raise the femur' }]);
+        await dm.fight();
       },
     },
     {
