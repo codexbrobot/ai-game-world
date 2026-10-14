@@ -1341,13 +1341,19 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     modal(title, body, [{ label: yes, action }, { label: 'Not now', ghost: true }]);
   }
 
+  // Searching the remains: whatever turns up, the DM says what it is and, where it's known, what it does.
   async function searchRemains(scroll) {
     if (scroll) {
       const key = S.floorIx === 0 ? 'flame' : 'mend';
       if (!S.scrolls.includes(key)) S.scrolls.push(key);
       const sc = Q.SCROLLS[key];
-      log(`Under the bones, a scroll: <b class="yellow">${esc(sc.name)}</b>. ${esc(sc.text)}`, 'hit');
       sfx('gain');
+      log(`Under the bones, a scroll: <b class="yellow">${esc(sc.name)}</b>. ${esc(sc.text)}`, 'hit');
+      await say('Under the bones', `Under the bones, rolled tight in oilcloth, a scroll. ${key === 'flame'
+        ? 'The <b>Psalm of Black Flame</b>: black fire eats a foe for d8 damage.'
+        : 'The <b>Rite of Mending Bone</b>: it knits flesh, d6 HP back, and the bleeding stops.'}
+
+Read it in a fight, if one of you can: Presence DR 12, and it costs one of the reader’s Powers. It keeps.`, [{ label: 'Take it' }]);
       return;
     }
     const res = Q.searchRemains(lootDepth());
@@ -1356,36 +1362,69 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
       if (key) {
         sfx('gain');
         log(`Something strange in the remains: <b class="yellow">${esc(Q.ITEMS[key].name)}</b>.`, 'hit');
-        offerItem(key, { title: 'In the remains', intro: 'Clutched in a dead hand, or hidden in the ribs:' });
+        await new Promise((then) => offerItem(key, { title: 'In the remains', intro: 'Clutched in a dead hand, or hidden in the ribs:', then }));
         return;
       }
       res.kind = 'omen';
     }
     if (res.kind !== 'hand') sfx('gain');
-    if (res.kind === 'silver') { S.silver += res.amount; log(`You pick the remains clean: <b>${res.amount}s</b>.`, 'hit'); }
-    if (res.kind === 'poultice') { S.poultices += 1; log('A black poultice, still sticky. <b>+1 poultice</b>.', 'hit'); }
+    if (res.kind === 'silver') {
+      S.silver += res.amount;
+      log(`You pick the remains clean: <b>${res.amount}s</b>.`, 'hit');
+      renderHud();
+      await say('In the remains', `You pick the remains clean: <b>${res.amount} silver</b>, in a purse gone green.`, [{ label: 'Take it' }]);
+    }
+    if (res.kind === 'poultice') {
+      S.poultices += 1;
+      log('A black poultice, still sticky. <b>+1 poultice</b>.', 'hit');
+      renderHud();
+      await say('In the remains', `A black poultice in a twist of rag, still sticky. <em>One more poultice.</em>
+
+Bind a wretch’s wounds with it (the Poultice button): d6 HP back, and the bleeding stops.`, [{ label: 'Take it' }]);
+    }
     if (res.kind === 'omen') {
       const pc = alive()[0];
       pc.omens += 1;
       log(`A black feather twitches in the dust. <b>+1 Omen</b> for ${short(pc)}.`, 'hit');
+      renderHud();
+      await say('In the remains', `A black feather twitches in the dust, and ${short(pc)} pockets it. <em>One more Omen.</em>
+
+When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }]);
     }
+    const found = res.item ? esc(res.item.name) : '';
     if (res.kind === 'weapon') {
       const pc = alive().filter((p) => res.item.die > p.weapon.die).sort((a, b) => a.weapon.die - b.weapon.die)[0];
-      if (pc) { pc.weapon = res.item; log(`A <b>${esc(res.item.name)}</b> (d${res.item.die}). ${short(pc)} takes it.`, 'hit'); }
-      else log(`A ${esc(res.item.name)}, no better than yours.`);
+      if (pc) {
+        pc.weapon = res.item;
+        log(`A <b>${esc(res.item.name)}</b> (d${res.item.die}). ${short(pc)} takes it.`, 'hit');
+        renderHud();
+        await say('In the remains', `Under the bones, a weapon: a <b>${found}</b>, d${res.item.die} damage. It’s better than what ${short(pc)} had, so ${short(pc)} takes it.`, [{ label: 'Go on' }]);
+      } else {
+        log(`A ${esc(res.item.name)}, no better than yours.`);
+        await say('In the remains', `Under the bones, a weapon: a ${found}, d${res.item.die} damage. No better than what you carry. You leave it.`, [{ label: 'Go on' }]);
+      }
     }
     if (res.kind === 'armor') {
       const pc = alive().filter((p) => res.item.tier > p.armor.tier).sort((a, b) => a.armor.tier - b.armor.tier)[0];
-      if (pc) { pc.armor = res.item; log(`<b>${esc(res.item.name)}</b>, cut from a corpse. ${short(pc)} puts it on.`, 'hit'); }
-      else log(`${esc(res.item.name)}, too ruined to wear.`);
+      if (pc) {
+        pc.armor = res.item;
+        log(`<b>${esc(res.item.name)}</b>, cut from a corpse. ${short(pc)} puts it on.`, 'hit');
+        renderHud();
+        await say('In the remains', `<b>${found}</b>, cut from a corpse. Better than what ${short(pc)} wears, so ${short(pc)} puts it on.`, [{ label: 'Go on' }]);
+      } else {
+        log(`${esc(res.item.name)}, too ruined to wear.`);
+        await say('In the remains', `${found}, cut from a corpse, and too ruined to wear. You leave it.`, [{ label: 'Go on' }]);
+      }
     }
     if (res.kind === 'hand') {
       const pc = alive()[Math.floor(Math.random() * alive().length)];
       log(`A cold hand closes around ${short(pc)}’s wrist!`, 'hurt');
+      await say('In the remains', `The remains aren’t finished. A cold hand closes around ${short(pc)}’s wrist, and squeezes.`, [{ label: 'Pull free' }]);
       await hurt(pc, res.dmg, 'a grasping hand');
     }
     renderHud();
   }
+
 
   // Into the chasm: everyone takes the fall, and climbs out by the ladder bolted to its wall. Down there,
   // under the black water, the breath runs out: a point of HP every few seconds, but never the last one.

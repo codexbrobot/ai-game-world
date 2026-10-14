@@ -49,7 +49,17 @@
   "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guard fights on at half strength.": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guard fights on at half strength.",
   "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guards fight on at half strength.": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guards fight on at half strength.",
   "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is # day further off.": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is a few days further off.",
-  "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is # days further off.": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is a few days further off."
+  "her song steadies. the hill stops groaning. the island holds a little longer: the next misery is # days further off.": "Her song steadies. The hill stops groaning. The island holds a little longer: the next Misery is a few days further off.",
+  "you pick the remains clean: ⟪?⟫ silver, in a purse gone green.": "You pick the remains clean: a little silver, in a purse gone green.",
+  "a black feather twitches in the dust, and ⟪n⟫ pockets it. one more omen.": "A black feather twitches in the dust, and one of you pockets it. One more Omen.",
+  "under the bones, a weapon: a ⟪?⟫, d⟪?⟫ damage. it's better than what ⟪n⟫ had, so ⟪n⟫ takes it.": "Under the bones, a weapon, and better than what one of you had. They take it.",
+  "under the bones, a weapon: a ⟪?⟫, d⟪?⟫ damage. no better than what you carry. you leave it.": "Under the bones, a weapon. No better than what you carry. You leave it.",
+  "⟪?⟫, cut from a corpse. better than what ⟪n⟫ wears, so ⟪n⟫ puts it on.": "Armor, cut from a corpse, and better than what one of you wears. They put it on.",
+  "⟪?⟫, cut from a corpse, and too ruined to wear. you leave it.": "Armor, cut from a corpse, and too ruined to wear. You leave it.",
+  "the remains aren't finished. a cold hand closes around ⟪n⟫'s wrist, and squeezes.": "The remains aren't finished. A cold hand closes around a wrist, and squeezes.",
+  "read it in a fight, if one of you can: presence dr #, and it costs one of the reader's powers. it keeps.": "Read it in a fight, if one of you can: a Presence test, difficulty twelve, and it costs one of the reader's Powers. It keeps.",
+  "bind a wretch's wounds with it (the poultice button): d# hp back, and the bleeding stops.": "Bind a wretch's wounds with it: d6 hit points back, and the bleeding stops.",
+  "under the bones, rolled tight in oilcloth, a scroll. the rite of mending bone: it knits flesh, d# hp back, and the bleeding stops.": "Under the bones, rolled tight in oilcloth, a scroll. The Rite of Mending Bone: it knits flesh, d6 hit points back, and the bleeding stops."
  },
  "patterns": [
   {

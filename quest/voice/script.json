@@ -2112,11 +2112,115 @@
   "key": "⟪n⟫ has bled to death."
  },
  {
+  "id": "6361d2a7b7",
+  "group": "under-the-bones",
+  "floor": "skarnvik",
+  "say": "Under the bones, rolled tight in oilcloth, a scroll. The Psalm of Black Flame: black fire eats a foe for d8 damage.",
+  "src": "js/game.js:1352",
+  "key": "under the bones, rolled tight in oilcloth, a scroll. the psalm of black flame: black fire eats a foe for d# damage."
+ },
+ {
+  "id": "e9aecda382",
+  "group": "under-the-bones",
+  "floor": "skarnvik",
+  "say": "Read it in a fight, if one of you can: a Presence test, difficulty twelve, and it costs one of the reader's Powers. It keeps.",
+  "src": "js/game.js:1352",
+  "key": "read it in a fight, if one of you can: presence dr #, and it costs one of the reader's powers. it keeps."
+ },
+ {
+  "id": "f1acfc69cb",
+  "group": "under-the-bones",
+  "floor": "skarnvik",
+  "say": "Under the bones, rolled tight in oilcloth, a scroll. The Rite of Mending Bone: it knits flesh, d6 hit points back, and the bleeding stops.",
+  "src": "js/game.js:1352",
+  "key": "under the bones, rolled tight in oilcloth, a scroll. the rite of mending bone: it knits flesh, d# hp back, and the bleeding stops."
+ },
+ {
+  "id": "2cea3e97a5",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "You pick the remains clean: a little silver, in a purse gone green.",
+  "src": "js/game.js:1375",
+  "re": "^you pick the remains clean: .+? silver, in a purse gone green\\.$"
+ },
+ {
+  "id": "ed29d87963",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "A black poultice in a twist of rag, still sticky. One more poultice.",
+  "src": "js/game.js:1381",
+  "key": "a black poultice in a twist of rag, still sticky. one more poultice."
+ },
+ {
+  "id": "7b5a09193d",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "Bind a wretch's wounds with it: d6 hit points back, and the bleeding stops.",
+  "src": "js/game.js:1381",
+  "key": "bind a wretch's wounds with it (the poultice button): d# hp back, and the bleeding stops."
+ },
+ {
+  "id": "af2cbcdfda",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "A black feather twitches in the dust, and one of you pockets it. One more Omen.",
+  "src": "js/game.js:1390",
+  "key": "a black feather twitches in the dust, and ⟪n⟫ pockets it. one more omen."
+ },
+ {
+  "id": "6688f60e1e",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "When the dice go against you, spend an Omen to roll again.",
+  "src": "js/game.js:1390",
+  "key": "when the dice go against you, spend an omen to roll again."
+ },
+ {
+  "id": "885b6e06bc",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "Under the bones, a weapon, and better than what one of you had. They take it.",
+  "src": "js/game.js:1401",
+  "re": "^under the bones, a weapon: a .+?, d.+? damage\\. it's better than what ⟪n⟫ had, so ⟪n⟫ takes it\\.$"
+ },
+ {
+  "id": "d546cf2393",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "Under the bones, a weapon. No better than what you carry. You leave it.",
+  "src": "js/game.js:1404",
+  "re": "^under the bones, a weapon: a .+?, d.+? damage\\. no better than what you carry\\. you leave it\\.$"
+ },
+ {
+  "id": "bc7ec35b44",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "Armor, cut from a corpse, and better than what one of you wears. They put it on.",
+  "src": "js/game.js:1413",
+  "re": "^.+?, cut from a corpse\\. better than what ⟪n⟫ wears, so ⟪n⟫ puts it on\\.$"
+ },
+ {
+  "id": "517c420a47",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "Armor, cut from a corpse, and too ruined to wear. You leave it.",
+  "src": "js/game.js:1416",
+  "re": "^.+?, cut from a corpse, and too ruined to wear\\. you leave it\\.$"
+ },
+ {
+  "id": "75e74ddc2c",
+  "group": "in-the-remains",
+  "floor": "skarnvik",
+  "say": "The remains aren't finished. A cold hand closes around a wrist, and squeezes.",
+  "src": "js/game.js:1422",
+  "key": "the remains aren't finished. a cold hand closes around ⟪n⟫'s wrist, and squeezes."
+ },
+ {
   "id": "852f85bd82",
   "group": "skarnvik",
   "floor": "skarnvik",
   "say": "You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. Somebody has to finish it. It might as well be you.",
-  "src": "js/game.js:1763",
+  "src": "js/game.js:1812",
   "key": "you have lived in skarnvik all your short lives. you heard about the two who came up out of the brine gaol, and what they found, and how they died. somebody has to finish it. it might as well be you."
  },
  {
