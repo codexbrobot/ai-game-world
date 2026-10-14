@@ -17,3 +17,15 @@ Small things to fix later.
   - decent weapons waiting for them when they get into the storage area (the evidence room, where `restoreGear` gives your things back);
   - what the title screen offers: a new game always starts with the two, and rolling or making your own is for the heirs;
   - with fixed names, the narrator could say them; the lines that say "one of you" could be recorded again with their names for the Gaol.
+- [ ] **A solid game loop, and telling the player about it up front.** Wretches are meant to die. You take each pair as far as you can, they die, new ones start, and what the dead found and did stays unlocked, so each run gets further. The player should know from the start that they won't keep these characters for the whole game. How it works now:
+  - dying in the Gaol wipes the save, and a new game starts from scratch (with Varg and Wren);
+  - dying after the escape keeps the world: heirs, rolled up at a class home in Skarnvik, carry on what the dead learned (scenes seen, flags, keys, opened ways; `gameOver` / `acceptParty` in `js/game.js`);
+  - the Codex (strange items you've worn or wielded) lasts across every run in this browser;
+  - the Calendar of Nechrubel: at the seventh Misery the world ends and everything goes (`worldEnds`).
+
+  Still to decide:
+  - what a "run" is (one pair's lives?), and what exactly carries over: story progress, shortcuts (the Gaol already escaped, a way down already opened), the Codex, money or gear left at the dead pair's grave for the next ones to find, new classes unlocked by how far someone got;
+  - whether dying in the Gaol should also carry something over, or stay a short tutorial you replay;
+  - whether the Calendar running out is the real "you lost", and what's kept even then;
+  - how the player is told before they start: a short box or page at the first new game ("Your wretches will die. That's the game…"), and the death screen saying what was kept and what's next ("Kept: the gravedigger's key, 2 new Codex entries. Somebody else in Skarnvik heard about it.");
+  - a list of the dead (a graveyard or roll on the title screen) so the runs add up to something you can see.
