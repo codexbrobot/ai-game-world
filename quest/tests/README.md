@@ -38,6 +38,9 @@ if anything fails, including any error in the page.
 | `08-wretches` | A new game's two (Varg and Wren, gear never worse than a d6 and leather), rolling your own instead, rolling both again, and making your own wretches from the book |
 | `09-voice` | Every paragraph finds its recording; the narrator reads the waking box in order, stops when it closes, reads the Broken table with a real name in it, and Settings turns him off |
 | `10-sound` | The monsters' recorded voices load, and each place's loop takes over from the synthesized bed |
+| `11-pit` | The pit by the Warden's door: falling in, losing air, and climbing the ladder out, stepping and walking freely |
+| `12-finds` | A DM box for everything found in the remains: silver, a poultice, an Omen, a scroll, a weapon or armor, a strange thing, the hand |
+| `13-respawn` | Dying in the Gaol: the sealed cell, new wretches waking in it, the Gaol as the dead left it, breaking out, and the evidence room's sacks and key again |
 
 ## Writing one
 

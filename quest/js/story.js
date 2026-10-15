@@ -89,6 +89,40 @@ It smells of rosewater and old pennies. It does not belong down here. <em>It mig
     }
   }
 
+  // Getting out of a cell: the door at (x, y) is shut on you. then(): what else changes once you're out.
+  async function breakOut(dm, x, y, then) {
+    const choices = [
+      { label: 'Wrench the rusted hinge', note: 'Strength DR 12' },
+      { label: 'Pick the lock with a bone splinter', note: 'Agility DR 12' },
+      { label: 'Call for the jailer', note: 'Presence DR 12: someone might come' },
+      { label: 'Not yet' },
+    ];
+    const pick = await dm.say('Your cell door', 'Iron, rusted orange where the water reaches. The lock is old. The hinges are older.', choices);
+    if (pick === 3) return;
+    const ab = ['strength', 'agility', 'presence'][pick];
+    const pc = dm.best(ab);
+    const ok = await dm.test(pc, ab, 12, ['wrenches at the hinge', 'works a splinter into the lock', 'shouts down the corridor'][pick]);
+    if (ok) {
+      dm.openDoor(x, y);
+      if (then) then();
+      const text = [
+        `The hinge screams and gives. The door sags open into the corridor. <em>You are out of the cell.</em>`,
+        `Something in the lock clicks, and keeps clicking, and gives. <em>You are out of the cell.</em>`,
+        `A last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out — and sees the bone in ${dm.name(pc)}’s hand. He runs screaming into the dark. <em>You are out of the cell.</em>`,
+      ][pick];
+      await dm.say('Your cell door', text, [{ label: 'Out' }]);
+    } else {
+      if (pick === 0) await dm.hurt(pc, 1, 'a rusted hinge');
+      if (pick === 2) { dm.openDoor(8, 4); dm.alarm(); }
+      const text = [
+        `The hinge holds. The bar bites ${dm.name(pc)}’s palm. <em>1 damage.</em> Try again, or try something else.`,
+        'The splinter snaps off in the lock. There are more bones.',
+        'Nobody comes. But somewhere down the corridor a door bangs open, and <em>something heard you</em>. It is coming the slow way.',
+      ][pick];
+      await dm.say('Your cell door', text, [{ label: 'Again' }]);
+    }
+  }
+
   Q.SCENES = [
     // ---------- the Undercroft ----------
     {
@@ -184,36 +218,29 @@ The cell door is shut. Water is coming in under it.`, [{ label: 'Get up' }]);
     },
     {
       id: 'celldoor', floor: 'gaol', door: [1, 2],
+      run: (dm) => breakOut(dm, 1, 2),
+    },
+    // The last cell in the row: shut so long it won't open from the corridor. When wretches die in the Gaol, the
+    // next two wake in here (newPairInGaol in js/game.js), and get out the way the first two did.
+    {
+      id: 'sealedcell', floor: 'gaol', door: [13, 2],
       async run(dm) {
-        const choices = [
-          { label: 'Wrench the rusted hinge', note: 'Strength DR 12' },
-          { label: 'Pick the lock with a bone splinter', note: 'Agility DR 12' },
-          { label: 'Call for the jailer', note: 'Presence DR 12: someone might come' },
-          { label: 'Not yet' },
-        ];
-        const pick = await dm.say('Your cell door', 'Iron, rusted orange where the water reaches. The lock is old. The hinges are older.', choices);
-        if (pick === 3) return;
-        const ab = ['strength', 'agility', 'presence'][pick];
-        const pc = dm.best(ab);
-        const ok = await dm.test(pc, ab, 12, ['wrenches at the hinge', 'works a splinter into the lock', 'shouts down the corridor'][pick]);
-        if (ok) {
-          dm.openDoor(1, 2);
-          const text = [
-            `The hinge screams and gives. The door sags open into the corridor. <em>You are out of the cell.</em>`,
-            `Something in the lock clicks, and keeps clicking, and gives. <em>You are out of the cell.</em>`,
-            `A last turnkey comes sloshing, half-starved, keys rattling, and opens the door to drag you out — and sees the bone in ${dm.name(pc)}’s hand. He runs screaming into the dark. <em>You are out of the cell.</em>`,
-          ][pick];
-          await dm.say('Your cell door', text, [{ label: 'Out' }]);
-        } else {
-          if (pick === 0) await dm.hurt(pc, 1, 'a rusted hinge');
-          if (pick === 2) { dm.openDoor(8, 4); dm.alarm(); }
-          const text = [
-            `The hinge holds. The bar bites ${dm.name(pc)}’s palm. <em>1 damage.</em> Try again, or try something else.`,
-            'The splinter snaps off in the lock. There are more bones.',
-            'Nobody comes. But somewhere down the corridor a door bangs open, and <em>something heard you</em>. It is coming the slow way.',
-          ][pick];
-          await dm.say('Your cell door', text, [{ label: 'Again' }]);
-        }
+        if (dm.flag('inSealedCell')) { await breakOut(dm, 13, 2, () => dm.flag('inSealedCell', false)); return; }
+        await dm.say('A sealed cell', `The last door in the row is rusted into its frame, so long shut that the bars and the hinges have grown into one piece of iron. Through the grille: two bunks, a bucket, black water. Nobody.
+
+<em>It won’t open from out here.</em>`, [{ label: 'Step back' }]);
+      },
+    },
+    {
+      id: 'rewake', floor: 'gaol',
+      async run(dm) {
+        const [a, b] = dm.party;
+        await dm.say('The Brine Gaol', `Screaming wakes you. It goes on for a long time, somewhere out in the Gaol, and then it stops.
+
+${dm.name(a)}${b ? ` and ${dm.name(b)}` : ''}: two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. Whoever was screaming got out of their cell. <em>They didn’t get out of the Gaol.</em>`, [{ label: 'Listen' }]);
+        await dm.say('The Brine Gaol', `It’s quieter now. Some of the drowned that walked the corridors don’t walk any more, and some of the doors that were shut stand open. The dead two did that much for you.
+
+There are bones on the floor of your cell, and they will crack a skull. <em>Your own things</em> the guards took; if they’re anywhere, they’re in the evidence room, with the key the Gaol always keeps on its hook.`, [{ label: 'Take a bone and get up' }]);
       },
     },
     {

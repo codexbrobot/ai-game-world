@@ -1580,11 +1580,15 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
       ], { closable: false, dead: true });
       return;
     }
-    clearSave();
+    // still in the Gaol: two more wake in the sealed cell at the end of the row (newPairInGaol)
+    S.awaitingWretches = true;
+    S.over = false;
+    save();
+    S.over = true;
     modal('Dead', `${art('grave')}${pcs}
       <p>Killed by ${esc(cause)} in ${where}, never having seen daylight again.</p>
-      <p class="small">The Brine Gaol keeps what it takes. New prisoners are already being thrown in.</p>`, [
-      { label: 'Roll new wretches', action: () => startCreate() },
+      <p class="small">The Brine Gaol keeps what it takes. In the last cell in the row, two more prisoners heard every scream.</p>`, [
+      { label: 'New wretches in the Gaol', action: () => startCreate(true) },
     ], { closable: false, dead: true });
   }
 
@@ -1799,6 +1803,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
   function acceptParty() {
     // the one who would rather stand in front does; otherwise the first
     if (rolled[0].row === rolled[1].row) { rolled[0].row = 'front'; rolled[1].row = 'back'; }
+    if (heirs && !heirs.escaped) { newPairInGaol(); return; }
     if (heirs) {
       // new wretches from Skarnvik itself, with their own gear, carrying on the story
       S = heirs;
@@ -1830,6 +1835,46 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> wake in the Brine Gaol.`);
     enterFloor(floorIndex('gaol'), '@');
     save();
+  }
+
+  // Wretches died in the Gaol, so two more wake in the sealed cell at the end of the row. The Gaol stays as the
+  // dead left it: what they killed stays dead, what they opened stays open, what they learned stays learned. But
+  // what they carried died with them, so the new two go to the evidence room for their own things, and for the
+  // key, back on its hook; and the Warden's hall is locked again while the Warden still walks it.
+  function newPairInGaol() {
+    S = heirs;
+    heirs = null;
+    S.party = rolled;
+    for (const p of rolled) {
+      p.gaol = true;
+      p.stash = { weapon: p.weapon, armor: p.armor, silver: p.silver };
+      p.weapon = { name: 'Femur', die: 4 };
+      p.armor = { name: 'Rags', tier: 0 };
+      delete p.silver; delete p.poultices; delete p.scrolls;
+    }
+    S.silver = 0;
+    S.poultices = 0;
+    S.scrolls = [];
+    S.killsSinceBetter = 0;
+    S.over = false;
+    S.awaitingWretches = false;
+    S.flags.gaolHeirs = (S.flags.gaolHeirs || 0) + 1;
+    const ix = floorIndex('gaol'), gaol = S.floors[ix];
+    const shut = (x, y, tile) => { gaol.grid[y][x] = tile; gaol.opened = gaol.opened.filter((k) => k !== `${x},${y}`); };
+    S.flags.hallKey = false;
+    S.scenes.evidence = false;
+    if (gaol.groups.some((g) => g.alive && g.members.some((m) => m.key === 'W'))) shut(9, 12, 'J');
+    shut(13, 2, 'C');
+    // (a save from before the cell was sealed still has rats in it)
+    for (const g of gaol.groups) if (g.alive && g.z < 2 * CELL && g.x > 13 * CELL) g.alive = false;
+    S.flags.inSealedCell = true;
+    Q.fixRows(S.party);
+    log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> wake in the last cell in the row.`);
+    // in the sealed cell, facing its door
+    enterFloor(ix, null, { x: 13.5 * CELL, z: 1.5 * CELL, a: Math.PI / 2 });
+    S.scenes.rewake = true;
+    save();
+    setTimeout(() => run(() => playScene(Q.SCENES.find((sc) => sc.id === 'rewake'), true)), 700 * (Q.speed === undefined ? 1 : Q.speed));
   }
 
   function continueRun() {

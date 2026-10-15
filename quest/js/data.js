@@ -21,7 +21,8 @@ var Q = window.Q || (window.Q = {});
       id: 'gaol',
       name: 'The Brine Gaol',
       depth: 1,
-      // You wake in the cell at @. C: a cell door that won't open on its own; J: the Warden's hall, locked.
+      // You wake in the cell at @. C: a cell door that won't open on its own (the last one, at 13,2, is sealed:
+      // wretches who die in the Gaol are followed by two who wake behind it); J: the Warden's hall, locked.
       // G here is the sewer grate out into Skarnvik.
       theme: {
         walls: [['gaol-wall', 5], ['gaol-bars', 3], ['wall-stone', 1]],
@@ -34,8 +35,8 @@ var Q = window.Q || (window.Q = {});
       asleep: 'g',
       rows: [
         '################',
-        '#.@#.L#.P#..#.r#',
-        '#C##D##D##C##D##',
+        '#.@#.L#.P#..#..#',
+        '#C##D##D##C##C##',
         '#..............#',
         '##.#####D#####.#',
         '#...#.....#..#.#',
