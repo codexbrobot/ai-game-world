@@ -70,7 +70,8 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
   transform: rotate(2deg);
 }
 .title .blurb { font-size: 18px; margin: 22px 0 24px; max-width: 26rem; }
-.legal { margin-top: 36px; font-size: 11.5px; color: #6c6657; line-height: 1.35; }
+.version { margin: 22px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--yellow); opacity: 0.75; }
+.legal { margin-top: 10px; font-size: 11.5px; color: #6c6657; line-height: 1.35; }
 
 /* the character sheet: a slab of yellow paper, slightly askew */
 .paper { max-width: 30rem; margin: 0 auto; }

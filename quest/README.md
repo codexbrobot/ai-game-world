@@ -14,6 +14,8 @@ Opening `index.html` straight from disk doesn't work, because WebGL won't load t
 
 It's on GitHub Pages at <https://codexbrobot.github.io/ai-game-world/quest/> (the repo's root sends you there), once Pages is set to build from this branch. On a phone, open that address and add it to the home screen (Safari: Share, then *Add to Home Screen*; Chrome: ⋮, then *Add to Home screen*): it opens as an app, with no browser bars, from `manifest.webmanifest`, the app tags in `index.html` and the icon in `assets/app/`.
 
+The title screen shows the version (`Q.VERSION` at the top of `js/game.js`): put it up by one with every publish, so the number on the screen matches the published version.
+
 To publish it as a single web page (a claude.ai artifact, for example), run `python tools/build_page.py`. It writes `dist/quest.html` with the CSS and scripts inlined; publish that page together with the `assets/` folder.
 
 ## Controls

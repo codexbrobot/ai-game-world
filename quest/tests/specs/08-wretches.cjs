@@ -6,6 +6,7 @@ module.exports = {
     const { S, check, choose, waitModal, page } = t;
     const names = () => page.$$eval('#sheets .pcname', (els) => els.map((e) => e.textContent));
     await t.open();
+    check(/^Version \d+$/.test(await page.textContent('#version')), 'the title screen shows the version', await page.textContent('#version'));
     await page.click('#btnNew'); await t.wait(300);
     // a new game: Varg and Wren, set abilities and HP, their things rolled but never worse than a d6 and leather
     const pair = await S(() => [...document.querySelectorAll('#sheets .sheet')].map((el) => el.textContent.replace(/\s+/g, ' ')));
