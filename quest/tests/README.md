@@ -40,6 +40,7 @@ if anything fails, including any error in the page.
 | `10-sound` | The monsters' recorded voices load, and each place's loop takes over from the synthesized bed |
 | `11-pit` | The pit by the Warden's door: falling in, losing air, and climbing the ladder out, stepping and walking freely |
 | `12-finds` | A DM box for everything found in the remains: silver, a poultice, an Omen, a scroll, a weapon or armor, a strange thing, the hand |
+| `14-journal` | The journal: what to do now, steps ticked off and written into the pair's chapter, not narrated; a death closes the chapter with what was left unfinished; the city's quests and a bounty after the escape |
 | `13-respawn` | Dying in the Gaol: the sealed cell, new wretches waking in it, the Gaol as the dead left it, breaking out, and the evidence room's sacks and key again |
 
 ## Writing one

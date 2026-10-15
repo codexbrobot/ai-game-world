@@ -75,6 +75,7 @@
     Q.applyMiseries(0);
     rollCurios();
     postBounties();
+    Q.Journal.start(S);
   }
 
   // Who the Gaol remembers: the prisoner you knew across the corridor, and the one still alive.
@@ -378,6 +379,7 @@
   const unsaved = new Set(['el', 'def']);
   function save() {
     if (!S || S.over) return;
+    for (const line of Q.Journal.update(S)) log(line, 'dim');
     if (world && S.where === 'crawl') S.pose = world.pose();
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(S, (k, v) => (unsaved.has(k) ? undefined : v))); } catch (e) { /* storage may be unavailable */ }
   }
@@ -548,6 +550,12 @@
         ${fresh ? '' : `<dt>Row</dt><dd>${pc.row === 'back' ? 'Back' : 'Front'}</dd>`}
         ${fresh ? `<dt>Silver</dt><dd>${pc.silver}s</dd>` : ''}
       </dl>`;
+  }
+
+  // ---------- the journal (js/journal.js) ----------
+  function showJournal() {
+    if (!S) return;
+    modal('Journal', `<div class="journal">${Q.Journal.html(S)}</div>`, [{ label: 'Close' }], { wide: true, quiet: true });
   }
 
   // ---------- the character sheet ----------
@@ -881,6 +889,7 @@
     { id: 'harbor', title: 'The harbor dead', text: 'The fishwives want their streets back after dark. Put three of the drowned back in the sea.', kind: 'drowned', need: 3, pay: 24, always: true },
     { id: 'mouths', title: 'Silence the Bright Mouths', text: 'Comet cultists preach drowning under the square. The Salt Lords pay for quiet. Two of them.', kind: 'cultist', need: 2, pay: 40 },
   ];
+  Q.BOUNTIES = BOUNTIES;
   // Work goes up for what still lives below (and what you've taken stays up).
   function postBounties() {
     const b = S.bounties || (S.bounties = { posted: [], taken: {} });
@@ -1567,6 +1576,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     sfx('toll', { f: 82 });
     const pcs = S.party.map((pc) => `<p class="epitaph">Here lies <b>${esc(pc.name)}</b>.<br>${esc(pc.trait)}</p>`).join('');
     const where = esc(S.where === 'crawl' ? floor().name : 'Skarnvik');
+    Q.Journal.died(S, cause, S.where === 'crawl' ? placeName() : 'Skarnvik');
     if (S.escaped) {
       // the story goes on without them: someone else in Skarnvik picks it up
       S.awaitingWretches = true;
@@ -1667,7 +1677,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
       row.appendChild(el);
     }
     box.hidden = false;
-    if (Q.Voice && Q.Voice.speak) Q.Voice.speak($('modalBody'), S ? S.party.flatMap((p) => [p.name, p.name.split(' ')[0]]) : []);
+    if (Q.Voice && Q.Voice.speak && !opts.quiet) Q.Voice.speak($('modalBody'), S ? S.party.flatMap((p) => [p.name, p.name.split(' ')[0]]) : []);
     const first = row.querySelector('button:not(:disabled)');
     if (first) first.focus({ preventScroll: true });
     document.querySelector('#modal .card').scrollTop = 0;
@@ -1820,6 +1830,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
       const front = S.party.find((p) => p.row === 'front') || S.party[0];
       S.home = HOMES[front.cls] ? { cls: front.cls } : null;
       S.flags.heirs = (S.flags.heirs || 0) + 1;
+      Q.Journal.newPair(S);
       log(`<b>${esc(S.party[0].name)}</b> and <b>${esc(S.party[1].name)}</b> pick up where the dead left off.`);
       setHour('dawn', undefined, true);
       goHome();
@@ -1859,6 +1870,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     S.over = false;
     S.awaitingWretches = false;
     S.flags.gaolHeirs = (S.flags.gaolHeirs || 0) + 1;
+    Q.Journal.newPair(S);
     const ix = floorIndex('gaol'), gaol = S.floors[ix];
     const shut = (x, y, tile) => { gaol.grid[y][x] = tile; gaol.opened = gaol.opened.filter((k) => k !== `${x},${y}`); };
     S.flags.hallKey = false;
@@ -1921,6 +1933,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     $('btnCustomCancel').addEventListener('click', renderCreate);
     $('facing').addEventListener('click', () => { const f = facingNow; if (f && !busy) run(() => lockedDoor(f.x, f.y)); });
     $('tMap').addEventListener('click', showMap);
+    $('tJournal').addEventListener('click', () => { if (!busy) showJournal(); });
     $('tParty').addEventListener('click', partySheet);
     $('chips').addEventListener('click', (e) => { const c = e.target.closest('[data-sheet]'); if (c && !busy) showSheet(+c.dataset.sheet); });
     $('tPoultice').addEventListener('click', usePoultice);
@@ -1942,6 +1955,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
         return;
       }
       if (k === 'm') showMap();
+      if (k === 'j') showJournal();
       if (k === 'p') partySheet();
     });
     // the hint fades after a while

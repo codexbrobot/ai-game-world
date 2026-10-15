@@ -18,7 +18,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 
 ## Controls
 
-Under the mini-map, four square icons: **Map**, **Party** (the character sheets), **Heal** (a black poultice, with how many you have on its corner) and **Settings**. On a phone held upright they sit two by two; on a wide screen, or a phone on its side, in a row. The layout fits a phone upright or on its side, a tablet, or a desktop.
+Under the mini-map, five square icons: **Journal**, **Map**, **Party** (the character sheets), **Heal** (a black poultice, with how many you have on its corner) and **Settings**. On a phone held upright they sit two by two; on a wide screen, or a phone on its side, in a row. The layout fits a phone upright or on its side, a tablet, or a desktop.
 
 | | Phone | Keyboard / mouse |
 |---|---|---|
@@ -32,6 +32,7 @@ Under the mini-map, four square icons: **Map**, **Party** (the character sheets)
 | Pick a target | tap the foe | ← / → and Enter |
 | Hurry the dice | tap the dice | Space or Enter |
 | Map | the map icon under the mini-map (or tap the mini-map) | M |
+| Journal: what to do now, the quests, and what each pair did | the journal icon | J |
 | Character sheet | tap a wretch's portrait (in the dungeon or in battle), or Party | P |
 | Sound on or off | ♪ (or the Sound button on the title screen) | |
 | Use a poultice outside battle | the Poultice button | |
@@ -43,6 +44,7 @@ You lead two wretches. A **new game** always starts with the same two in the Bri
 - **It starts in a cell.** Your wretches wake in the **Brine Gaol** with the sea coming in under the door and nothing but a femur each (d4) and rags. Their own weapons, armor and silver were taken when they were thrown in. Get out of the cell, find your things in the evidence room, take the key to the Warden's hall, get past **the Drowned Warden**, and climb out through the sewer grate into the city. Nobody up there recognises you.
 - **Then the city.** You come up through the sewer grate into **Skarnvik**, at night, in the rain, and walk it like a dungeon (see below). The Stranger by the gallows notices your shackle scars and sends you down the crypt stair into the Undercroft to see what the water is doing.
 - **Then Saint Agne.** Tell the Stranger what the water does and he tells you the rest: seven saints hold the island up, one under each hill, and the one under Church Hill was kept by the bell-ringers until the Salt Lords forbade their bell. Their little door into the hill is behind the graves. The gravedigger buried the last bell-ringer but one with his key (10s, or dig him up yourselves); the prisoner you freed knows the door only sticks; or you can force it. Down the bell-ringers' stair is **Saint Agne's Hollow**, and at the bottom of it the first Pillar Saint, being cut into salt. Tell the Stranger what you found. That is as far as the main story goes for now: next, the white stair under the Exchange. The grate stays where it is: step on it and your wretches refuse to go back down.
+- **The journal** says what to do now, spelled out (where to go, and how), lists every quest you know of with its steps ticked off as you do them (the Gaol's way out, the prisoner in the cell, then the city's: the Stranger, the family in Lantern Row, the freed man, the hanged man, any bounties you take), and keeps a chapter for each pair of wretches: what they did, how and where they died, and what they left unfinished, which the next pair's journal marks. It isn't read aloud. It's worked out from the run itself (`js/journal.js`), so older saves have one too.
 - **Wretches don't last.** Die in the Gaol and two new prisoners (rolled, or made from the book) wake in the last cell in the row, the one whose door is rusted shut from the corridor. The Gaol stays as the dead left it: what they killed stays dead, what they opened stays open. But their things died with them: the new two break out of their cell, go to the evidence room for their own sacks and for the long key, back on its hook, and find the Warden's hall locked again while the Warden still walks it. And once you have made it out into the city, a death is not the end of the run: you roll new wretches, people of Skarnvik who heard what the dead learned, and they carry on with the same story, the same Calendar and the same Miseries.
 
 - **Exploring** is in real time and in 3D, like DOOM: raised daises, sunken crypts, stairs, high naves and low passages, and a pit in the Gaol's flooded lower block. Step off the edge and both wretches fall (d6 each) into black water over their heads; there's an iron ladder on one wall, and until you climb it each loses a point of HP every 3 seconds (never the last one).
