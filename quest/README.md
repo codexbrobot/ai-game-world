@@ -18,6 +18,8 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 
 ## Controls
 
+Under the mini-map, four square icons: **Map**, **Party** (the character sheets), **Heal** (a black poultice, with how many you have on its corner) and **Settings**. On a phone held upright they sit two by two; on a wide screen, or a phone on its side, in a row. The layout fits a phone upright or on its side, a tablet, or a desktop.
+
 | | Phone | Keyboard / mouse |
 |---|---|---|
 | Walk and strafe (free movement) | drag the left half of the screen (a joystick appears) | W A S D |
@@ -29,7 +31,7 @@ To publish it as a single web page (a claude.ai artifact, for example), run `pyt
 | Omens: auto or manual | the Omens button in the battle menu, or ⚙ Settings | |
 | Pick a target | tap the foe | ← / → and Enter |
 | Hurry the dice | tap the dice | Space or Enter |
-| Map | the Map button (or tap the mini-map) | M |
+| Map | the map icon under the mini-map (or tap the mini-map) | M |
 | Character sheet | tap a wretch's portrait (in the dungeon or in battle), or Party | P |
 | Sound on or off | ♪ (or the Sound button on the title screen) | |
 | Use a poultice outside battle | the Poultice button | |

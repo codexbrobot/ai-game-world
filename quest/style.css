@@ -188,6 +188,13 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 .chip img { width: 34px; height: 40px; object-fit: cover; flex: 0 0 auto; }
 .chip b { display: block; font-family: var(--display); font-weight: 900; font-size: 17px; line-height: 1; color: var(--yellow); }
 .chip.dead { box-shadow: 0 0 0 2px var(--pink); opacity: 0.6; }
+@media (max-width: 600px) {
+  .chip { gap: 5px; padding: 3px 6px 3px 3px; }
+  .chip img { width: 28px; height: 33px; }
+  .chip b { font-size: 15px; }
+  .chip .hpbar.small { width: 70px; height: 14px; }
+  .hud-log { font-size: 12.5px; }
+}
 .chip.dead img { filter: grayscale(1); }
 .purse { align-self: center; font-weight: 700; color: var(--bone); background: rgba(10, 10, 8, 0.82); padding: 4px 8px; }
 .hpbar { position: relative; width: 116px; height: 20px; background: #2a0b16; box-shadow: inset 0 0 0 2px var(--bone); }
@@ -210,9 +217,18 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 .hud-log .hurt { color: var(--pink); }
 .hud-log .miss { color: var(--blue); }
 .hud-log .dim { color: var(--dim); }
-.hud-buttons { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 4px; width: 92px; }
-.hud-buttons button { min-height: 38px; padding: 4px 8px; font-size: 12.5px; background: rgba(10, 10, 8, 0.72); }
-.hud-buttons small { font-size: 12px; opacity: 0.8; margin-left: 2px; }
+.hud-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; width: 92px; }
+/* square icon buttons, a thumb's width, two by two under the map */
+.icon-btn {
+  position: relative; min-height: 44px; padding: 4px 0 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: rgba(10, 10, 8, 0.72); font-size: 8.5px; letter-spacing: 0.06em; line-height: 1;
+}
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn small {
+  position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 3px; display: grid; place-items: center;
+  background: var(--pink); color: var(--ink); font-size: 11px; font-weight: 900; letter-spacing: 0; border-radius: 9px;
+}
+.icon-btn:disabled small { background: var(--dim); }
 .hint {
   position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); margin: 0; padding: 8px 14px; text-align: center;
   background: rgba(10, 10, 8, 0.75); color: var(--bone); font-weight: 700; pointer-events: none; transition: opacity 1s;
@@ -377,7 +393,7 @@ body.in-battle .dice-layer { align-items: center; padding: 0 10px 18vh; }
   background: rgba(10, 10, 8, 0.8);
 }
 .modal .card {
-  width: min(100%, 30rem); max-height: 90dvh; overflow-y: auto;
+  width: min(100%, 30rem); max-height: 90dvh; overflow: hidden; display: flex; flex-direction: column;
   background: var(--ink); border: 3px solid var(--yellow); padding: 16px 18px 18px;
   box-shadow: 8px 8px 0 var(--pink);
   transform: rotate(-0.6deg);
@@ -391,7 +407,8 @@ body.in-battle .dice-layer { align-items: center; padding: 0 10px 18vh; }
 /* a cut-out (the Bell-Tongue) sits on a glow instead of filling the frame */
 .modal-art.cutout { object-fit: contain; padding: 14px; background: radial-gradient(circle at 50% 55%, rgba(255, 225, 26, 0.35), transparent 62%), #12100c; }
 .modal.dead .modal-art { border-color: var(--pink); }
-.modal .buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+#modalBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.modal .buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; flex: 0 0 auto; }
 .modal .buttons button { text-transform: none; letter-spacing: 0.01em; font-size: 16px; text-align: left; }
 .modal .sheet { transform: none; box-shadow: none; margin: 0 0 8px; }
 .modal.wide .card { width: min(100%, 52rem); }
@@ -489,7 +506,7 @@ body.in-battle .hands { opacity: 0; }
 .foe-card.gone { opacity: 0; filter: brightness(3) blur(4px); transform: scaleY(0.2) translateY(60%); }
 .foe-card.gone.was-fled { filter: none; transform: translateX(60px); }
 @media (min-aspect-ratio: 1/1) {
-  .hud-buttons { flex-direction: row; width: auto; }
+  .hud-buttons { grid-template-columns: repeat(4, 44px); width: auto; }
   .hand-left { left: 10%; }
   .hand-right { right: 9%; }
 }
@@ -592,3 +609,31 @@ body.in-battle .step-pad { visibility: hidden; }
 }
 .facing small { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0.04em; }
 body.in-battle .facing { display: none; }
+
+/* ---------- short screens: a phone on its side ---------- */
+@media (max-height: 560px) and (min-aspect-ratio: 4/3) {
+  .title { background:
+    linear-gradient(90deg, rgba(10, 10, 8, 0) 25%, rgba(10, 10, 8, 0.9) 50%, var(--ink) 62%),
+    url("assets/title.webp") left center / auto 100% no-repeat, var(--ink); justify-items: end; padding: 12px 5vw 12px 16px; }
+  .title-block { padding-top: 0; max-width: 26rem; }
+  .title h1 { font-size: clamp(64px, 22vh, 120px); }
+  .title .sub { font-size: 20px; margin-top: 8px; }
+  .title .blurb { font-size: 15px; margin: 12px 0 14px; }
+  .legal { margin-top: 14px; font-size: 10px; }
+  .modal { padding: 8px; }
+  .modal .card { width: min(100%, 44rem); max-height: 96dvh; padding: 10px 16px 12px; }
+  .modal h2 { font-size: 26px; margin-bottom: 4px; }
+  .dm-text { font-size: 16.5px; line-height: 1.38; }
+  .modal-art { max-height: 32dvh; aspect-ratio: auto; }
+  .modal .buttons { flex-direction: row; flex-wrap: wrap; margin-top: 8px; }
+  .modal .buttons button { flex: 1 1 12rem; min-height: 40px; }
+  .battle-bottom { flex-direction: row; align-items: flex-end; justify-content: center; }
+  .party-cards { width: min(100%, 30rem); grid-template-columns: 1fr 1fr; }
+  .commands { align-self: flex-end; width: min(34rem, 58vw); grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px; }
+  .cmd-title { font-size: 16px; }
+  .cmd { min-height: 38px; padding: 4px 6px; font-size: 13px; }
+  .cmd small { font-size: 10.5px; line-height: 1.15; }
+  .pc-card img { width: 34px; height: 40px; }
+  .battle-bottom { padding-bottom: 8px; }
+  .foes { padding-top: 34px; }
+}
