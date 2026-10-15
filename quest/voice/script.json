@@ -152,6 +152,22 @@
   "key": "there are bones on the floor of your cell, and they will crack a skull. your own things the guards took; if they're anywhere, they're in the evidence room, with the key the gaol always keeps on its hook."
  },
  {
+  "id": "5c9ab59d49",
+  "group": "rewake",
+  "floor": "gaol",
+  "say": "The water is higher than it was. A day and a night went by while you lay there, and the sea came in the whole time. It drags at your legs now, everywhere.",
+  "src": "story:rewake",
+  "key": "the water is higher than it was. a day and a night went by while you lay there, and the sea came in the whole time. it drags at your legs now, everywhere."
+ },
+ {
+  "id": "ef7cae9818",
+  "group": "rewake",
+  "floor": "gaol",
+  "say": "If you die down here too, the Gaol drowns, and that is the end of it.",
+  "src": "story:rewake",
+  "key": "if you die down here too, the gaol drowns, and that is the end of it."
+ },
+ {
   "id": "7a4c2d7f5b",
   "group": "rewake",
   "floor": "gaol",
@@ -822,6 +838,54 @@
   "say": "Until then, every test they make is at difficulty sixteen, and eighteen in the last hour. And at zero hit points, one more wound is death.",
   "re": "^until then every test ⟪n⟫ makes is dr 16, and dr 18 in the last hour\\. and at 0 hp, one more wound and ⟪n⟫ is dead\\.$",
   "src": "spoken.json"
+ },
+ {
+  "id": "be45c4ea7e",
+  "group": "meanwhile",
+  "floor": "skarnvik",
+  "say": "A day goes by before anyone picks up what the dead left behind. Nothing they started was left half done.",
+  "src": "story:meanwhile",
+  "key": "a day goes by before anyone picks up what the dead left behind. nothing they started was left half done."
+ },
+ {
+  "id": "0259d9bd6e",
+  "group": "meanwhile",
+  "floor": "skarnvik",
+  "say": "The Salt Lords gave the bounties the dead had taken to somebody who wasn’t dead. Those notices are gone from the board.",
+  "src": "story:meanwhile",
+  "key": "the salt lords gave the bounties the dead had taken to somebody who wasn't dead. those notices are gone from the board."
+ },
+ {
+  "id": "b896e4881e",
+  "group": "meanwhile",
+  "floor": "skarnvik",
+  "say": "Every night the hanged man came down off the gallows, and every night he found somebody. There are new ropes on the gallows now, and the ones on them walk with him.",
+  "src": "story:meanwhile",
+  "key": "every night the hanged man came down off the gallows, and every night he found somebody. there are new ropes on the gallows now, and the ones on them walk with him."
+ },
+ {
+  "id": "d166e0dae9",
+  "group": "meanwhile",
+  "floor": "skarnvik",
+  "say": "The freed man from the Brine is gone from his corner of the Gutter. Some say a ship, some say the harbor. Whatever he owed, he took with him.",
+  "src": "story:meanwhile",
+  "key": "the freed man from the brine is gone from his corner of the gutter. some say a ship, some say the harbor. whatever he owed, he took with him."
+ },
+ {
+  "id": "0f7f2f33f0",
+  "group": "meanwhile",
+  "floor": "skarnvik",
+  "say": "In Lantern Row, the woman in black has stopped waiting. Her door is boarded up and her candle is out. Whatever she knew, she took with her.",
+  "src": "story:meanwhile",
+  "key": "in lantern row, the woman in black has stopped waiting. her door is boarded up and her candle is out. whatever she knew, she took with her."
+ },
+ {
+  "id": "b32f63f99e",
+  "group": "meanwhile",
+  "floor": "skarnvik",
+  "say": "A week goes by before anyone picks up what the dead left behind. Skarnvik doesn’t wait for anybody.",
+  "src": "story:meanwhile",
+  "key": "a week goes by before anyone picks up what the dead left behind. skarnvik doesn't wait for anybody."
  },
  {
   "id": "a7d677dd85",
@@ -2148,7 +2212,7 @@
   "group": "not-yet",
   "floor": "skarnvik",
   "say": "One of you has bled out, and should be dead. The Pilgrim's Shroud takes their place and falls to dust. One hit point, and the bleeding has stopped.",
-  "src": "js/game.js:1336",
+  "src": "js/game.js:1338",
   "key": "⟪n⟫ has bled out, and should be dead. the pilgrim's shroud takes their place and falls to dust. # hp, and the bleeding has stopped."
  },
  {
@@ -2156,7 +2220,7 @@
   "group": "dead",
   "floor": "skarnvik",
   "say": "One of you sits down against the wall, and doesn't get up. The haemorrhage was never treated, and the hours ran out.",
-  "src": "js/game.js:1346",
+  "src": "js/game.js:1348",
   "key": "⟪n⟫ sits down against the wall, and doesn't get up. the haemorrhage was never treated, and the hours ran out."
  },
  {
@@ -2164,7 +2228,7 @@
   "group": "dead",
   "floor": "skarnvik",
   "say": "Bled to death.",
-  "src": "js/game.js:1346",
+  "src": "js/game.js:1348",
   "key": "⟪n⟫ has bled to death."
  },
  {
@@ -2172,7 +2236,7 @@
   "group": "under-the-bones",
   "floor": "skarnvik",
   "say": "Under the bones, rolled tight in oilcloth, a scroll. The Psalm of Black Flame: black fire eats a foe for d8 damage.",
-  "src": "js/game.js:1369",
+  "src": "js/game.js:1371",
   "key": "under the bones, rolled tight in oilcloth, a scroll. the psalm of black flame: black fire eats a foe for d# damage."
  },
  {
@@ -2180,7 +2244,7 @@
   "group": "under-the-bones",
   "floor": "skarnvik",
   "say": "Read it in a fight, if one of you can: a Presence test, difficulty twelve, and it costs one of the reader's Powers. It keeps.",
-  "src": "js/game.js:1369",
+  "src": "js/game.js:1371",
   "key": "read it in a fight, if one of you can: presence dr #, and it costs one of the reader's powers. it keeps."
  },
  {
@@ -2188,7 +2252,7 @@
   "group": "under-the-bones",
   "floor": "skarnvik",
   "say": "Under the bones, rolled tight in oilcloth, a scroll. The Rite of Mending Bone: it knits flesh, d6 hit points back, and the bleeding stops.",
-  "src": "js/game.js:1369",
+  "src": "js/game.js:1371",
   "key": "under the bones, rolled tight in oilcloth, a scroll. the rite of mending bone: it knits flesh, d# hp back, and the bleeding stops."
  },
  {
@@ -2196,7 +2260,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "You pick the remains clean: a little silver, in a purse gone green.",
-  "src": "js/game.js:1392",
+  "src": "js/game.js:1394",
   "re": "^you pick the remains clean: .+? silver, in a purse gone green\\.$"
  },
  {
@@ -2204,7 +2268,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "A black poultice in a twist of rag, still sticky. One more poultice.",
-  "src": "js/game.js:1398",
+  "src": "js/game.js:1400",
   "key": "a black poultice in a twist of rag, still sticky. one more poultice."
  },
  {
@@ -2212,7 +2276,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Bind a wretch's wounds with it: d6 hit points back, and the bleeding stops.",
-  "src": "js/game.js:1398",
+  "src": "js/game.js:1400",
   "key": "bind a wretch's wounds with it (the poultice button): d# hp back, and the bleeding stops."
  },
  {
@@ -2220,7 +2284,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "A black feather twitches in the dust, and one of you pockets it. One more Omen.",
-  "src": "js/game.js:1407",
+  "src": "js/game.js:1409",
   "key": "a black feather twitches in the dust, and ⟪n⟫ pockets it. one more omen."
  },
  {
@@ -2228,7 +2292,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "When the dice go against you, spend an Omen to roll again.",
-  "src": "js/game.js:1407",
+  "src": "js/game.js:1409",
   "key": "when the dice go against you, spend an omen to roll again."
  },
  {
@@ -2236,7 +2300,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Under the bones, a weapon, and better than what one of you had. They take it.",
-  "src": "js/game.js:1418",
+  "src": "js/game.js:1420",
   "re": "^under the bones, a weapon: a .+?, d.+? damage\\. it's better than what ⟪n⟫ had, so ⟪n⟫ takes it\\.$"
  },
  {
@@ -2244,7 +2308,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Under the bones, a weapon. No better than what you carry. You leave it.",
-  "src": "js/game.js:1421",
+  "src": "js/game.js:1423",
   "re": "^under the bones, a weapon: a .+?, d.+? damage\\. no better than what you carry\\. you leave it\\.$"
  },
  {
@@ -2252,7 +2316,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Armor, cut from a corpse, and better than what one of you wears. They put it on.",
-  "src": "js/game.js:1430",
+  "src": "js/game.js:1432",
   "re": "^.+?, cut from a corpse\\. better than what ⟪n⟫ wears, so ⟪n⟫ puts it on\\.$"
  },
  {
@@ -2260,7 +2324,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Armor, cut from a corpse, and too ruined to wear. You leave it.",
-  "src": "js/game.js:1433",
+  "src": "js/game.js:1435",
   "re": "^.+?, cut from a corpse, and too ruined to wear\\. you leave it\\.$"
  },
  {
@@ -2268,7 +2332,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "The remains aren't finished. A cold hand closes around a wrist, and squeezes.",
-  "src": "js/game.js:1439",
+  "src": "js/game.js:1441",
   "key": "the remains aren't finished. a cold hand closes around ⟪n⟫'s wrist, and squeezes."
  },
  {
@@ -2276,7 +2340,7 @@
   "group": "skarnvik",
   "floor": "skarnvik",
   "say": "You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. Somebody has to finish it. It might as well be you.",
-  "src": "js/game.js:1839",
+  "src": "js/game.js:1854",
   "key": "you have lived in skarnvik all your short lives. you heard about the two who came up out of the brine gaol, and what they found, and how they died. somebody has to finish it. it might as well be you."
  },
  {

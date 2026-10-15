@@ -41,7 +41,8 @@ if anything fails, including any error in the page.
 | `11-pit` | The pit by the Warden's door: falling in, losing air, and climbing the ladder out, stepping and walking freely |
 | `12-finds` | A DM box for everything found in the remains: silver, a poultice, an Omen, a scroll, a weapon or armor, a strange thing, the hand |
 | `14-journal` | The journal: what to do now, steps ticked off and written into the pair's chapter, not narrated; a death closes the chapter with what was left unfinished; the city's quests and a bounty after the escape |
-| `13-respawn` | Dying in the Gaol: the sealed cell, new wretches waking in it, the Gaol as the dead left it, breaking out, and the evidence room's sacks and key again |
+| `15-consequences` | Dying in the city: a day goes by, or a week with side quests open; the family, the freed man and the bounties are gone for good, the hanged man has company, the Calendar turns, the journal says so |
+| `13-respawn` | Dying in the Gaol: the sealed cell, new wretches waking in it, the Gaol as the dead left it, breaking out, the evidence room's sacks and key again, the water higher; and the second pair's death drowns the Gaol |
 
 ## Writing one
 

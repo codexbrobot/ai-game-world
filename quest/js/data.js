@@ -220,8 +220,8 @@ var Q = window.Q || (window.Q = {});
         G: { decal: 'grate', name: 'The sewer grate', act: 'grate', mark: '▦' },
         // what the Brine Gaol left: the one you freed (only if you did, and until he goes with you), and the
         // family of the one you knew, waiting for news
-        j: { prop: { art: 'npc-freed', h: 1.8 }, name: 'A man in a stolen cloak', scene: 'freed', mark: '●', only: 'freed', unless: 'freedJoined' },
-        k: { prop: { art: 'npc-widow', h: 1.75 }, name: 'A woman in mourning black', scene: 'kin', mark: '●' },
+        j: { prop: { art: 'npc-freed', h: 1.8 }, name: 'A man in a stolen cloak', scene: 'freed', mark: '●', only: 'freed', unless: ['freedJoined', 'freedGone'] },
+        k: { prop: { art: 'npc-widow', h: 1.75 }, name: 'A woman in mourning black', scene: 'kin', mark: '●', unless: 'kinGone' },
         // the bell-ringers' door into Church Hill, behind the graves: down to Saint Agne's Hollow
         h: { front: 'front-belldoor', name: 'A little door in the hill', scene: 'belldoor', mark: '∩' },
       },

@@ -53,6 +53,7 @@ module.exports = {
       const place = await t.place();
       check(m === 'Skarnvik' && home && home.cls === cls && where[0] === at[0] && where[1] === at[1] && place.startsWith(district),
         `new ${cls} wretches wake at home, in ${district}`, { m, home, where, place, text: text.slice(0, 60) });
+      await t.closeAll(); // a day went by first (and maybe a Misery came with it)
     }
     // the scum's home is the alley: off the rags and back on, and sleep there
     await t.step('w');

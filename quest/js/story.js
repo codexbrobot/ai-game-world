@@ -241,6 +241,27 @@ ${dm.name(a)}${b ? ` and ${dm.name(b)}` : ''}: two more wretches in the last cel
         await dm.say('The Brine Gaol', `It’s quieter now. Some of the drowned that walked the corridors don’t walk any more, and some of the doors that were shut stand open. The dead two did that much for you.
 
 There are bones on the floor of your cell, and they will crack a skull. <em>Your own things</em> the guards took; if they’re anywhere, they’re in the evidence room, with the key the Gaol always keeps on its hook.`, [{ label: 'Take a bone and get up' }]);
+        if (dm.flag('gaolFlood')) {
+          await dm.say('The Brine Gaol', `The water is higher than it was. A day and a night went by while you lay there, and the sea came in the whole time. It drags at your legs now, everywhere.
+
+<em>If you die down here too, the Gaol drowns, and that is the end of it.</em>`, [{ label: 'Wade out' }]);
+        }
+      },
+    },
+    // After the escape, when new wretches pick up what the dead left (js/game.js: diedInTown): time went by,
+    // and whatever the dead had left unfinished has gone on without them.
+    {
+      id: 'meanwhile', floor: 'skarnvik',
+      async run(dm) {
+        const week = dm.flag('mwWeek');
+        const parts = [week
+          ? 'A week goes by before anyone picks up what the dead left behind. Skarnvik doesn’t wait for anybody.'
+          : 'A day goes by before anyone picks up what the dead left behind. Nothing they started was left half done.'];
+        if (dm.flag('mwKin')) parts.push('In Lantern Row, the woman in black has stopped waiting. Her door is boarded up and her candle is out. <em>Whatever she knew, she took with her.</em>');
+        if (dm.flag('mwFreed')) parts.push('The freed man from the Brine is gone from his corner of the Gutter. Some say a ship, some say the harbor. <em>Whatever he owed, he took with him.</em>');
+        if (dm.flag('mwHanged')) parts.push('Every night the hanged man came down off the gallows, and every night he found somebody. There are new ropes on the gallows now, and <em>the ones on them walk with him.</em>');
+        if (dm.flag('mwBounty')) parts.push('The Salt Lords gave the bounties the dead had taken to somebody who wasn’t dead. <em>Those notices are gone from the board.</em>');
+        await dm.say(week ? 'A week later' : 'A day later', parts.join('\n\n'), [{ label: 'Go on' }]);
       },
     },
     {

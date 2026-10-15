@@ -2,7 +2,8 @@
 // escape, two new ones (rolled, or made from the book) wake behind that door. The Gaol stays as the dead left
 // it (what they killed stays dead, what they opened stays open), but their things and the key are back in the
 // evidence room, and the Warden's hall is locked again while he still walks it. The new two break out of
-// their cell the way the first did, and the evidence room gives them their own sacks and the key.
+// their cell the way the first did, and the evidence room gives them their own sacks and the key. A day goes by
+// and the water rises; if this pair dies too, the Gaol drowns and the run is over.
 module.exports = {
   name: 'Respawn: new wretches in the sealed cell',
   async run(t) {
@@ -42,7 +43,10 @@ module.exports = {
     await choose(/Listen/);
     check(await waitModal() === 'The Brine Gaol' && /evidence room/.test(await t.body()), 'and are told where their things are');
     await choose(/Take a bone/);
+    check(await waitModal() === 'The Brine Gaol' && /The water is higher/.test(await t.body()) && /the Gaol drowns/.test(await t.body()), 'the water has risen, and they’re warned: die again and the Gaol drowns');
+    await choose(/Wade out/);
     await t.closeAll();
+    check(await S(() => Q.debug().flags.gaolFlood === 1 && Q.debug().flags.gaolHeirs === 1), 'the Gaol is deeper now');
 
     const now = await S((guards) => {
       const s = Q.debug();
@@ -89,5 +93,13 @@ module.exports = {
     await t.closeAll();
     const after = await S((stashed) => ({ key: Q.debug().flags.hallKey, armed: Q.debug().party.every((p, i) => p.weapon.name === stashed[i] && !p.stash), poultices: Q.debug().poultices }), now.stashed);
     check(after.key && after.armed && after.poultices >= 2, 'armed again, and the long key in hand', after);
+
+    // the second pair dies too: the Gaol drowns, and it's a new game
+    await S(() => Q.debugDie('a second test'));
+    check(await waitModal() === 'The Gaol drowns' && /The Gaol is drowned/.test(await t.body()), 'the second pair dies: the Gaol drowns');
+    check(await S(() => !localStorage.getItem('quest-borg-save-v3')), 'and the run is over');
+    await choose(/New game/);
+    await t.wait(300);
+    check(JSON.stringify(await page.$$eval('#sheets .pcname', (els) => els.map((e) => e.textContent))) === JSON.stringify(['Varg Hollowtooth', 'Wren Sixpence']), 'a new game starts with Varg and Wren again');
   },
 };

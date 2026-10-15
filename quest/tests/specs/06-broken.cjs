@@ -60,6 +60,7 @@ module.exports = {
     await t.wait(400);
     await t.page.click('#btnAccept');
     await waitModal(); await choose(/Go on/);
+    await t.closeAll(); // a day went by first (and maybe a Misery came with it)
     await S(() => { const s = Q.debug(); s.party.forEach((p) => { p.hp = p.maxHp = 12; p.omens = 0; }); for (const x of Q.SCENES) s.scenes[x.id] = true; });
     await S(() => {
       window.__queue = ['zero', 'below'];

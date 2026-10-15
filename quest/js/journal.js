@@ -27,6 +27,7 @@ var Q = window.Q || (window.Q = {});
     {
       id: 'gaol', title: 'Out of the Brine Gaol', main: true,
       known: () => true,
+      warn: (S) => (F(S).gaolHeirs && !S.escaped ? 'The water has risen. If these two die in the Gaol, it drowns, and the game starts over.' : ''),
       steps: [
         {
           text: (S) => (F(S).inSealedCell
@@ -120,6 +121,7 @@ var Q = window.Q || (window.Q = {});
     {
       id: 'freed', title: (S) => `${freedName(S)}, out of the Brine`,
       known: (S) => !!(S.escaped && F(S).freed),
+      lost: (S) => (F(S).freedGone && !F(S).freedPaid ? 'He left the Gutter while nobody came for him.' : ''),
       steps: [
         {
           text: (S) => `${freedName(S)} got out too. Find him in his corner of the Gutter.`,
@@ -136,6 +138,7 @@ var Q = window.Q || (window.Q = {});
     {
       id: 'kin', title: (S) => `${F(S).knownName || 'The one you knew'}’s family`,
       known: (S) => !!(S.escaped && F(S).knownName),
+      lost: (S) => (F(S).kinGone && !F(S).kinDone ? 'She stopped waiting. Her door in Lantern Row is boarded up.' : ''),
       steps: [{
         text: (S) => `${F(S).knownName} drowned in the cell across the corridor from yours. ${F(S).knownShe === 'he' ? 'His' : 'Her'} family waits at their door in Lantern Row, with a candle. Go and tell them.`,
         deed: (S) => (F(S).kinCursed ? `Walked away from ${F(S).knownName}’s family, and were cursed for it.` : `Told ${F(S).knownName}’s family, in Lantern Row.`),
@@ -145,6 +148,7 @@ var Q = window.Q || (window.Q = {});
     {
       id: 'hanged', title: (S) => `${living(S)}, hanged`,
       known: (S) => !!(S.escaped && F(S).sawDawn && (F(S).promised || F(S).leftHim) && !F(S).freed),
+      warn: (S) => (F(S).hangedFed && !F(S).hangedLaid ? 'He wasn’t laid to rest in time: the ones he hanged walk with him now.' : ''),
       steps: [{
         text: (S) => `The Salt Lords hanged ${living(S)}, the one you left in the Brine. At night he comes down off the gallows and walks Gallows Square. Lay him to rest.`,
         deed: (S) => `Laid ${living(S)} to rest.`,
@@ -178,7 +182,7 @@ var Q = window.Q || (window.Q = {});
       const current = steps.find((st) => !st.done) || null;
       const why = q.lost ? q.lost(S) : '';
       const state = !current ? 'done' : why ? 'lost' : 'open';
-      return { id: q.id, title: val(q.title, S), main: !!q.main, state, steps, current, why };
+      return { id: q.id, title: val(q.title, S), main: !!q.main, state, steps, current, why, warn: q.warn ? q.warn(S) : '' };
     });
   }
 
@@ -245,8 +249,9 @@ var Q = window.Q || (window.Q = {});
       // the quest whose step is "now" shows it once, up top, with what's already done under it
       const quest = (q) => {
         const done = q.steps.filter((st) => st.done).map((st) => `<li class="done">${esc(st.deed || st.text)}</li>`).join('');
-        if (nq && q.id === nq.id) return done || leftBy(q) ? `<div class="quest past">${done ? `<ol>${done}</ol>` : ''}${leftBy(q)}</div>` : '';
-        return `<div class="quest${q.main ? ' main' : ''}"><h3>${esc(q.title)}</h3><ol>${done}<li class="now">${esc(q.current.text)}</li></ol>${leftBy(q)}</div>`;
+        const warn = q.warn ? `<p class="warn">${esc(q.warn)}</p>` : '';
+        if (nq && q.id === nq.id) return done || leftBy(q) || warn ? `<div class="quest past">${warn}${done ? `<ol>${done}</ol>` : ''}${leftBy(q)}</div>` : '';
+        return `<div class="quest${q.main ? ' main' : ''}"><h3>${esc(q.title)}</h3>${warn}<ol>${done}<li class="now">${esc(q.current.text)}</li></ol>${leftBy(q)}</div>`;
       };
       const finished = qs.filter((q) => q.state !== 'open');
       const ch = J.chapters[J.chapters.length - 1];

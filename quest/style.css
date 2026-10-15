@@ -649,6 +649,7 @@ body.in-battle .facing { display: none; }
 .journal li.now { color: var(--bone); }
 .journal .quest.past { margin-top: -6px; }
 .journal .left { margin: 4px 0 0; font-size: 13px; color: var(--pink); }
+.journal .warn { margin: 0 0 6px; padding: 6px 10px; border-left: 4px solid var(--pink); background: rgba(255, 61, 139, 0.12); color: var(--bone); font-weight: 700; font-size: 14px; }
 .journal .j-head { margin-top: 18px; padding-top: 10px; border-top: 2px solid rgba(255, 225, 26, 0.25); font-size: 17px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--body); }
 .journal .j-done { margin: 0; padding-left: 1.2em; }
 .journal .j-done li { color: var(--dim); }

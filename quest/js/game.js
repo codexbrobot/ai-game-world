@@ -705,7 +705,7 @@
       if (h === 'day') add.push(...spawn(cf, DAY_GROUND, 3, () => [{ key: 'watch' }, { key: 'watch' }], { day: true }));
     }
     if (h === 'night' && hangedWalks() && !cf.groups.some((g) => g.hanged)) {
-      add.push(...spawn(cf, [[20, 13, 25, 15]], 1, () => [{ key: 'hanged', name: S.flags.livingName }], { night: true, hanged: true }, 3));
+      add.push(...spawn(cf, [[20, 13, 25, 15]], 1, () => [{ key: 'hanged', name: S.flags.livingName }, ...Array.from({ length: Math.min(2, S.flags.hangedFed || 0) }, () => ({ key: 'hanged' }))], { night: true, hanged: true }, 3));
     }
     cf.groups.push(...add);
     if (live) for (const g of add) world.addGroup(g);
@@ -734,7 +734,7 @@
     const ix = cityIx(), f = Q.FLOORS[ix], grid = S.floors[ix].grid;
     f.rows.forEach((row, y) => [...row].forEach((t, x) => {
       const u = f.uses[t];
-      if (u && (u.only || u.unless)) grid[y][x] = (!u.only || S.flags[u.only]) && (!u.unless || !S.flags[u.unless]) ? t : '.';
+      if (u && (u.only || u.unless)) grid[y][x] = (!u.only || S.flags[u.only]) && ![].concat(u.unless || []).some((k) => S.flags[k]) ? t : '.';
     }));
   }
 
@@ -1209,7 +1209,9 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     const grid = floor().grid;
     if (ix === cityIx()) cityPeople();
     w.setDaylight(hourNow());
-    w.load({ grid, heights: f.heights, ceil: f.ceil, theme: f.theme, uses: f.uses, groups: floor().groups.filter((g) => g.alive), opened: floor().opened });
+    // every pair that dies in the Gaol leaves it deeper for the next
+    const theme = f.id === 'gaol' && S.flags.gaolFlood ? { ...f.theme, water: f.theme.water + 0.3 * S.flags.gaolFlood } : f.theme;
+    w.load({ grid, heights: f.heights, ceil: f.ceil, theme, uses: f.uses, groups: floor().groups.filter((g) => g.alive), opened: floor().opened });
     let p = pose;
     if (!p) grid.forEach((row, y) => row.forEach((t, x) => { if (t === arriveOn && !p) p = w.cellPose(x, y); }));
     w.place(p);
@@ -1578,15 +1580,28 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     const where = esc(S.where === 'crawl' ? floor().name : 'Skarnvik');
     Q.Journal.died(S, cause, S.where === 'crawl' ? placeName() : 'Skarnvik');
     if (S.escaped) {
-      // the story goes on without them: someone else in Skarnvik picks it up
+      // the story goes on without them: someone else in Skarnvik picks it up, a day later, or a week if they
+      // left things unfinished, and those things went on without them
+      const lost = diedInTown();
       S.awaitingWretches = true;
       S.over = false;
       save();
       S.over = true;
       modal('Dead', `${art('grave')}${pcs}
         <p>Killed by ${esc(cause)} in ${where}, with ${S.kills} foe${S.kills === 1 ? '' : 's'} slain.</p>
-        <p class="small">Skarnvik is full of desperate people. Somebody else heard what you learned, and somebody else will finish it.</p>`, [
+        <p class="small">Skarnvik is full of desperate people. Somebody else heard what you learned, and somebody else will finish it. ${lost ? `But not for a week: ${lost} won’t wait for them.` : 'A day goes by before they do.'}</p>`, [
         { label: 'New wretches in Skarnvik', action: () => startCreate(true) },
+      ], { closable: false, dead: true });
+      return;
+    }
+    // the second pair to die in the Gaol: the sea has it, and the run is over
+    if (S.flags.gaolHeirs) {
+      clearSave();
+      modal('The Gaol drowns', `${art('grave')}${pcs}
+        <p>Killed by ${esc(cause)} in ${where}, never having seen daylight again.</p>
+        <p>The sea comes in under every door at once, and keeps coming, until there is no air left in the Brine Gaol, and nobody left to breathe it. <b>The Gaol is drowned, and everything in it.</b></p>
+        <p class="small">New prisoners, in some other year, will wake in some other cell.</p>`, [
+        { label: 'New game', action: () => startCreate() },
       ], { closable: false, dead: true });
       return;
     }
@@ -1597,7 +1612,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     S.over = true;
     modal('Dead', `${art('grave')}${pcs}
       <p>Killed by ${esc(cause)} in ${where}, never having seen daylight again.</p>
-      <p class="small">The Brine Gaol keeps what it takes. In the last cell in the row, two more prisoners heard every scream.</p>`, [
+      <p class="small">The Brine Gaol keeps what it takes. In the last cell in the row, two more prisoners heard every scream. A day will go by before they stir, and the water is rising. <b>If they die too, the Gaol drowns.</b></p>`, [
       { label: 'New wretches in the Gaol', action: () => startCreate(true) },
     ], { closable: false, dead: true });
   }
@@ -1839,7 +1854,8 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
       say('Skarnvik', `${wake}
 
 You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. <em>Somebody has to finish it.</em> It might as well be you.`, [{ label: 'Go on' }])
-        .then(() => log(goal()));
+        .then(() => (S.flags.mwDays ? run(() => playScene(Q.SCENES.find((sc) => sc.id === 'meanwhile'), true)) : null))
+        .then(() => { for (const k of ['mwDays', 'mwWeek', 'mwKin', 'mwFreed', 'mwHanged', 'mwBounty']) delete S.flags[k]; save(); log(goal()); });
       return;
     }
     newRun(rolled);
@@ -1852,6 +1868,37 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
   // dead left it: what they killed stays dead, what they opened stays open, what they learned stays learned. But
   // what they carried died with them, so the new two go to the evidence room for their own things, and for the
   // key, back on its hook; and the Warden's hall is locked again while the Warden still walks it.
+  // Days go by (while new wretches are found): the Calendar turns, and any Misery that comes is shown at the
+  // next scene's end.
+  function passDays(n) {
+    for (let i = 0; i < n; i++) { const m = tickCalendar(); if (m) S.pendingMiseries.push(m); }
+  }
+
+  // Wretches died after the escape. A day goes by before the next ones pick it up; a week if the dead left
+  // side quests unfinished, and those go on without them, for good: the family in Lantern Row stops waiting,
+  // the freed man leaves the Gutter, the hanged man gathers company, the bounties go to someone else. Returns
+  // what was lost, for the death screen (or '' if nothing was).
+  function diedInTown() {
+    const open = Q.Journal.quests(S).filter((q) => q.state === 'open' && !q.main);
+    const has = (id) => open.some((q) => q.id === id);
+    const f = S.flags;
+    const lost = [];
+    if (has('kin')) { f.kinGone = true; f.mwKin = true; lost.push('the family in Lantern Row'); }
+    if (has('freed') && !f.freedJoined) { f.freedGone = true; f.mwFreed = true; lost.push('the freed man in the Gutter'); }
+    if (has('hanged')) { f.hangedFed = (f.hangedFed || 0) + 1; f.mwHanged = true; lost.push('the hanged man'); }
+    if (S.bounties && Object.keys(S.bounties.taken).length) {
+      for (const id of Object.keys(S.bounties.taken)) S.bounties.posted = S.bounties.posted.filter((x) => x !== id);
+      S.bounties.taken = {};
+      f.mwBounty = true;
+      lost.push('the bounty board');
+    }
+    const days = lost.length ? 7 : 1;
+    f.mwDays = days;
+    f.mwWeek = days === 7;
+    passDays(days);
+    return lost.length > 1 ? `${lost.slice(0, -1).join(', ')} and ${lost[lost.length - 1]}` : lost[0] || '';
+  }
+
   function newPairInGaol() {
     S = heirs;
     heirs = null;
@@ -1870,6 +1917,8 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     S.over = false;
     S.awaitingWretches = false;
     S.flags.gaolHeirs = (S.flags.gaolHeirs || 0) + 1;
+    S.flags.gaolFlood = (S.flags.gaolFlood || 0) + 1;
+    passDays(1);
     Q.Journal.newPair(S);
     const ix = floorIndex('gaol'), gaol = S.floors[ix];
     const shut = (x, y, tile) => { gaol.grid[y][x] = tile; gaol.opened = gaol.opened.filter((k) => k !== `${x},${y}`); };
