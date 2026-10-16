@@ -6,7 +6,7 @@
 (function () {
   const { d, fmt } = Q;
   // The version of the game, as published: one up with every publish, shown on the title screen.
-  Q.VERSION = 33;
+  Q.VERSION = 34;
   const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);
@@ -407,6 +407,15 @@
     if (world) world.showHands(screen === 'crawl');
     const outdoors = screen === 'crawl' && S && Q.FLOORS[S.floorIx].theme && Q.FLOORS[S.floorIx].theme.outdoor;
     if (Q.Sound) Q.Sound.ambience(outdoors ? 'town' : screen === 'crawl' ? 'crawl' : null, S && floor() ? floor().id : '');
+  }
+
+  // Out of the run to the title screen: saved, so Continue picks it up where you left it.
+  function toTitle() {
+    if (!S || busy) return;
+    save();
+    S = null;
+    show('title');
+    renderTitle();
   }
 
   function renderTitle() {
@@ -1182,6 +1191,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     if (world) return world;
     world = Q.createWorld($('viewport'), {
       onEnterCell: (x, y, t) => run(() => enterCell(x, y, t)),
+      onContextRestored: () => { if (S && S.where === 'crawl') enterFloor(S.floorIx, null, world.pose()); },
       onDoor: (x, y) => {
         if (!floor().opened.includes(x + ',' + y)) floor().opened.push(x + ',' + y);
         log('The door groans open.');
@@ -1795,7 +1805,11 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
         ${opt('voice', 'on', 'On', Q.Voice && Q.Voice.supported ? 'the DM reads the boxes aloud' : 'this browser can’t play the recordings')}
         ${opt('voice', 'off', 'Off', 'read them yourself')}
       </div></div>
-      <small>Settings are kept in this browser.</small></div>`, [{ label: 'Close' }]);
+      <small>Settings are kept in this browser.</small></div>`, [
+      { label: 'Close' },
+      ...(S && !S.over && !busy ? [{ label: 'Save, and back to the title screen', ghost: true, action: toTitle }] : []),
+      { label: 'Reload the game', note: 'if the pictures didn’t load (your progress is kept)', ghost: true, action: () => { if (S && !S.over) save(); location.reload(); } },
+    ]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
       if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
       else if (b.dataset.set === 'broken') {

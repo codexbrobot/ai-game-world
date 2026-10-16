@@ -37,6 +37,10 @@ export function createWorld(container, hooks) {
   renderer.setClearColor(0x000000);
   container.prepend(renderer.domElement);
   renderer.domElement.className = 'world';
+  // a phone may take the 3D away while the game is in the background; when it gives it back, the level is
+  // built again (hooks.onContextRestored), or the room would be black
+  renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); });
+  renderer.domElement.addEventListener('webglcontextrestored', () => { if (hooks.onContextRestored) hooks.onContextRestored(); });
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x000000, 2, 16);
@@ -57,9 +61,23 @@ export function createWorld(container, hooks) {
   // ---------- textures ----------
   const loader = new THREE.TextureLoader();
   const texCache = {};
+  // A picture that didn't arrive (the connection dropped) is fetched again when the connection is back, when
+  // the page is looked at again, and every few seconds meanwhile, instead of leaving the walls black.
+  const missing = new Map(); // texture -> url
+  function retryMissing() {
+    for (const [t, url] of missing) {
+      const img = new Image();
+      img.onload = () => { if (!missing.has(t)) return; missing.delete(t); t.image = img; t.needsUpdate = true; needRender = true; };
+      img.src = url;
+    }
+  }
+  window.addEventListener('online', retryMissing);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) retryMissing(); });
+  setInterval(() => { if (missing.size) retryMissing(); }, 5000);
   function texture(name, repeat = true) {
     if (texCache[name]) return texCache[name];
-    const t = loader.load(Q.assetUrl(name), () => { needRender = true; });
+    const url = Q.assetUrl(name);
+    const t = loader.load(url, () => { needRender = true; }, undefined, () => missing.set(t, url));
     t.colorSpace = THREE.SRGBColorSpace;
     if (repeat) { t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping; }
     t.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -81,6 +99,8 @@ export function createWorld(container, hooks) {
       t.needsUpdate = true;
       needRender = true;
     };
+    let tries = 0;
+    img.onerror = () => { tries += 1; setTimeout(() => { img.src = Q.assetUrl(name); }, Math.min(30000, 2000 * tries)); };
     img.src = Q.assetUrl(name);
     texCache[key] = t;
     return t;

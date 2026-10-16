@@ -53,7 +53,14 @@ var Q = window.Q || (window.Q = {});
       im.decoding = 'async';
       const done = () => { pending -= 1; if (onLoad) onLoad(name, pending); };
       im.onload = done;
-      im.onerror = done;
+      // no connection: count it as done, and keep trying in the background
+      let tries = 0;
+      im.onerror = () => {
+        if (!tries) done();
+        tries += 1;
+        im.onload = () => { if (onLoad) onLoad(name, pending); };
+        setTimeout(() => { im.src = ''; im.src = assetUrl(name); }, Math.min(30000, 2000 * tries));
+      };
       im.src = assetUrl(name);
       IMG[name] = im;
     }

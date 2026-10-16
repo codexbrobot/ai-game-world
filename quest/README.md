@@ -10,7 +10,7 @@ Serve the folder and open it in a browser; it works on a phone too:
 cd quest && python3 -m http.server 8765   # then open http://localhost:8765
 ```
 
-Opening `index.html` straight from disk doesn't work, because WebGL won't load textures from `file://`. The only network request is for Google Fonts; the pictures, the narration and the recorded sounds load from `assets/`. The game saves to your browser as you go.
+Opening `index.html` straight from disk doesn't work, because WebGL won't load textures from `file://`. The only network request is for Google Fonts; the pictures, the narration and the recorded sounds load from `assets/`. The game saves to your browser as you go. If the connection drops, the pictures that didn't arrive are fetched again once it's back (until then the walls are dark), and if a phone takes the 3D view away while the game is in the background, it's built again; ⚙ Settings can also take you back to the title screen (Continue picks the run up again) or reload the game.
 
 It's on GitHub Pages at <https://codexbrobot.github.io/ai-game-world/quest/> (the repo's root sends you there), once Pages is set to build from this branch. On a phone, open that address and add it to the home screen (Safari: Share, then *Add to Home Screen*; Chrome: ⋮, then *Add to Home screen*): it opens as an app, with no browser bars, from `manifest.webmanifest`, the app tags in `index.html` and the icon in `assets/app/`.
 
@@ -26,7 +26,7 @@ Under the mini-map, five square icons: **Journal**, **Map**, **Party** (the char
 |---|---|---|
 | Walk and strafe (free movement) | drag the left half of the screen (a joystick appears) | W A S D |
 | Step a square, turn a quarter (step movement) | the arrow pad | W S or ↑ ↓ to step, A D to sidestep, Q E or ← → to turn |
-| Settings (movement, Omens, sound, the narrator) | ⚙ (or Settings on the title screen) | |
+| Settings (movement, Omens, sound, the narrator); back to the title screen; reload the game | ⚙ (or Settings on the title screen) | |
 | Look around | drag the right half of the screen | ← / → or Q / E, or drag with the mouse |
 | Pick a battle command | tap it | ↑ ↓ ← → and Enter, or 1–7 |
 | Spend an Omen when one is offered | tap the yellow button on the dice | O |
