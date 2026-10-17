@@ -77,15 +77,15 @@ module.exports = {
     await choose(/Ask what he knows/);
     check((await t.flags()).bellStair && /bell-ringer’s stair/.test(await t.body()), 'he tells you of the bell-ringer’s stair');
     await t.closeAll();
-    await t.tp('skarnvik', 9, 28, 'W');
-    await t.bump();
+    // (a busy page can miss the step into him; walk up again)
+    const visit = async () => { for (let i = 0; i < 3; i++) { await t.tp('skarnvik', 9, 28, 'W'); if (await t.bump()) return; } };
+    await visit();
     await choose(/owed us/);
     await choose(/Unwrap/);
     check(await waitModal() === 'Found', 'he pays you back from his stash');
     await t.closeAll();
     await S(() => { const p = Q.debug().party[1]; p.hp = 0; p.dead = true; });
-    await t.tp('skarnvik', 9, 28, 'W');
-    await t.bump();
+    await visit();
     await choose(/come with you/);
     await t.closeAll();
     await t.wait(600);

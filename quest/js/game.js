@@ -1864,9 +1864,9 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
         ${opt('voice', 'off', 'Off', 'read them yourself')}
       </div></div>
       <small>Settings are kept in this browser.</small></div>`, [
-      { label: 'Close' },
       ...(S && !S.over && !busy ? [{ label: 'Save, and back to the title screen', ghost: true, action: toTitle }] : []),
       { label: 'Reload the game', note: 'if the pictures didn’t load (your progress is kept)', ghost: true, action: () => { if (S && !S.over) save(); location.reload(); } },
+      { label: 'Close' },
     ]);
     document.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
       if (b.dataset.set === 'omens') Q.setOmenMode(b.dataset.val);
