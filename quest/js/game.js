@@ -6,7 +6,7 @@
 (function () {
   const { d, fmt } = Q;
   // The version of the game, as published: one up with every publish, shown on the title screen.
-  Q.VERSION = 35;
+  Q.VERSION = 36;
   const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);
@@ -219,17 +219,14 @@
           if (!pc.stash) continue;
           const { weapon, armor, silver } = pc.stash;
           delete pc.stash;
-          // their own weapon replaces the bone, but not something strange already in hand: that goes in the pack
-          let kept = '';
-          if (pc.weapon.key) { Q.packOf(pc).push({ kind: 'weapon', name: weapon.name, die: weapon.die }); kept = ' It goes in the pack.'; } else pc.weapon = weapon;
-          if (pc.armor.tier > 0) { if (armor.tier > 0) Q.packOf(pc).push({ kind: 'armor', name: armor.name, tier: armor.tier }); } else pc.armor = armor;
+          const kept = takeBack(pc, weapon, armor) ? ' It goes in the pack.' : '';
           let got = silver;
           const r = d(6);
           let note = '';
           if (r === 1 && silver > 0) { got = Math.floor(silver / 2); note = ` A guard helped himself: only <em>${got}s</em> left of ${silver}.`; }
           S.silver += got;
           lines.push(`<b>${esc(pc.name)}</b>: ${esc(weapon.name)} (d${weapon.die}), ${esc(armor.name)}, ${got}s.${kept}${note}`);
-          if (r === 6) S.pendingDrop = Q.rollItem(S, 1);
+          if (r === 6 && !S.pendingDrop) S.pendingDrop = Q.rollItem(S, 1); // one uncollected sack, however many sixes
         }
         if (S.pendingDrop) lines.push('<br>And the sack beside yours, with a crossed-out name on it, was never collected. Something is still in it.');
         S.poultices += 2;
@@ -256,6 +253,17 @@
       log,
     };
     return dm;
+  }
+
+  // A wretch's own things, back from the Gaol: they replace the bone and the rags, but anything found on the way
+  // stays in use, and their own goes in the pack. Returns true if their weapon went in the pack.
+  const bone = (w) => !w || (w.name === 'Femur' && !w.key) || w.name === 'Splinters';
+  function takeBack(pc, weapon, armor) {
+    let packed = false;
+    if (bone(pc.weapon)) pc.weapon = weapon;
+    else { Q.packOf(pc).push({ kind: 'weapon', name: weapon.name, die: weapon.die }); packed = true; }
+    if (pc.armor.tier > 0) { if (armor.tier > 0) Q.packOf(pc).push({ kind: 'armor', name: armor.name, tier: armor.tier }); } else pc.armor = armor;
+    return packed;
   }
 
   async function playScene(scene, first) {
@@ -293,7 +301,6 @@
     }
   }
 
-  // Something found (or bought): which wretch takes it? opts: { price, source, then }
   // Something found, bought or handed over: who carries it? (opts: { title, intro, price, then })
   // It goes into that wretch's pack. Then they can use it at once, or keep it for later: nothing is thrown
   // away, and what a unique item does is learned when someone wields or wears it.
@@ -314,10 +321,11 @@
         action: () => takeItem(pc, item, opts),
       };
     });
+    const leave = () => { if (!opts.price) log(`You leave the ${esc(Q.itemName(item))} where it lies.`, 'dim'); if (opts.then) opts.then(); };
     modal(opts.title || Q.itemName(item), `${opts.intro ? `<p>${opts.intro}</p>` : ''}<p class="item-card">${item.key ? Q.itemHtml(item.key, esc) : plainCard(item)}</p>${opts.price ? `<p class="small">Thrumm wants <b>${opts.price}s</b>. You have ${S.silver}s.</p>` : ''}`, [
       ...buttons,
-      { label: opts.price ? 'Not today' : 'Leave it', ghost: true, action: () => { if (!opts.price) log(`You leave the ${esc(Q.itemName(item))} where it lies.`, 'dim'); if (opts.then) opts.then(); } },
-    ]);
+      { label: opts.price ? 'Not today' : 'Leave it', ghost: true, action: leave },
+    ], { onDismiss: leave });
   }
 
   function takeItem(pc, item, opts) {
@@ -340,7 +348,7 @@
     modal('In the pack', `<p>${esc(pc.name)} has the ${esc(Q.itemName(item))} now${holding ? `, and holds the ${esc(holding)}` : ''}. Use it now, or keep it for later?</p>`, [
       { label: `${verb} it now`, note: blocked ? 'their cursed relic won’t come off' : holding ? `the ${holding} goes in the pack` : undefined, disabled: blocked, action: () => useItem(pc, i, opts.then) },
       { label: 'Keep it in the pack', ghost: true, action: opts.then },
-    ]);
+    ], { onDismiss: opts.then });
   }
 
   // Wield, wear or put on what's in the pack (js/items.js: Q.equip); what was in use goes into the pack.
@@ -356,7 +364,7 @@
     modal(r.fresh ? 'Now you know' : it.name, `<p>${esc(pc.name)} ${r.item.kind === 'weapon' ? 'closes a hand around' : 'puts on'} the ${esc(it.name)}.</p>
       <p class="item-card">${Q.itemHtml(r.item.key, esc)}</p>
       ${it.cursed ? '<p class="pink"><b>Cursed.</b> It sinks into the flesh and will not come off. Thrumm knows a way, for silver.</p>' : ''}
-      ${r.fresh ? '<p class="small">Written in your Codex.</p>' : ''}`, [{ label: 'So be it', action: then }]);
+      ${r.fresh ? '<p class="small">Written in your Codex.</p>' : ''}`, [{ label: 'So be it', action: then }], { onDismiss: then });
   }
 
   // Thrumm pries a cursed relic off.
@@ -1103,9 +1111,10 @@
       modal('Morning', lines.map((l) => `<p>${l}</p>`).join(''), [{ label: 'Go on', action: () => gameOver('a haemorrhage') }], { closable: false });
       return;
     }
+    const getUp = miseries.length ? () => showMiseries(miseries, () => { save(); renderTown(); }) : null;
     modal(bed === true ? 'Morning' : bed === 'home' ? 'Morning, at home' : 'Morning, in the gutter', lines.map((l) => `<p>${l}</p>`).join(''), [
-      { label: 'Get up', action: miseries.length ? () => showMiseries(miseries, () => { save(); renderTown(); }) : null },
-    ]);
+      { label: 'Get up', action: getUp },
+    ], { onDismiss: getUp });
   }
 
   function visitShop() {
@@ -1215,7 +1224,7 @@
       modal('The Stranger', `${art('stranger')}
         <p>“Rising, you say. From under. Not rain, not a spring.” The Stranger presses forty silver into your hand without counting it.</p>
         <p>“Then it’s true. The island isn’t sinking. <b>Something is pulling it down.</b> And the Salt Lords are getting rich while it happens.”</p>
-        <p>“And I think I know where to look.”</p>`, [{ label: 'Take the silver', action: () => strangerRest(true) }]);
+        <p>“And I think I know where to look.”</p>`, [{ label: 'Take the silver', action: () => strangerRest(true) }], { onDismiss: () => strangerRest(true) });
       return;
     }
     const first = !S.metStranger;
@@ -1233,7 +1242,7 @@
   async function escapeGaol() {
     S.escaped = true;
     S.clock = { phase: 'night', left: 25, spawned: true };
-    for (const pc of alive()) if (pc.stash) { pc.weapon = pc.stash.weapon; pc.armor = pc.stash.armor; S.silver += pc.stash.silver; delete pc.stash; }
+    for (const pc of alive()) if (pc.stash) { takeBack(pc, pc.stash.weapon, pc.stash.armor); S.silver += pc.stash.silver; delete pc.stash; }
     enterCity('G');
     save();
     await say('Skarnvik', `You come up through a sewer grate in Gallows Square, an hour before dawn, and nobody looks twice. Why would they? Your faces are on posters on the gallows, so faded by rain you can barely tell they were ever faces.
@@ -1738,8 +1747,11 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
   }
 
   // ---------- modal ----------
+  // opts.onDismiss: what closing it without a button (Escape, a tap outside) means, for a box something waits on
+  let onDismiss = null;
   function modal(title, body, buttons, opts = {}) {
     modalOpen = true;
+    onDismiss = opts.onDismiss || null;
     if (world) world.pause();
     const box = $('modal');
     box.classList.toggle('dead', !!opts.dead);
@@ -1769,7 +1781,14 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     document.querySelector('#modal .card').scrollTop = 0;
   }
 
+  // closed without a button: whatever was waiting on it goes on as if it had been turned down
+  function dismissModal() {
+    const then = onDismiss;
+    closeModal();
+    if (then) then();
+  }
   function closeModal() {
+    onDismiss = null;
     if (Q.Voice && Q.Voice.stop) Q.Voice.stop();
     $('modal').hidden = true;
     modalOpen = false;
@@ -2064,11 +2083,11 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     $('mini').addEventListener('click', showMap);
     $('btnSettings').addEventListener('click', showSettings);
     $('tSettings').addEventListener('click', showSettings);
-    $('modal').addEventListener('click', (e) => { if (e.target === $('modal') && $('modal').dataset.closable === 'yes') closeModal(); });
+    $('modal').addEventListener('click', (e) => { if (e.target === $('modal') && $('modal').dataset.closable === 'yes') dismissModal(); });
     window.addEventListener('keydown', (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (modalOpen) {
-        if (e.key === 'Escape' && $('modal').dataset.closable === 'yes') closeModal();
+        if (e.key === 'Escape' && $('modal').dataset.closable === 'yes') dismissModal();
         return;
       }
       if (!S || S.where !== 'crawl') return;

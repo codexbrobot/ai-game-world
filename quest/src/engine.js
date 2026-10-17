@@ -242,9 +242,20 @@ export function createWorld(container, hooks) {
     return walls[0][0];
   }
 
+  // Free what a piece of the level held on the GPU once it's gone: its geometry, and any material made for it
+  // alone. The shared surfaces (matCache, lampMats) stay, and so do the cached pictures (texCache).
+  function freeGpu(obj) {
+    const shared = new Set([...Object.values(matCache), ...Object.values(lampMats)]);
+    obj.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) for (const m of [].concat(o.material)) if (!shared.has(m)) m.dispose();
+    });
+  }
+
   function build(floor) {
     if (level) scene.remove(level.root);
     if (water) { water.mesh.dispose(); water = null; }
+    if (level) freeGpu(level.root);
     theme = { ...DEFAULT_THEME, ...(floor.theme || {}) };
     uses = floor.uses || {};
     const outdoor = !!theme.outdoor;
@@ -443,8 +454,8 @@ export function createWorld(container, hooks) {
     return t;
   }
   function buildSky() {
-    if (sky) { scene.remove(sky); sky = null; }
-    if (daySky) { scene.remove(daySky); daySky = null; }
+    if (sky) { scene.remove(sky); freeGpu(sky); sky = null; }
+    if (daySky) { scene.remove(daySky); freeGpu(daySky); daySky = null; }
     if (!theme.outdoor) return;
     sky = new THREE.Mesh(new THREE.SphereGeometry(45, 48, 24), new THREE.MeshBasicMaterial({ map: skyTexture(), side: THREE.BackSide, fog: false, depthWrite: false }));
     sky.renderOrder = -2;
@@ -651,7 +662,7 @@ export function createWorld(container, hooks) {
   };
 
   function buildWater() {
-    if (water) { water.mesh.dispose(); level.root.remove(water.mesh); water = null; }
+    if (water) { water.mesh.dispose(); level.root.remove(water.mesh); freeGpu(water.mesh); water = null; }
     waterline.value = -99;
     const y = theme.water || 0;
     if (!waterOn || y <= -10) return;
@@ -876,7 +887,7 @@ export function createWorld(container, hooks) {
   function placeItem(x, y) {
     const key = x + ',' + y;
     const old = level.items.get(key);
-    if (old) { level.root.remove(old); level.items.delete(key); }
+    if (old) { level.root.remove(old); freeGpu(old); level.items.delete(key); }
     const t = tile(x, y);
     const u = uses[t];
     if (u && (u.decal || (u.prop && (u.prop.lamp || u.prop.posts)))) {
@@ -1747,6 +1758,7 @@ export function createWorld(container, hooks) {
       const i = level.groups.findIndex((e) => e.group === g);
       if (i < 0) return;
       level.root.remove(level.groups[i].mesh);
+      freeGpu(level.groups[i].mesh);
       level.groups.splice(i, 1);
     },
     // The hour, outdoors: 'night', 'dawn', 'day' or 'dusk'. It comes on over a few seconds, unless snap.

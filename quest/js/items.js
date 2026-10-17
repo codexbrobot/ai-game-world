@@ -2,9 +2,9 @@
 // some are cursed. You don't know what a thing does, or whether it's cursed, until a wretch wears or
 // wields it. What you learn goes in the Codex, which this browser remembers from run to run.
 //
-// Each wretch carries one weapon and one relic. A unique weapon is an ordinary weapon object with a `key`
-// (its art is borrowed from a plain weapon, `art`). A cursed relic will not come off; Thrumm can pry it
-// off for silver.
+// Each wretch has one weapon in hand and one relic worn, and a pack for the rest. A unique weapon is an
+// ordinary weapon object with a `key` (its art is borrowed from a plain weapon, `art`). A cursed relic will
+// not come off; Thrumm can pry it off for silver.
 'use strict';
 var Q = window.Q || (window.Q = {});
 
@@ -127,29 +127,45 @@ var Q = window.Q || (window.Q = {});
   Q.has = (pc, key) => !!pc && !pc.dead && (pc.relic === key || (pc.weapon && pc.weapon.key === key));
   Q.anyHas = (party, key) => party.some((p) => Q.has(p, key));
 
-  function applyMod(pc, mod, sign) {
-    if (!mod) return;
-    for (const [stat, v] of Object.entries(mod)) {
+  // A relic's stat changes. What it actually changed (an ability can't go below −3) is kept on the wretch
+  // (pc.relicMod), so taking it off undoes exactly that, and nothing more: a Max HP it took away comes back
+  // as Max HP, not as healing.
+  function putOn(pc, mod) {
+    const done = {};
+    for (const [stat, v] of Object.entries(mod || {})) {
       if (stat === 'maxHp') {
-        pc.maxHp = Math.max(1, pc.maxHp + v * sign);
+        const before = pc.maxHp;
+        pc.maxHp = Math.max(1, pc.maxHp + v);
+        done.maxHp = pc.maxHp - before;
+        if (done.maxHp > 0) pc.hp += done.maxHp; // a heart that beats for you: the HP come with it
         pc.hp = Math.min(pc.hp, pc.maxHp);
-        if (v * sign > 0) pc.hp += v * sign;
       } else {
-        pc[stat] = Math.max(-3, Math.min(6, pc[stat] + v * sign));
+        const before = pc[stat];
+        pc[stat] = Math.max(-3, Math.min(6, pc[stat] + v));
+        done[stat] = pc[stat] - before;
       }
     }
+    pc.relicMod = done;
+  }
+  function takeOffMod(pc) {
+    // (a save from before relicMod: undo the item's own numbers)
+    const done = pc.relicMod || (Q.ITEMS[pc.relic] && Q.ITEMS[pc.relic].mod) || {};
+    for (const [stat, v] of Object.entries(done)) {
+      if (stat === 'maxHp') { pc.maxHp = Math.max(1, pc.maxHp - v); pc.hp = Math.min(pc.hp, pc.maxHp); } else pc[stat] -= v;
+    }
+    delete pc.relicMod;
   }
 
-  // Put a relic on (taking off the old one, which is lost). Returns what was learned, for the log.
+  // Put a relic on (the old one comes off first). Returns what was learned, for the log.
   Q.wear = function (pc, key) {
     if (pc.relic) Q.takeOff(pc);
     pc.relic = key;
-    applyMod(pc, Q.ITEMS[key].mod, 1);
+    putOn(pc, Q.ITEMS[key].mod);
     return Q.Codex.learn(key);
   };
   Q.takeOff = function (pc) {
     if (!pc.relic) return;
-    applyMod(pc, Q.ITEMS[pc.relic] && Q.ITEMS[pc.relic].mod, -1);
+    takeOffMod(pc);
     pc.relic = null;
   };
   Q.wield = function (pc, key) {
