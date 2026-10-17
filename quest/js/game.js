@@ -305,9 +305,11 @@
   function offerThing(item, opts = {}) {
     const buttons = alive().map((pc) => {
       const full = Q.packFull(pc);
+      const heavy = !full && !item.small && Q.carried(pc) + 1 > Q.capacityOf(pc);
+      const note = full ? 'their pack is full' : [inUse(pc, item) && `now: ${inUse(pc, item)}`, heavy && (Q.encumbered(pc) ? 'already encumbered' : 'would be encumbered')].filter(Boolean).join(' · ');
       return {
         label: `${pc.name.split(' ')[0]} takes it`,
-        note: full ? 'their pack is full' : inUse(pc, item) ? `now: ${inUse(pc, item)}` : undefined,
+        note: note || undefined,
         disabled: full || (opts.price && S.silver < opts.price),
         action: () => takeItem(pc, item, opts),
       };
@@ -691,8 +693,8 @@
       const it = x.key ? Q.ITEMS[x.key] : null;
       const lore = it ? `<br><small><i>${esc(it.flavor)}</i> ${Q.Codex.known(x.key) ? esc(it.text) : '<span class="dim">What it does, you’ll learn when you use it.</span>'}</small>` : x.text ? `<br><small>${esc(x.text)}</small>` : '';
       const verb = x.kind === 'weapon' ? 'Wield' : 'Put on';
-      const btns = idle ? `<span class="packbtns">${x.kind === 'thing' ? '' : `<button type="button" class="ghost" data-pack="use" data-i="${j}"${x.kind === 'relic' && Q.cursedOn(pc) ? ' disabled title="their cursed relic won’t come off"' : ''}>${verb}</button>`}${others.map((o) => `<button type="button" class="ghost" data-pack="give" data-i="${j}" data-to="${o}"${Q.packFull(S.party[o]) ? ' disabled' : ''}>Give to ${esc(short(S.party[o]))}</button>`).join('')}<button type="button" class="ghost" data-pack="drop" data-i="${j}">Drop</button></span>` : '';
-      return `<div class="packrow"><span><b>${esc(Q.itemLine(x))}</b>${x.kind === 'weapon' && !x.key ? '' : ''}${lore}</span>${btns}</div>`;
+      const btns = idle ? `<span class="packbtns">${x.kind === 'thing' || pc.dead ? '' : `<button type="button" class="ghost" data-pack="use" data-i="${j}"${x.kind === 'relic' && Q.cursedOn(pc) ? ' disabled title="their cursed relic won’t come off"' : ''}>${verb}</button>`}${others.map((o) => `<button type="button" class="ghost" data-pack="give" data-i="${j}" data-to="${o}"${Q.packFull(S.party[o]) ? ' disabled' : ''}>Give to ${esc(short(S.party[o]))}</button>`).join('')}${pc.dead ? '' : `<button type="button" class="ghost" data-pack="drop" data-i="${j}">Drop</button>`}</span>` : '';
+      return `<div class="packrow"><span><b>${esc(Q.itemLine(x))}</b>${lore}</span>${btns}</div>`;
     }).join('');
     return `<h3>Carried</h3>
       <p class="small"><b>${load}</b> of <b>${cap}</b> things: the weapon in hand, armor worn (rags don’t count), a relic, and the pack.${Q.encumbered(pc) ? ' <b class="pink">Encumbered: Strength and Agility tests are DR +2.</b>' : ''}${Q.packFull(pc) ? ' <b class="pink">Can’t carry any more.</b>' : ''}${idle ? '' : ' (Not in the middle of a fight.)'}</p>
@@ -702,7 +704,7 @@
     const pc = S.party[i];
     const x = Q.packOf(pc)[j];
     if (!x || Q.Battle.active()) { showSheet(i); return; }
-    if (act === 'use') { useItem(pc, j, () => showSheet(i)); return; }
+    if (act === 'use') { if (!pc.dead) useItem(pc, j, () => showSheet(i)); return; }
     if (act === 'give') {
       const other = S.party[to];
       if (Q.give(pc, other, j)) log(`${short(pc)} gives the ${esc(Q.itemName(x))} to ${short(other)}.`, 'hit');

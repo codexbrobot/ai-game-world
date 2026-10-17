@@ -73,12 +73,32 @@ module.exports = {
     check(/Encumbered/.test(await t.body()), 'the sheet says what it costs');
     await t.closeAll();
 
+    // one more would be too much: the offer says so
+    await S(() => { const s = Q.debug(); s.party[0].pack = Array.from({ length: 6 }, (_, i) => ({ kind: 'weapon', name: `Knife ${i}`, die: 4 })); s.party[1].pack = []; Q.debugOffer('hook'); });
+    await waitModal();
+    const notes = await S(() => [...document.querySelectorAll('#modalButtons button')].map((b) => b.textContent));
+    check(/would be encumbered/.test(notes[0]) && !/encumbered/.test(notes[1]), 'the offer says who it would weigh down', notes);
+    await choose(/Leave it/);
+    await t.closeAll();
+
     // a full pack can't take more
     await S(() => { const p = Q.debug().party[0]; p.pack = Array.from({ length: 16 }, (_, i) => ({ kind: 'weapon', name: `Knife ${i}`, die: 4 })); Q.debugOffer('hook'); });
     await waitModal();
     const btn = await S(() => [...document.querySelectorAll('#modalButtons button')].map((b) => [b.textContent, b.disabled]));
     check(btn.some(([x, d]) => /takes it/.test(x) && d) && btn.some(([x, d]) => /takes it/.test(x) && !d), 'a full pack can’t take it; the other wretch can', btn);
     await choose(/Leave it/);
+    await t.closeAll();
+
+    // a dead wretch's pack can only be handed over
+    await S(() => { const s = Q.debug(); s.party.forEach((p) => { p.pack = []; }); s.party[1].pack = [{ kind: 'weapon', name: 'Sword', die: 6 }]; s.party[1].dead = true; Q.debugRefresh(); });
+    await S(() => document.querySelector('.chip[data-sheet="1"]').click());
+    await waitModal();
+    const dead = await S(() => ({ use: !!document.querySelector('[data-pack="use"]'), drop: !!document.querySelector('[data-pack="drop"]'), give: !!document.querySelector('[data-pack="give"]') }));
+    check(!dead.use && !dead.drop && dead.give, 'the dead can’t wield or drop; their things can be taken', dead);
+    await S(() => document.querySelector('[data-pack="give"]').click());
+    await waitModal();
+    check(await S(() => Q.debug().party[0].pack.some((x) => x.name === 'Sword')), 'the living wretch takes the dead one’s sword');
+    await S(() => { const p = Q.debug().party[1]; p.dead = false; p.hp = Math.max(1, p.hp); Q.debugRefresh(); });
     await t.closeAll();
 
     // Thrumm buys spares at half
@@ -98,5 +118,35 @@ module.exports = {
     await S(() => { const s = Q.debug(); const p = s.party[0]; Q.wield(p, 'hook'); p.stash = { weapon: { name: 'Sword', die: 6 }, armor: { name: 'Boiled leather', tier: 1 }, silver: 20 }; p.pack = []; p.armor = { name: 'Rags', tier: 0 }; });
     const room = await S(() => { const lines = Q.debugRestoreGear(); const p = Q.debug().party[0]; return { lines: lines.join(' '), w: p.weapon.name, pack: p.pack.map((x) => x.name), armor: p.armor.name }; });
     check(room.w === 'Gutting Hook' && room.pack.includes('Sword') && room.armor === 'Boiled leather', 'the evidence room: what they hold stays, their own weapon goes in the pack', room);
+
+    // in a fight: draw a weapon from the pack, and it takes the turn
+    await S(() => {
+      const s = Q.debug();
+      s.party.forEach((p) => { p.hp = p.maxHp = 80; p.omens = 0; p.dead = false; p.weapon = { name: 'Warhammer', die: 6 }; p.pack = [{ kind: 'weapon', name: 'Knife', die: 4 }]; });
+      Q.defend = () => ({ kind: 'dodge', r: 15, dr: 12, total: 15, ok: true, fumble: false, crit: false });
+      const ix = Q.FLOORS.findIndex((f) => f.id === 'undercroft');
+      const g = s.floors[ix].groups.find((g) => g.alive && g.members.some((m) => m.key === 'c'));
+      s.scenes.undercroft = true;
+      Q.debugEnter(ix, { x: g.x + 1.0, z: g.z, a: Math.PI });
+    });
+    let drew = null;
+    for (let i = 0; i < 400 && !drew; i++) {
+      const st = await S(() => ({ menu: !document.getElementById('commands').hidden, modal: !document.getElementById('modal').hidden, title: (document.querySelector('.cmd-title') || {}).textContent || '' }));
+      if (st.modal) { const b = await page.$('#modalButtons button'); if (b) await b.click(); }
+      else if (st.menu && /turn/.test(st.title)) {
+        const who = await S(() => Q.debug().party.findIndex((p) => document.querySelector('.cmd-title').textContent.startsWith(p.name.split(' ')[0])));
+        await S(() => [...document.querySelectorAll('#commands .cmd')].find((b) => /^Draw/.test(b.textContent)).click());
+        await t.wait(100);
+        const title = await S(() => document.querySelector('.cmd-title').textContent);
+        await S(() => [...document.querySelectorAll('#commands .cmd')].find((b) => /^Knife/.test(b.textContent)).click());
+        await t.wait(1200);
+        const pc = await S((w) => { const p = Q.debug().party[w]; return { w: p.weapon.name, pack: p.pack.map((x) => x.name), log: Q.debug().log.slice(-8).map((l) => l.html).join(' ') }; }, who);
+        drew = { title, ...pc, next: await S(() => (document.querySelector('.cmd-title') || {}).textContent || '') };
+      }
+      await t.wait(100);
+    }
+    check(drew && /Warhammer goes in the pack/.test(drew.title), 'Draw asks which, and says the weapon in hand goes in the pack', drew);
+    check(drew && drew.w === 'Knife' && drew.pack.includes('Warhammer') && /draws the/.test(drew.log), 'the knife is drawn, the warhammer put away', drew);
+    await t.fight();
   },
 };

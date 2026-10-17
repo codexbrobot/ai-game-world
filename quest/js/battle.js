@@ -147,6 +147,7 @@ var Q = window.Q || (window.Q = {});
     const cls = Q.classOf(pc);
     const partner = B.party.find((p) => p !== pc && !p.dead);
     for (;;) {
+      const spares = (pc.pack || []).map((x, i) => [x, i]).filter(([x]) => x.kind === 'weapon');
       menu([
         { label: 'Attack', value: 'attack', note: `${esc(pc.weapon.name)} d${pc.weapon.die}${pc.row === 'back' ? ', DR +2 from behind' : ''}` },
         ...(cls ? [{ label: esc(cls.ability.name), value: 'ability', disabled: pc.usedAbility, note: pc.usedAbility ? 'used this battle' : esc(cls.ability.note) }] : []),
@@ -156,6 +157,7 @@ var Q = window.Q || (window.Q = {});
         manualOmens()
           ? { label: 'Omen', value: 'omen', note: `manual · ${pc.omens} left` }
           : { label: 'Omens: auto', value: 'omenmode', note: 'offered after a bad roll · tap for manual' },
+        ...(spares.length ? [{ label: 'Draw', value: 'draw', note: `a weapon from the pack · takes the turn` }] : []),
         { label: pc.row === 'back' ? 'Step forward' : 'Fall back', value: 'swap', disabled: !partner, note: partner ? `swap with ${short(partner)}` : 'alone' },
         Q.has(pc, 'heart') ? { label: 'Flee', value: 'flee', ghost: true, disabled: true, note: 'the heart won’t run' } : { label: 'Flee', value: 'flee', ghost: true },
       ], `${short(pc)}’s turn`);
@@ -171,6 +173,14 @@ var Q = window.Q || (window.Q = {});
         if (foe) return { kind: 'ability', key, foe };
       } else if (c.value === 'swap') {
         return { kind: 'swap', partner };
+      } else if (c.value === 'draw') {
+        menu([
+          ...spares.map(([x, i]) => ({ label: esc(Q.itemName(x)), value: String(i), note: `d${x.die}` })),
+          { label: 'Back', value: 'back', ghost: true },
+        ], `Draw which? ${esc(pc.weapon.name)} goes in the pack.`);
+        const d = await choose(['cmd']);
+        hideMenu();
+        if (d.value !== 'back') return { kind: 'draw', i: Number(d.value) };
       } else if (c.value === 'scroll') {
         menu([
           ...B.inv.scrolls.map((k) => ({ label: esc(Q.SCROLLS[k].name), value: k, note: esc(Q.SCROLLS[k].text) })),
@@ -473,6 +483,19 @@ var Q = window.Q || (window.Q = {});
     partner.row = mine;
     B.log(`${short(pc)} ${pc.row === 'front' ? 'steps in front of' : 'falls back behind'} ${short(partner)}.`, 'dim');
     renderParty();
+  }
+
+  // Put the weapon in hand away and take up one from the pack: the whole turn.
+  async function draw(pc, i) {
+    const old = pc.weapon.name;
+    const r = Q.equip(pc, i);
+    if (!r.ok) { B.log(`${short(pc)} can’t: ${r.why}.`, 'dim'); return; }
+    const it = r.item.key ? Q.ITEMS[r.item.key] : null;
+    B.log(`${short(pc)} puts away the ${esc(old)} and draws the <b class="yellow">${esc(Q.itemName(r.item))}</b> (d${pc.weapon.die}).${r.fresh && it ? ` <span class="small">${esc(it.text)}</span>` : ''}`, 'hit');
+    sfx('gain');
+    renderParty();
+    if (B.onChange) B.onChange();
+    await wait(600);
   }
 
   // ---------- class abilities (once per battle) ----------
@@ -1016,6 +1039,7 @@ Until then every test ${n} makes is <b>DR ${b.hours > 1 ? '16' : '18'}</b>${b.ho
           if (cmd.kind === 'attack') await swing(pc, cmd.foe.hp > 0 ? cmd.foe : B.foes.find((f) => f.hp > 0), false);
           else if (cmd.kind === 'ability') await useAbility(pc, cmd);
           else if (cmd.kind === 'swap') swapRows(pc, cmd.partner);
+          else if (cmd.kind === 'draw') await draw(pc, cmd.i);
           else if (cmd.kind === 'poultice') await poultice(pc, cmd.ally);
           else if (cmd.kind === 'scroll') await readScroll(pc, cmd);
           else if (cmd.kind === 'flee' && (await flee(pc))) outcome = 'fled';
