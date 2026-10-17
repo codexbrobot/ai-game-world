@@ -182,7 +182,7 @@ var Q = window.Q || (window.Q = {});
   // Every die is reported (dmgRoll, armorRoll) so the dice on screen show what was really rolled.
   // opts: { ability, dr (overrides the foe's), drAdd, die (overrides the weapon), bonusDie, ignoreArmor, r (a d20 already rolled) }
   function attack(pc, foe, opts = {}) {
-    const t = test(pc[opts.ability || 'strength'], drOf(pc, opts.dr || foe.dr) + (opts.drAdd || 0), opts.r);
+    const t = test(pc[opts.ability || 'strength'], drOf(pc, opts.dr || foe.dr, opts.ability || 'strength') + (opts.drAdd || 0), opts.r);
     if (t.fumble) return { kind: 'fumble', ...t };
     if (!t.ok) return { kind: 'miss', ...t };
     const die = opts.die || pc.weapon.die;
@@ -202,7 +202,7 @@ var Q = window.Q || (window.Q = {});
   // Natural 1 takes double damage and the armor drops a tier.
   // drAdd makes the dodge harder (a swarm comes from everywhere).
   function defend(pc, foeDie, drAdd = 0) {
-    const t = test(pc.agility, drOf(pc, DR) + (pc.armor.tier === 3 ? 2 : 0) + drAdd);
+    const t = test(pc.agility, drOf(pc, DR, 'agility') + (pc.armor.tier === 3 ? 2 : 0) + drAdd);
     if (t.crit) return { kind: 'riposte', ...t };
     if (t.ok) return { kind: 'dodge', ...t };
     const dmgRoll = d(foeDie);
@@ -253,7 +253,17 @@ var Q = window.Q || (window.Q = {});
   const HOUR_STEPS = 17;
   // Bleeding to death, every test is DR 16, and DR 18 in the last hour. Other modifiers go on top.
   const haemDR = (pc) => (pc && pc.bleeding && pc.haem ? (pc.haem.left <= HOUR_STEPS ? 18 : 16) : 0);
-  const drOf = (pc, dr) => Math.max(dr, haemDR(pc));
+  // Encumbrance: a wretch carries Strength + 8 normal-sized things (at least 4). Over that, they are
+  // encumbered: DR +2 on their Strength and Agility tests (attacking, dodging, leaping, running). A pack
+  // can't hold more than twice that. What's carried: the weapon in hand, armor worn (rags don't count),
+  // a relic worn, and everything in the pack. Small things (coins, a tooth, a ring) don't count.
+  const capacityOf = (pc) => Math.max(4, (pc.strength || 0) + 8);
+  const carried = (pc) => (pc.pack || []).filter((x) => !x.small).length + (pc.weapon ? 1 : 0) + (pc.armor && pc.armor.tier > 0 ? 1 : 0) + (pc.relic ? 1 : 0);
+  const encumbered = (pc) => carried(pc) > capacityOf(pc);
+  const packFull = (pc) => carried(pc) >= capacityOf(pc) * 2;
+  const encDR = (pc, ab) => (encumbered(pc) && (ab === 'strength' || ab === 'agility') ? 2 : 0);
+  // The DR of a test for this wretch: bleeding to death makes it worse, so does carrying too much.
+  const drOf = (pc, dr, ab) => Math.max(dr, haemDR(pc)) + encDR(pc, ab);
 
   // A monster's morale: 2d6 over its morale and it flees.
   function morale(score) {
@@ -289,6 +299,6 @@ var Q = window.Q || (window.Q = {});
 
   Object.assign(Q, {
     DR, d, roll, pick, fmt, abilityFromRoll, WEAPONS, ARMOR, ARMOR_DIE, SCROLLS,
-    CLASSES, classOf, powersFor, rollWretch, rollPair, healthWord, test, attack, defend, broken, morale, gettingBetter, HOUR_STEPS, haemDR, drOf,
+    CLASSES, classOf, powersFor, rollWretch, rollPair, capacityOf, carried, encumbered, packFull, encDR, healthWord, test, attack, defend, broken, morale, gettingBetter, HOUR_STEPS, haemDR, drOf,
   });
 })();

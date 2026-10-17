@@ -459,7 +459,7 @@ var Q = window.Q || (window.Q = {});
   }
 
   async function flee(pc) {
-    let r = Q.test(pc.agility, Q.drOf(pc, Q.DR));
+    let r = Q.test(pc.agility, Q.drOf(pc, Q.DR, 'agility'));
     await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'You get away!' : 'Cut off', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} leads the retreat · ${testText('Agility', r, pc.agility)}` });
     r = await rescue(pc, r, pc.agility, 'Agility');
     B.log(r.ok ? `${short(pc)} finds a way out. You run.` : `${short(pc)} cannot find a way out.`, r.ok ? '' : 'miss');
@@ -523,7 +523,7 @@ var Q = window.Q || (window.Q = {});
     }
     if (cmd.key === 'toxin') {
       const f = target();
-      let r = Q.test(pc.agility, Q.drOf(pc, Q.DR));
+      let r = Q.test(pc.agility, Q.drOf(pc, Q.DR, 'agility'));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? 'It shatters on them' : 'It misses', tone: r.ok ? 'good' : 'bad', text: `${short(pc)} hurls a ${name} at ${the(f)} · ${testText('Agility', r, pc.agility)}` });
       r = await rescue(pc, r, pc.agility, 'Agility');
       if (!r.ok) { B.log(`The flask smashes on the flagstones. The floor hisses.`, 'miss'); return; }
@@ -1104,7 +1104,7 @@ Until then every test ${n} makes is <b>DR ${b.hours > 1 ? '16' : '18'}</b>${b.ho
   // One wretch in front and one behind; if both stand in the same row, the first steps forward.
   function fixRows(party) {
     const alive = party.filter((p) => !p.dead);
-    party.forEach((p) => { if (p.row !== 'back' && p.row !== 'front') p.row = 'front'; });
+    party.forEach((p) => { if (p.row !== 'back' && p.row !== 'front') p.row = 'front'; if (!Array.isArray(p.pack)) p.pack = []; });
     if (alive.length === 2 && alive[0].row === alive[1].row) { alive[0].row = 'front'; alive[1].row = 'back'; }
   }
   Q.fixRows = fixRows;

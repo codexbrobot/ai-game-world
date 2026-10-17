@@ -61,7 +61,9 @@
   "bind a wretch's wounds with it (the poultice button): d# hp back, and the bleeding stops.": "Bind a wretch's wounds with it: d6 hit points back, and the bleeding stops.",
   "under the bones, rolled tight in oilcloth, a scroll. the rite of mending bone: it knits flesh, d# hp back, and the bleeding stops.": "Under the bones, rolled tight in oilcloth, a scroll. The Rite of Mending Bone: it knits flesh, d6 hit points back, and the bleeding stops.",
   "⟪n⟫ and ⟪n⟫: two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. whoever was screaming got out of their cell. they didn't get out of the gaol.": "Two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. Whoever was screaming got out of their cell. They didn't get out of the Gaol.",
-  "⟪n⟫: two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. whoever was screaming got out of their cell. they didn't get out of the gaol.": "Two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. Whoever was screaming got out of their cell. They didn't get out of the Gaol."
+  "⟪n⟫: two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. whoever was screaming got out of their cell. they didn't get out of the gaol.": "Two more wretches in the last cell in the row, the one whose door rusted shut before anyone can remember. Whoever was screaming got out of their cell. They didn't get out of the Gaol.",
+  "under the bones, a weapon: a ⟪?⟫, d⟪?⟫ damage.": "Under the bones, a weapon.",
+  "⟪?⟫, cut from a corpse.": "Armor, cut from a corpse."
  },
  "patterns": [
   {

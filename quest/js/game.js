@@ -6,7 +6,7 @@
 (function () {
   const { d, fmt } = Q;
   // The version of the game, as published: one up with every publish, shown on the title screen.
-  Q.VERSION = 34;
+  Q.VERSION = 35;
   const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);
@@ -219,14 +219,16 @@
           if (!pc.stash) continue;
           const { weapon, armor, silver } = pc.stash;
           delete pc.stash;
-          if (!pc.weapon.key) pc.weapon = weapon;
-          pc.armor = armor;
+          // their own weapon replaces the bone, but not something strange already in hand: that goes in the pack
+          let kept = '';
+          if (pc.weapon.key) { Q.packOf(pc).push({ kind: 'weapon', name: weapon.name, die: weapon.die }); kept = ' It goes in the pack.'; } else pc.weapon = weapon;
+          if (pc.armor.tier > 0) { if (armor.tier > 0) Q.packOf(pc).push({ kind: 'armor', name: armor.name, tier: armor.tier }); } else pc.armor = armor;
           let got = silver;
           const r = d(6);
           let note = '';
           if (r === 1 && silver > 0) { got = Math.floor(silver / 2); note = ` A guard helped himself: only <em>${got}s</em> left of ${silver}.`; }
           S.silver += got;
-          lines.push(`<b>${esc(pc.name)}</b>: ${esc(weapon.name)} (d${weapon.die}), ${esc(armor.name)}, ${got}s.${note}`);
+          lines.push(`<b>${esc(pc.name)}</b>: ${esc(weapon.name)} (d${weapon.die}), ${esc(armor.name)}, ${got}s.${kept}${note}`);
           if (r === 6) S.pendingDrop = Q.rollItem(S, 1);
         }
         if (S.pendingDrop) lines.push('<br>And the sack beside yours, with a crossed-out name on it, was never collected. Something is still in it.');
@@ -292,40 +294,67 @@
   }
 
   // Something found (or bought): which wretch takes it? opts: { price, source, then }
-  function offerItem(key, opts = {}) {
-    const it = Q.ITEMS[key];
-    const verbWord = it.kind === 'weapon' ? 'wields' : 'wears';
+  // Something found, bought or handed over: who carries it? (opts: { title, intro, price, then })
+  // It goes into that wretch's pack. Then they can use it at once, or keep it for later: nothing is thrown
+  // away, and what a unique item does is learned when someone wields or wears it.
+  function offerItem(key, opts = {}) { offerThing(Q.packItem(key), { ...opts, unique: key }); }
+  const plainCard = (x) => (x.kind === 'weapon' ? `<b>${esc(x.name)}</b> (d${x.die})<br><span class="dim">An ordinary weapon.</span>`
+    : x.kind === 'armor' ? `<b>${esc(x.name)}</b> (soaks d${Q.ARMOR_DIE[x.tier]})${x.tier === 3 ? '<br>Heavy: Defence at DR +2.' : ''}`
+      : `<b>${esc(x.name)}</b>${x.text ? `<br>${esc(x.text)}` : ''}`);
+  const inUse = (pc, x) => (x.kind === 'weapon' ? `${pc.weapon.name} d${pc.weapon.die}` : x.kind === 'armor' ? pc.armor.name : x.kind === 'relic' ? (pc.relic ? Q.ITEMS[pc.relic].name : 'no relic') : '');
+  function offerThing(item, opts = {}) {
     const buttons = alive().map((pc) => {
-      const stuck = it.kind === 'relic' && Q.cursedOn(pc);
-      const old = it.kind === 'relic' ? (pc.relic ? Q.ITEMS[pc.relic].name : null) : pc.weapon.name;
+      const full = Q.packFull(pc);
       return {
-        label: `${pc.name.split(' ')[0]} ${verbWord} it${stuck ? ' (their cursed relic won’t come off)' : old ? ` (drops the ${old})` : ''}`,
-        disabled: stuck || (opts.price && S.silver < opts.price),
-        action: () => takeItem(pc, key, opts),
+        label: `${pc.name.split(' ')[0]} takes it`,
+        note: full ? 'their pack is full' : inUse(pc, item) ? `now: ${inUse(pc, item)}` : undefined,
+        disabled: full || (opts.price && S.silver < opts.price),
+        action: () => takeItem(pc, item, opts),
       };
     });
-    modal(opts.title || it.name, `${opts.intro ? `<p>${opts.intro}</p>` : ''}<p class="item-card">${Q.itemHtml(key, esc)}</p>${opts.price ? `<p class="small">Thrumm wants <b>${opts.price}s</b>. You have ${S.silver}s.</p>` : ''}`, [
+    modal(opts.title || Q.itemName(item), `${opts.intro ? `<p>${opts.intro}</p>` : ''}<p class="item-card">${item.key ? Q.itemHtml(item.key, esc) : plainCard(item)}</p>${opts.price ? `<p class="small">Thrumm wants <b>${opts.price}s</b>. You have ${S.silver}s.</p>` : ''}`, [
       ...buttons,
-      { label: opts.price ? 'Not today' : 'Leave it', ghost: true, action: () => { if (!opts.price) log(`You leave the ${esc(it.name)} where it lies.`, 'dim'); if (opts.then) opts.then(); } },
+      { label: opts.price ? 'Not today' : 'Leave it', ghost: true, action: () => { if (!opts.price) log(`You leave the ${esc(Q.itemName(item))} where it lies.`, 'dim'); if (opts.then) opts.then(); } },
     ]);
   }
 
-  function takeItem(pc, key, opts) {
-    const it = Q.ITEMS[key];
+  function takeItem(pc, item, opts) {
     if (opts.price) {
       S.silver -= opts.price;
-      S.curios = S.curios.filter((k) => k !== key);
+      if (opts.unique) S.curios = S.curios.filter((k) => k !== opts.unique);
     }
-    const fresh = it.kind === 'weapon' ? Q.wield(pc, key) : Q.wear(pc, key);
-    sfx(it.cursed ? 'toll' : 'gain', it.cursed ? { f: 110 } : undefined);
-    log(`${short(pc)} ${it.kind === 'weapon' ? 'takes up' : 'puts on'} the <b class="yellow">${esc(it.name)}</b>.${it.cursed ? ' <span class="pink">It will not come off.</span>' : ''}`, it.cursed ? 'hurt' : 'hit');
+    Q.addToPack(pc, item);
+    sfx('gain');
+    log(`${short(pc)} takes the <b class="yellow">${esc(Q.itemName(item))}</b>.`, 'hit');
     save();
     renderHud();
     if (S.where === 'town') renderTown();
-    modal(fresh ? 'Now you know' : it.name, `<p>${esc(pc.name)} ${it.kind === 'weapon' ? 'closes a hand around' : 'puts on'} the ${esc(it.name)}.</p>
-      <p class="item-card">${Q.itemHtml(key, esc)}</p>
+    if (!['weapon', 'armor', 'relic'].includes(item.kind)) { if (opts.then) opts.then(); return; }
+    // use it now, or keep it in the pack
+    const i = Q.packOf(pc).lastIndexOf(item);
+    const blocked = item.kind === 'relic' && Q.cursedOn(pc);
+    const verb = item.kind === 'weapon' ? 'Wield' : 'Put on';
+    const holding = inUse(pc, item);
+    modal('In the pack', `<p>${esc(pc.name)} has the ${esc(Q.itemName(item))} now${holding ? `, and holds the ${esc(holding)}` : ''}. Use it now, or keep it for later?</p>`, [
+      { label: `${verb} it now`, note: blocked ? 'their cursed relic won’t come off' : holding ? `the ${holding} goes in the pack` : undefined, disabled: blocked, action: () => useItem(pc, i, opts.then) },
+      { label: 'Keep it in the pack', ghost: true, action: opts.then },
+    ]);
+  }
+
+  // Wield, wear or put on what's in the pack (js/items.js: Q.equip); what was in use goes into the pack.
+  function useItem(pc, i, then) {
+    const r = Q.equip(pc, i);
+    if (!r.ok) { log(`${short(pc)} can’t: ${r.why}.`, 'dim'); if (then) then(); return; }
+    const it = r.item.key ? Q.ITEMS[r.item.key] : null;
+    sfx(it && it.cursed ? 'toll' : 'gain', it && it.cursed ? { f: 110 } : undefined);
+    log(`${short(pc)} ${r.item.kind === 'weapon' ? 'takes up' : 'puts on'} the <b class="yellow">${esc(Q.itemName(r.item))}</b>.${it && it.cursed ? ' <span class="pink">It will not come off.</span>' : ''}`, it && it.cursed ? 'hurt' : 'hit');
+    save();
+    renderHud();
+    if (!it) { if (then) then(); return; }
+    modal(r.fresh ? 'Now you know' : it.name, `<p>${esc(pc.name)} ${r.item.kind === 'weapon' ? 'closes a hand around' : 'puts on'} the ${esc(it.name)}.</p>
+      <p class="item-card">${Q.itemHtml(r.item.key, esc)}</p>
       ${it.cursed ? '<p class="pink"><b>Cursed.</b> It sinks into the flesh and will not come off. Thrumm knows a way, for silver.</p>' : ''}
-      ${fresh ? '<p class="small">Written in your Codex.</p>' : ''}`, [{ label: 'So be it', action: opts.then }]);
+      ${r.fresh ? '<p class="small">Written in your Codex.</p>' : ''}`, [{ label: 'So be it', action: then }]);
   }
 
   // Thrumm pries a cursed relic off.
@@ -587,7 +616,7 @@
     return n * 5;
   }
   // A test outside battle: the Liar's Tongue makes Presence harder.
-  const testDR = (pc, ab, dr) => Q.drOf(pc, dr) + (ab === 'presence' && Q.has(pc, 'tongue') ? 2 : 0);
+  const testDR = (pc, ab, dr) => Q.drOf(pc, dr, ab) + (ab === 'presence' && Q.has(pc, 'tongue') ? 2 : 0);
 
   function showSheet(i) {
     if (!S) return;
@@ -599,7 +628,8 @@
       return `<div class="ab-row"><div class="ab"><span>${ABILITY[key]}</span><b>${fmt(pc[key])}</b></div>
         <p>${USES[key]}<small>A test at DR ${dr}: <b>${chance(pc[key], dr)}%</b>${dr !== Q.DR ? ' (the Liar’s Tongue)' : ''}</small></p></div>`;
     };
-    const defDR = Q.DR + (pc.armor.tier === 3 ? 2 : 0) + (Q.has(pc, 'mirror') ? 1 : 0);
+    const encS = Q.encDR(pc, 'strength');
+    const defDR = Q.DR + (pc.armor.tier === 3 ? 2 : 0) + (Q.has(pc, 'mirror') ? 1 : 0) + Q.encDR(pc, 'agility');
     const armorDie = Q.ARMOR_DIE[pc.armor.tier];
     const weapon = pc.weapon.key ? it(pc.weapon.key) : null;
     const relic = pc.relic ? it(pc.relic) : null;
@@ -630,8 +660,8 @@
       <h3>In battle</h3>
       <dl class="gear">
         <dt>Weapon</dt><dd><b>${esc(pc.weapon.name)}</b> (d${pc.weapon.die} damage)${weapon ? `${weapon.cursed ? ' <span class="pink">cursed</span>' : ''}<br><i>${esc(weapon.flavor)}</i><br>${esc(weapon.text)}` : ''}
-          <small>Attack: d20 + Strength against the foe’s DR: <b>${chance(pc.strength, Q.DR)}%</b> against DR 12${pc.row === 'back' ? `, <b>${chance(pc.strength, Q.DR + 2)}%</b> from the back row (DR +2)` : ''}.</small></dd>
-        <dt>Defence</dt><dd>When a foe strikes at ${esc(pc.name.split(' ')[0])}: d20 + Agility against DR ${defDR}${defDR !== Q.DR ? ` (${[pc.armor.tier === 3 ? 'plate +2' : '', Q.has(pc, 'mirror') ? 'the Mirror Shard +1' : ''].filter(Boolean).join(', ')})` : ''} to dodge: <b>${chance(pc.agility, defDR)}%</b>.</dd>
+          <small>Attack: d20 + Strength against the foe’s DR: <b>${chance(pc.strength, Q.DR + encS)}%</b> against DR 12${encS ? ' (encumbered, +2)' : ''}${pc.row === 'back' ? `, <b>${chance(pc.strength, Q.DR + encS + 2)}%</b> from the back row (DR +2)` : ''}.</small></dd>
+        <dt>Defence</dt><dd>When a foe strikes at ${esc(pc.name.split(' ')[0])}: d20 + Agility against DR ${defDR}${defDR !== Q.DR ? ` (${[pc.armor.tier === 3 ? 'plate +2' : '', Q.has(pc, 'mirror') ? 'the Mirror Shard +1' : '', Q.encDR(pc, 'agility') ? 'encumbered +2' : ''].filter(Boolean).join(', ')})` : ''} to dodge: <b>${chance(pc.agility, defDR)}%</b>.</dd>
         <dt>Armor</dt><dd><b>${esc(pc.armor.name)}</b>${armorDie ? `: soaks d${armorDie} off every wound that gets through.` : ': no protection at all.'}${pc.armor.tier === 3 ? ' Heavy: Defence at DR +2.' : ''}${pc.armor.tier ? ' A natural 1 on Defence cracks it a tier.' : ''}</dd>
         ${cls ? `<dt>Ability</dt><dd><b>${esc(cls.ability.name)}</b>: ${esc(cls.ability.text)} Once per battle.</dd>` : ''}
         <dt>Omens</dt><dd>Spend one after a roll goes wrong: roll it again, lower its DR by 4, deal maximum damage, or soften a wound that would put you down. Sleep brings them back up to d2.</dd>
@@ -639,6 +669,7 @@
         <dt>Row</dt><dd>${pc.row === 'back' ? 'Behind. Foes reach you one time in four, but your weapon attacks are at DR +2.' : 'In front. Foes go for you three times in four.'}</dd>
       </dl>
       ${relic ? `<h3>Relic</h3><p><b>${esc(relic.name)}</b>${relic.cursed ? ' <span class="pink">cursed: it won’t come off</span>' : ''}<br><i>${esc(relic.flavor)}</i><br>${esc(relic.text)}</p>` : ''}
+      ${packHtml(pc, i)}
       ${party}</div>`;
     const others = S.party.map((p, j) => j).filter((j) => j !== i);
     const canSwap = alive().length === 2 && !Q.Battle.active();
@@ -647,7 +678,43 @@
       ...(canSwap ? [{ label: pc.row === 'back' ? 'Move to the front row' : 'Move to the back row', action: () => { const [a, b] = S.party; [a.row, b.row] = [b.row, a.row]; save(); renderHud(); showSheet(i); } }] : []),
       { label: 'Close', ghost: true },
     ]);
+    document.querySelectorAll('#modalBody [data-pack]').forEach((b) => b.addEventListener('click', () => packAction(i, b.dataset.pack, +b.dataset.i, +b.dataset.to)));
   }
+  // What a wretch carries: in hand, worn, and the pack. The pack's things can be wielded or worn, given to
+  // the other wretch, or dropped (not in the middle of a fight).
+  function packHtml(pc, i) {
+    const pack = Q.packOf(pc);
+    const cap = Q.capacityOf(pc), load = Q.carried(pc);
+    const idle = !Q.Battle.active();
+    const others = S.party.map((p, j) => j).filter((j) => j !== i && !S.party[j].dead);
+    const rows = pack.map((x, j) => {
+      const it = x.key ? Q.ITEMS[x.key] : null;
+      const lore = it ? `<br><small><i>${esc(it.flavor)}</i> ${Q.Codex.known(x.key) ? esc(it.text) : '<span class="dim">What it does, you’ll learn when you use it.</span>'}</small>` : x.text ? `<br><small>${esc(x.text)}</small>` : '';
+      const verb = x.kind === 'weapon' ? 'Wield' : 'Put on';
+      const btns = idle ? `<span class="packbtns">${x.kind === 'thing' ? '' : `<button type="button" class="ghost" data-pack="use" data-i="${j}"${x.kind === 'relic' && Q.cursedOn(pc) ? ' disabled title="their cursed relic won’t come off"' : ''}>${verb}</button>`}${others.map((o) => `<button type="button" class="ghost" data-pack="give" data-i="${j}" data-to="${o}"${Q.packFull(S.party[o]) ? ' disabled' : ''}>Give to ${esc(short(S.party[o]))}</button>`).join('')}<button type="button" class="ghost" data-pack="drop" data-i="${j}">Drop</button></span>` : '';
+      return `<div class="packrow"><span><b>${esc(Q.itemLine(x))}</b>${x.kind === 'weapon' && !x.key ? '' : ''}${lore}</span>${btns}</div>`;
+    }).join('');
+    return `<h3>Carried</h3>
+      <p class="small"><b>${load}</b> of <b>${cap}</b> things: the weapon in hand, armor worn (rags don’t count), a relic, and the pack.${Q.encumbered(pc) ? ' <b class="pink">Encumbered: Strength and Agility tests are DR +2.</b>' : ''}${Q.packFull(pc) ? ' <b class="pink">Can’t carry any more.</b>' : ''}${idle ? '' : ' (Not in the middle of a fight.)'}</p>
+      ${pack.length ? `<div class="pack">${rows}</div>` : '<p class="dim">Nothing in the pack.</p>'}`;
+  }
+  function packAction(i, act, j, to) {
+    const pc = S.party[i];
+    const x = Q.packOf(pc)[j];
+    if (!x || Q.Battle.active()) { showSheet(i); return; }
+    if (act === 'use') { useItem(pc, j, () => showSheet(i)); return; }
+    if (act === 'give') {
+      const other = S.party[to];
+      if (Q.give(pc, other, j)) log(`${short(pc)} gives the ${esc(Q.itemName(x))} to ${short(other)}.`, 'hit');
+      save(); renderHud(); showSheet(i);
+      return;
+    }
+    modal('Drop it?', `<p>${esc(pc.name)} leaves the ${esc(Q.itemName(x))} behind. It can’t be picked up again.</p>`, [
+      { label: 'Drop it', action: () => { Q.packOf(pc).splice(j, 1); log(`${short(pc)} leaves the ${esc(Q.itemName(x))} behind.`, 'dim'); save(); renderHud(); showSheet(i); } },
+      { label: 'Keep it', ghost: true, action: () => showSheet(i) },
+    ]);
+  }
+
   // The Party button: the front wretch's sheet first.
   function partySheet() {
     const front = S.party.findIndex((p) => !p.dead && p.row !== 'back');
@@ -1053,9 +1120,13 @@
     }).join('');
     const pries = alive().filter((pc) => Q.cursedOn(pc)).map((pc) => `<button class="shoprow pry" data-n="${S.party.indexOf(pc)}" ${S.silver >= PRY ? '' : 'disabled'}>
         <span><b>Pry off ${esc(pc.name.split(' ')[0])}’s ${esc(Q.ITEMS[pc.relic].name)}</b><small>Pliers, salt and a muttered prayer.</small></span><span class="price">${PRY}s</span></button>`).join('');
+    const spares = alive().flatMap((pc) => Q.packOf(pc).map((x, i) => ({ pc, x, i }))).map(({ pc, x, i }) => `<button class="shoprow sell" data-n="${S.party.indexOf(pc)}" data-i="${i}">
+        <span><b>Sell ${esc(Q.itemName(x))}</b><small>${esc(pc.name.split(' ')[0])}’s spare. ${esc(Q.itemLine(x))}</small></span><span class="price">+${Q.sellValue(x)}s</span></button>`).join('');
     modal('Thrumm’s Stall', `${art('stall')}<p>Thrumm sells what the dead no longer need. You have <b>${S.silver}s</b>.</p><div class="shop">${rows}</div>
-      ${curios || pries ? `<p class="small"><b>Under the counter.</b> New curios after every night.</p><div class="shop">${curios}${pries}</div>` : ''}`, [{ label: 'Leave', ghost: true }]);
-    document.querySelectorAll('.shoprow:not(.curio):not(.pry)').forEach((b) => b.addEventListener('click', () => buy(Q.SHOP[+b.dataset.i])));
+      ${curios || pries ? `<p class="small"><b>Under the counter.</b> New curios after every night.</p><div class="shop">${curios}${pries}</div>` : ''}
+      ${spares ? `<p class="small"><b>Your spares.</b> Thrumm pays half.</p><div class="shop">${spares}</div>` : ''}`, [{ label: 'Leave', ghost: true }]);
+    document.querySelectorAll('.shoprow.sell').forEach((b) => b.addEventListener('click', () => sell(S.party[+b.dataset.n], +b.dataset.i)));
+    document.querySelectorAll('.shoprow:not(.curio):not(.pry):not(.sell)').forEach((b) => b.addEventListener('click', () => buy(Q.SHOP[+b.dataset.i])));
     document.querySelectorAll('.shoprow.curio').forEach((b) => b.addEventListener('click', () => {
       const k = b.dataset.k;
       offerItem(k, { price: price(Q.ITEMS[k]), title: 'Under Thrumm’s counter', then: visitShop });
@@ -1071,21 +1142,20 @@
       save(); renderTown(); visitShop();
       return;
     }
-    // weapons and armor go to one wretch: ask who
-    const better = (pc) => (item.kind === 'weapon' ? item.item.die > pc.weapon.die : item.item.tier > pc.armor.tier);
-    modal(item.name, `<p>Who takes the ${esc(item.name)}? (${price(item)}s)</p>`, [
-      ...S.party.map((pc) => ({
-        label: `${pc.name}: now ${item.kind === 'weapon' ? `${pc.weapon.name} d${pc.weapon.die}` : pc.armor.name}`,
-        disabled: pc.dead || !better(pc),
-        action: () => {
-          S.silver -= price(item);
-          if (item.kind === 'weapon') pc.weapon = { name: item.item.name, die: item.item.die };
-          else pc.armor = { name: item.item.name, tier: item.item.tier };
-          save(); renderTown(); visitShop();
-        },
-      })),
-      { label: 'Back', ghost: true, action: visitShop },
-    ]);
+    // weapons and armor go to one wretch's pack: ask who
+    offerThing(item.kind === 'weapon' ? { kind: 'weapon', name: item.item.name, die: item.item.die } : { kind: 'armor', name: item.item.name, tier: item.item.tier },
+      { title: item.name, price: price(item), then: visitShop });
+  }
+  // Thrumm buys spares from the packs, at half what he'd ask.
+  function sell(pc, i) {
+    const x = Q.packOf(pc)[i];
+    if (!x) return visitShop();
+    const got = Q.sellValue(x);
+    Q.packOf(pc).splice(i, 1);
+    S.silver += got;
+    sfx('gain');
+    log(`Thrumm takes ${short(pc)}’s ${esc(Q.itemName(x))} for <b>${got}s</b>.`, 'hit');
+    save(); renderTown(); visitShop();
   }
 
   const ledgerTalk = () => (S.flags.ledger && !S.flags.ledgerTold ? [{ label: 'Tell him about the Gaol ledger', action: strangerLedger }] : []);
@@ -1290,7 +1360,7 @@ And nobody, <em>nobody</em>, is talking about why the island is sinking.`, [{ la
     if (t === 'p') {
       g[y][x] = '.';
       const pc = alive()[Math.floor(Math.random() * alive().length)];
-      let r = Q.test(pc.agility, Q.drOf(pc, Q.DR));
+      let r = Q.test(pc.agility, Q.drOf(pc, Q.DR, 'agility'));
       await throwDice({ dice: [D(20, r.r, 'yellow', 'Agility')], verdict: r.ok ? `${short(pc)} leaps clear` : 'The floor gives way!', tone: r.ok ? 'good' : 'bad', text: `A hidden pit under ${short(pc)} · ${Q.testText('Agility', r, pc.agility)}` });
       r = await Q.rescueTest(S.party, pc, r, pc.agility, 'Agility', { log, onChange: renderHud });
       if (r.ok) log(`The flagstone tilts. ${short(pc)} leaps clear.`);
@@ -1425,28 +1495,14 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     }
     const found = res.item ? esc(res.item.name) : '';
     if (res.kind === 'weapon') {
-      const pc = alive().filter((p) => res.item.die > p.weapon.die).sort((a, b) => a.weapon.die - b.weapon.die)[0];
-      if (pc) {
-        pc.weapon = res.item;
-        log(`A <b>${esc(res.item.name)}</b> (d${res.item.die}). ${short(pc)} takes it.`, 'hit');
-        renderHud();
-        await say('In the remains', `Under the bones, a weapon: a <b>${found}</b>, d${res.item.die} damage. It’s better than what ${short(pc)} had, so ${short(pc)} takes it.`, [{ label: 'Go on' }]);
-      } else {
-        log(`A ${esc(res.item.name)}, no better than yours.`);
-        await say('In the remains', `Under the bones, a weapon: a ${found}, d${res.item.die} damage. No better than what you carry. You leave it.`, [{ label: 'Go on' }]);
-      }
+      log(`Under the bones, a <b>${found}</b> (d${res.item.die}).`, 'hit');
+      await say('In the remains', `Under the bones, a weapon: a <b>${found}</b>, d${res.item.die} damage.`, [{ label: 'Take a look' }]);
+      await new Promise((then) => offerThing({ kind: 'weapon', name: res.item.name, die: res.item.die }, { title: 'In the remains', then }));
     }
     if (res.kind === 'armor') {
-      const pc = alive().filter((p) => res.item.tier > p.armor.tier).sort((a, b) => a.armor.tier - b.armor.tier)[0];
-      if (pc) {
-        pc.armor = res.item;
-        log(`<b>${esc(res.item.name)}</b>, cut from a corpse. ${short(pc)} puts it on.`, 'hit');
-        renderHud();
-        await say('In the remains', `<b>${found}</b>, cut from a corpse. Better than what ${short(pc)} wears, so ${short(pc)} puts it on.`, [{ label: 'Go on' }]);
-      } else {
-        log(`${esc(res.item.name)}, too ruined to wear.`);
-        await say('In the remains', `${found}, cut from a corpse, and too ruined to wear. You leave it.`, [{ label: 'Go on' }]);
-      }
+      log(`<b>${found}</b>, cut from a corpse.`, 'hit');
+      await say('In the remains', `<b>${found}</b>, cut from a corpse.`, [{ label: 'Take a look' }]);
+      await new Promise((then) => offerThing({ kind: 'armor', name: res.item.name, tier: res.item.tier }, { title: 'In the remains', then }));
     }
     if (res.kind === 'hand') {
       const pc = alive()[Math.floor(Math.random() * alive().length)];
@@ -1636,7 +1692,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     $('chips').innerHTML = S.party.map((pc) => {
       const pct = pc.dead ? 0 : Math.max(0, Math.min(1, pc.hp / pc.maxHp)) * 100;
       return `<button type="button" class="chip${pc.dead ? ' dead' : ''}" data-sheet="${S.party.indexOf(pc)}" aria-label="${esc(pc.name)}’s character sheet"><img src="${Q.portraitUrl(pc.name)}" alt="">
-        <span><b>${short(pc)}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}${pc.bleeding && pc.haem ? ` ♦${pc.haem.left}` : ''}`}</em></span></span></button>`;
+        <span><b>${short(pc)}${Q.encumbered(pc) ? ' <i class="enc" title="Encumbered: DR +2 on Strength and Agility tests">⚖</i>' : ''}</b><span class="hpbar small"><span style="width:${pct}%"></span><em>${pc.dead ? 'Dead' : `${Math.max(0, pc.hp)}/${pc.maxHp}${pc.bleeding && pc.haem ? ` ♦${pc.haem.left}` : ''}`}</em></span></span></button>`;
     }).join('') + `<div class="purse">${S.silver}s</div><div class="purse comet" title="Calendar of Nechrubel: ${calendarText()}">☄ ${S.calendar.days}</div>`;
     $('hudPlace').textContent = S.where === 'crawl' ? placeName() + (S.escaped && S.floorIx === cityIx() ? ` · ${hourName()}` : '') : '';
     if (world) {
@@ -2034,6 +2090,10 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
   Q.debugEnter = (ix, pose) => enterFloor(ix, null, pose);
   Q.debugHour = (phase, left) => setHour(phase, left, true);
   Q.debugHurt = (i, dmg) => run(() => hurt(S.party[i], dmg, 'a test'));
+  Q.debugOffer = (key) => offerItem(key, { title: 'The uncollected sack', intro: 'Under somebody else’s name:' });
+  Q.debugRefresh = () => renderHud();
+  Q.debugShop = () => visitShop();
+  Q.debugRestoreGear = () => makeDM().restoreGear();
   Q.debugDie = (cause) => { for (const p of S.party) { p.hp = 0; p.dead = true; } gameOver(cause); };
 
   if (Q.Dice) Q.Dice.init($('dice'));

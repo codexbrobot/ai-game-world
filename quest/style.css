@@ -658,4 +658,11 @@ body.in-battle .facing { display: none; }
 .journal .deeds { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
 .journal .chapter { margin: 0 0 12px; }
 .journal .chapter small { display: block; color: var(--dim); font-size: 12px; }
+/* what a wretch carries (the character sheet) */
+.char .pack { display: grid; gap: 8px; margin: 6px 0 12px; }
+.char .packrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 8px 10px; background: rgba(255, 225, 26, 0.07); border-left: 3px solid var(--yellow); }
+.char .packrow > span:first-child { flex: 1 1 14rem; min-width: 0; }
+.char .packbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.char .packbtns button { min-height: 36px; padding: 4px 10px; font-size: 12.5px; }
+.enc { font-style: normal; color: var(--pink); }
 .journal .died { margin: 4px 0 0; font-size: 13.5px; color: var(--pink); }

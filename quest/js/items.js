@@ -159,9 +159,74 @@ var Q = window.Q || (window.Q = {});
   };
   Q.cursedOn = (pc) => !!(pc.relic && Q.ITEMS[pc.relic] && Q.ITEMS[pc.relic].cursed);
 
+  // ---------- the pack ----------
+  // What a wretch carries besides what's in hand and on their back: pc.pack, a list of
+  //   { kind: 'weapon', name, die, key?, art? }   { kind: 'armor', name, tier }
+  //   { kind: 'relic', key }                      { kind: 'thing', name, text, small? }
+  // Only what is wielded or worn does anything; a unique item's secret waits until then (the Codex).
+  Q.packOf = (pc) => pc.pack || (pc.pack = []);
+  // A unique item (js/items.js) as a pack item.
+  Q.packItem = (key) => {
+    const it = Q.ITEMS[key];
+    return it.kind === 'weapon' ? { kind: 'weapon', name: it.name, die: it.die, key, art: it.art } : { kind: 'relic', key, name: it.name };
+  };
+  Q.itemName = (x) => x.name || (x.key && Q.ITEMS[x.key].name) || 'something';
+  // What the thing is, in a few words.
+  Q.itemLine = (x) => (x.kind === 'weapon' ? `${x.name} (d${x.die})`
+    : x.kind === 'armor' ? `${x.name} (−d${Q.ARMOR_DIE[x.tier]})`
+      : x.kind === 'relic' ? `${x.name}, a relic` : x.name);
+  Q.addToPack = (pc, item) => {
+    if (Q.packFull(pc)) return false;
+    Q.packOf(pc).push(item);
+    return true;
+  };
+  // Wield, wear or put on the pack's i-th thing; what was in use goes into the pack (a plain femur or a pair
+  // of rags is just left behind). Returns { ok, fresh, why }: fresh is what the Codex just learned.
+  Q.equip = (pc, i) => {
+    const pack = Q.packOf(pc);
+    const x = pack[i];
+    if (!x) return { ok: false, why: 'nothing there' };
+    if (x.kind === 'relic' && Q.cursedOn(pc)) return { ok: false, why: 'their cursed relic won’t come off' };
+    pack.splice(i, 1);
+    let fresh = false;
+    if (x.kind === 'weapon') {
+      const old = pc.weapon;
+      if (old && !(old.name === 'Femur' && !old.key) && old.name !== 'Splinters') pack.push({ kind: 'weapon', ...old });
+      if (x.key) fresh = Q.wield(pc, x.key);
+      else pc.weapon = { name: x.name, die: x.die };
+    } else if (x.kind === 'armor') {
+      const old = pc.armor;
+      if (old && old.tier > 0) pack.push({ kind: 'armor', name: old.name, tier: old.tier });
+      pc.armor = { name: x.name, tier: x.tier };
+    } else if (x.kind === 'relic') {
+      const old = pc.relic;
+      if (old) { Q.takeOff(pc); pack.push({ kind: 'relic', key: old, name: Q.ITEMS[old].name }); }
+      fresh = Q.wear(pc, x.key);
+    } else {
+      pack.splice(i, 0, x);
+      return { ok: false, why: 'that can’t be worn or wielded' };
+    }
+    return { ok: true, fresh, item: x };
+  };
+  // Hand the pack's i-th thing to another wretch.
+  Q.give = (from, to, i) => {
+    const x = Q.packOf(from)[i];
+    if (!x) return false;
+    if (!Q.addToPack(to, x)) return false;
+    Q.packOf(from).splice(i, 1);
+    return true;
+  };
+  // What Thrumm pays for a spare: half its price (at least a silver).
+  Q.sellValue = (x) => {
+    const price = x.kind === 'relic' || x.key ? Q.ITEMS[x.key].price
+      : x.kind === 'weapon' ? (Q.WEAPONS.find((w) => w.name === x.name) || {}).price
+        : x.kind === 'armor' ? (Q.ARMOR.find((a) => a.name === x.name) || {}).price : x.price;
+    return Math.max(1, Math.floor((price || 2) / 2));
+  };
+
   // A random item not yet found this run, for a floor depth (1 or 2).
   Q.rollItem = function (S, depth, kind) {
-    const owned = new Set(S.party.flatMap((p) => [p.relic, p.weapon && p.weapon.key]).filter(Boolean));
+    const owned = new Set(S.party.flatMap((p) => [p.relic, p.weapon && p.weapon.key, ...(p.pack || []).map((x) => x.key)]).filter(Boolean));
     const pool = Object.keys(Q.ITEMS).filter((k) => Q.ITEMS[k].depth <= depth && !S.found.includes(k) && !owned.has(k)
       && (!kind || Q.ITEMS[k].kind === kind));
     if (!pool.length) return null;
