@@ -8,10 +8,12 @@ This list is written by `python3 quest/tools/art_list.py`.
 
 ## The look
 
-MÖRK BORG: black ink on bone-white, rough and high-contrast, like a photocopied zine, with acid yellow
-(#FFE11A) and hot pink (#FF3D8B) only where something glows or bleeds. The current pictures are ink-wash
-greys with a little yellow and pink. You can go another way (full colour, painted), but the whole set should
-look like one artist made it: use the same style words for every picture.
+**Raw ink sketches**, like MÖRK BORG's own pages: fast, rough black ink strokes on white paper, scratchy
+hatching, ink splatter and drips, heavy blacks, hard contrast. No colour except **acid yellow (#FFE11A)** where
+something burns or glows (a lantern, a candle, the comet) and, rarely, **hot pink (#FF3D8B)** where something
+bleeds or is cursed. No painted colour, no parchment, no soft shading. The whole set must look like one artist
+drew it: use the same style words in every prompt, for example *"raw black ink sketch, rough fast strokes,
+scratchy hatching, ink splatter, white paper, high contrast, MÖRK BORG zine style"*.
 
 ## Making them with ChatGPT
 
@@ -23,7 +25,12 @@ look like one artist made it: use the same style words for every picture.
   taller than it is wide, centred, filling the picture top to bottom, transparent sky above the roof". The
   tool trims the transparent sides away and fits the building to the wall.
 - Textures: ask for "a seamless tileable texture, flat, straight on, even lighting, no perspective".
-- One subject per picture, nothing cut off at the edges, no text, no frame or border.
+- **One subject per file.** No sheets of several views, no titles, no labels, no handwriting, no frame or border,
+  no signature. Nothing cut off at the edges (except the hands' forearms, at the bottom edge).
+- **Name each file exactly like the list** (`guard.png`, `held-sword.png`, `wretch-3.png`), all lowercase.
+- Figures face the viewer, whole body in frame, standing, feet on the bottom edge, no ground or shadow.
+- Hand them over as PNG files in one folder (a shared Google Drive folder works), or commit them to
+  `quest/art-new/` on a branch of your own and open a pull request (see `CONTRIBUTING.md`).
 
 ## Bringing them in
 
@@ -58,6 +65,7 @@ In the 3D view and on the battle cards. The game bends the picture to make them 
 | `cutter` | 384 × 576 | yes | a gaunt salt miner in a leather apron and hood caked in white salt dust, a heavy pickaxe over his shoulder, a rag over his mouth, standing, facing the viewer |
 | `saltwight` | 384 × 576 | yes | a dead miner half encrusted in white salt crystals, crystals growing out of his face and shoulders, glowing red cracks in the salt, a broken pickaxe, shambling, facing the viewer |
 | `overseer` | 384 × 576 | yes | a huge brutal mine overseer in a long pale coat, a lantern on a pole in one hand and a coiled whip in the other, a rolled writ with a red wax seal in his belt, standing, facing the viewer |
+| `warden-bare` (new) | 384 × 576 | yes | the Drowned Warden in his second half: armor and coat thrown off, bare-chested, huge, still masked, his ring of keys at his belt |
 
 ## People in Skarnvik
 
@@ -87,7 +95,7 @@ Standing on the floor (remains, fonts, relics) or in the street (gallows, graves
 | `relic` | 288 × 384 | yes | a black iron bell clapper relic glowing yellow, resting on a small stone altar |
 | `gallows` | 448 × 560 | yes | a wooden gallows with two hanged corpses dangling from ropes and a crow on the beam, front view |
 | `board` | 288 × 384 | yes | a weathered wooden notice board on two posts covered in nailed paper notices and wanted posters, a skull nailed on top, front view |
-| `memorial` | 288 × 384 | yes | a weathered wooden memorial board with rows of painted names, a small cross beside each, a carved skull on top, candle stubs and wilted flowers at its foot, front view |
+| `memorial` | 288 × 384 | yes | a weathered wooden memorial board with rows of painted names, a small cross beside each name, a carved skull on top, candle stubs and wilted flowers at its foot, front view |
 | `tombstones` | 384 × 288 | yes | a cluster of three crooked old gravestones and a leaning stone cross in the mud, front view |
 | `dead-tree` | 384 × 576 | yes | a gnarled dead leafless tree with twisted black branches and a crow |
 | `bell` | 384 × 288 | yes | a big bronze bell, cracked, lying on its side (a hanging bell, laid down after it was cut out) |
@@ -96,7 +104,7 @@ Standing on the floor (remains, fonts, relics) or in the street (gallows, graves
 
 ## House fronts
 
-Stretched over a whole wall of a street, about 5 m tall and 2 m wide. One flat building front, straight on, filling the full width, its ground floor at the bottom edge. Everything above the roofline is transparent (the sky shows through). `facade-*` line the streets; `front-*` are the buildings you walk into, so their door is at the bottom, in the middle. `front-belldoor` is a wall in a hillside: no sky, no transparency.
+Stretched over a whole wall of a street, about 5 m tall and 2 m wide. One flat building front, straight on, filling the full width, its ground floor at the bottom edge. Everything above the roofline is transparent (the sky shows through). `facade-*` line the streets; `front-*` are the buildings you walk into, so their door is at the bottom, in the middle. `front-belldoor` is a wall in a hillside: no sky, no transparency. `front-gravegate` is the graveyard’s locked gates in its wall.
 
 | File | Size (px) | Transparent | What it shows now |
 |---|---|---|---|
@@ -112,7 +120,7 @@ Stretched over a whole wall of a street, about 5 m tall and 2 m wide. One flat b
 | `front-crypthouse` | 320 × 800 | yes | front view of a small stone crypt house in a graveyard with a cross on its gable, a low iron door, skulls set in the wall |
 | `front-watchhouse` | 320 × 800 | yes | front view of an old stone watch tower with crenellations, a barred window, a boarded-up door, rags hanging from the window |
 | `front-belldoor` | 320 × 800 | no | an old arched door half under ivy, set in the stone of a hillside (the text no longer mentions a carved bell) |
-| `front-gravegate` | 320 × 800 | yes | tall wrought-iron graveyard gates under a pointed stone arch in a graveyard wall, chained and padlocked, gravestones and crosses seen through the bars; sky above the wall |
+| `front-gravegate` | 320 × 800 | yes | front view of tall wrought iron cemetery gates under a pointed stone arch in an old graveyard wall, a heavy chain and padlock on the gates, crooked gravestones and crosses seen through the bars |
 
 ## Walls, floors, ceilings, doors
 
@@ -134,7 +142,7 @@ Tiled over the dungeon’s surfaces, one picture per 2 × 2 m square. Must be se
 
 ## In your hands
 
-Drawn over the view like DOOM’s weapons: a hand and what it holds, rising from the bottom edge. The torch is in the left hand; each weapon in the right. Transparent around them.
+Drawn over the view like DOOM’s weapons: a hand and what it holds. **The forearm rises from the bottom edge of the picture, cut off by it, nearly upright, and the weapon points up**, filling the height of the picture (an arm coming in from the side comes out small in the game). The torch is in the left hand, the arm rising from the bottom left; each weapon in the right, rising from the bottom right. Transparent around them. Draw the torch unlit (a head of black oily rags): the game paints a live flame on its tip.
 
 | File | Size (px) | Transparent | What it shows now |
 |---|---|---|---|
