@@ -2132,6 +2132,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
   Q.debugRestoreGear = () => makeDM().restoreGear();
   Q.debugDie = (cause) => { for (const p of S.party) { p.hp = 0; p.dead = true; } gameOver(cause); };
   Q.debugMemorial = () => showMemorial();
+  Q.debugBusy = () => ({ busy, modalOpen, where: S && S.where, paused: !!(world && world.paused && world.paused()) });
 
   if (Q.Dice) Q.Dice.init($('dice'));
   bind();
