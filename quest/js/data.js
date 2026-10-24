@@ -230,7 +230,7 @@ var Q = window.Q || (window.Q = {});
         h: { front: 'front-belldoor', name: 'A little door in the hill', scene: 'belldoor', mark: '∩' },
         // the paupers' graveyard, off the square: locked, and beside its gates the memorial to your dead
         r: { front: 'front-gravegate', name: 'The graveyard gates', scene: 'gravegate', mark: '+' },
-        m: { prop: { art: 'memorial', h: 1.3, aspect: 0.75, posts: true, face: Math.PI / 2 }, name: 'The memorial', act: 'memorial', mark: '‡' },
+        m: { prop: { art: 'memorial', h: 1.75, aspect: 0.75 }, name: 'The memorial', act: 'memorial', mark: '‡' },
       },
       rows: [
         '########################################',

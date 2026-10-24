@@ -229,7 +229,8 @@ ART = {
     'board': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
                   prompt=f'a weathered wooden notice board on two posts covered in nailed paper notices and wanted posters, '
                          f'a skull nailed on top, front view, {ISOLATED}, {STYLE}'),
-    'memorial': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
+    # Asked plainly, the model paints crosses and skulls; so it paints over a drawn board of names (init).
+    'memorial': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None, init='memorial', strength=0.58,
                      prompt=f'a weathered wooden memorial board with rows of painted names, a small cross beside each name, '
                             f'a carved skull on top, candle stubs and wilted flowers at its foot, front view, {ISOLATED}, {STYLE}'),
     # --- the wretches' hands, seen in first person like Doom's weapons ---
@@ -302,6 +303,7 @@ SEEDS = {
     'front-church': 1, 'front-manor': 3, 'front-home': 1, 'npc-priest': 1, 'front-watchhouse': 1, 'front-crypthouse': 2, 'front-exchange': 1, 'npc-watchman': 2, 'npc-beggar': 3, 'npc-gravedigger': 2, 'tombstones': 1, 'dead-tree': 2,
     'drowned': 2, 'npc-freed': 3, 'npc-widow': 1,
     'overseer': 2, 'cutter': 2, 'saltwight': 1, 'front-belldoor': 2, 'wall-salt': 5, 'floor-salt': 5, 'bell': 5, 'saltcart': 4, 'saint-agne': 9,
+    'front-gravegate': 4, 'memorial': 3,
     'held-torch': 1, 'held-warhammer': 1, 'held-knife': 1, 'held-flail': 1, 'held-staff': 1,
     'held-sword': 3, 'held-shortsword': 1, 'held-zweihander': 2, 'held-femur': 1,
     'wretch-0': 1, 'wretch-1': 1, 'wretch-2': 1, 'wretch-3': 2, 'wretch-4': 1, 'wretch-5': 1, 'wretch-6': 1, 'wretch-7': 2,
@@ -805,6 +807,25 @@ def layout(kind, size, seed_name):
         LAYOUT_INFO[seed_name] = LAYOUT_INFO.pop(kind.split(':')[1])
     elif kind.startswith('held:'):
         _held(d, rnd, w, h, kind.split(':')[1])
+    elif kind == 'memorial':
+        # a board of names under a little roof, a skull on top, candles at its foot, on a plain ground
+        d.rectangle([0, 0, w, h], fill=242)
+        x0, x1, y0, y1 = w * 0.14, w * 0.86, h * 0.16, h * 0.82
+        d.polygon([(x0 - 14, y0 + 6), (w * 0.5, h * 0.06), (x1 + 14, y0 + 6)], fill=60)        # the roof
+        d.rectangle([x0, y0, x1, y1], fill=128)                                                  # the planks
+        for k in range(1, 6):
+            d.line([(x0, y0 + (y1 - y0) * k / 6), (x1, y0 + (y1 - y0) * k / 6)], fill=96, width=3)
+        for r in range(9):                                                                       # names, each with a cross
+            y = y0 + 22 + r * (y1 - y0 - 40) / 8
+            d.line([(x0 + 18, y), (x0 + 18, y + 14)], fill=225, width=3)
+            d.line([(x0 + 12, y + 4), (x0 + 24, y + 4)], fill=225, width=3)
+            d.line([(x0 + 36, y + 7), (x0 + 36 + (x1 - x0 - 60) * rnd.uniform(0.45, 1.0), y + 7)], fill=225, width=6)
+        d.ellipse([w * 0.42, h * 0.02, w * 0.58, h * 0.13], fill=215)                            # the skull
+        d.ellipse([w * 0.455, h * 0.06, w * 0.49, h * 0.085], fill=20)
+        d.ellipse([w * 0.51, h * 0.06, w * 0.545, h * 0.085], fill=20)
+        for x in (0.22, 0.36, 0.64, 0.78):                                                       # candle stubs
+            d.rectangle([w * x - 7, y1 + 10, w * x + 7, y1 + rnd.uniform(34, 52)], fill=225)
+        d.rectangle([x0, y1, x1, y1 + 8], fill=60)
     elif kind == 'weeping':
         _blocks(d, rnd, w, h, rows=5, tone=(130, 185))
         for _ in range(16):
@@ -900,7 +921,7 @@ def layout(kind, size, seed_name):
             d.line(pts, fill=15, width=rnd.randint(4, 9))
     # stone grain: noise at a few scales, so there is texture for the model to ink over
     rng = np.random.default_rng(len(seed_name))
-    if kind.startswith('held:'):
+    if kind.startswith('held:') or kind == 'memorial':
         # a cut-out: grain on the subject only, the background left plain for the model and the cutter
         arr = np.asarray(img, np.float32)
         noise = rng.normal(0, 9, (h, w)).astype(np.float32)

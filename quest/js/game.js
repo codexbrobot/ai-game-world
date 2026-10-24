@@ -6,7 +6,7 @@
 (function () {
   const { d, fmt } = Q;
   // The version of the game, as published: one up with every publish, shown on the title screen.
-  Q.VERSION = 36;
+  Q.VERSION = 37;
   const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);
@@ -913,7 +913,7 @@
     el.hidden = !u;
     const name = u && (isHome(u) ? (u.home === 'scum' ? 'Your corner of the alley' : 'Your home') : u.act === 'church' && S.home && S.home.cls === 'priest' ? 'The basilica (your home)'
       : u.scene === 'belldoor' && S.flags.hollowOpen ? 'The bell-ringers’ stair' : u.name);
-    if (u) el.innerHTML = `${esc(name)}<small>${u.decal ? 'step onto' : 'walk into'} ${u.prop && u.scene !== 'gallows' && u.scene !== 'graves' && u.act !== 'board' ? 'them' : 'it'}, or tap here</small>`;
+    if (u) el.innerHTML = `${esc(name)}<small>${u.decal ? 'step onto' : 'walk into'} ${u.prop && u.scene !== 'gallows' && u.scene !== 'graves' && u.act !== 'board' && u.act !== 'memorial' ? 'them' : 'it'}, or tap here</small>`;
   }
   // ---------- homes ----------
   // New wretches are of Skarnvik: they wake at home, and whose home is the front one's: a priest in the
@@ -1728,7 +1728,7 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
   }
 
   // Where someone died, for the memorial: the district and the city, or the floor below.
-  const deathPlace = () => (S.where !== 'crawl' || !world ? 'Skarnvik' : S.floorIx === cityIx() ? `${placeName()}, Skarnvik` : placeName());
+  const deathPlace = () => (S.where !== 'crawl' || !world ? 'Skarnvik' : S.floorIx === cityIx() ? `${placeName()}, Skarnvik` : placeName()).replace(/^The /, 'the ');
 
   // The floor's name, or in the city the district you stand in.
   function placeName() {
