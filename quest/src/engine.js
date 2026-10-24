@@ -207,7 +207,6 @@ export function createWorld(container, hooks) {
   let level = null; // { grid, h, c, W, H, root, doors, items, groups }
   const player = { x: 0, z: 0, a: 0, pitch: 0, y: EYE, vy: 0, phase: 0, moving: 0, safe: { x: 0, z: 0 }, cell: null };
   let paused = true;
-  let boxClosedAt = 0; // when the game last closed a box (boxClosed)
   let needRender = true;
   let falling = false;
   let lastTime = performance.now();
@@ -1030,8 +1029,8 @@ export function createWorld(container, hooks) {
     const cx = cellOf(player.x), cz = cellOf(player.z);
     const tx = cx + dx, tz = cz + dz;
     if (solid(tx, tz)) {
-      if (doorAt(tx, tz)) touch({ cx: tx, cy: tz, door: true });
-      else if (useOf(tile(tx, tz))) touch({ cx: tx, cy: tz, use: true });
+      if (doorAt(tx, tz)) touch({ cx: tx, cy: tz, door: true }, intent === 'f');
+      else if (useOf(tile(tx, tz))) touch({ cx: tx, cy: tz, use: true }, intent === 'f');
       else hooks.onBump && hooks.onBump();
       return;
     }
@@ -1106,6 +1105,7 @@ export function createWorld(container, hooks) {
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => pad.addEventListener(ev, padUp));
 
   function movePlayer(dt) {
+    moveFrame++;
     if (mode === 'grid') return moveGrid(dt);
     let fwd = stick.y, side = stick.x;
     if (keys.has('w') || keys.has('arrowup')) fwd += 1;
@@ -1131,9 +1131,9 @@ export function createWorld(container, hooks) {
     const here = floorH(cellOf(player.x), cellOf(player.z));
     // slide along walls: try each axis on its own
     const bx = blockedAt(player.x + vx, player.z, here);
-    if (!bx) player.x += vx; else touch(bx);
+    if (!bx) player.x += vx; else touch(bx, fwd > 0 && ahead(bx));
     const bz = blockedAt(player.x, player.z + vz, here);
-    if (!bz) player.z += vz; else touch(bz);
+    if (!bz) player.z += vz; else touch(bz, fwd > 0 && ahead(bz));
     // the head bobs every footfall, but you hear one a stride (each bob is a quick half-step at this speed)
     const before = Math.floor(player.phase / (2 * Math.PI));
     player.phase += Math.hypot(vx, vz) * 3.2;
@@ -1149,20 +1149,39 @@ export function createWorld(container, hooks) {
 
   // Bumping a closed door opens it; a locked one asks the game (no more than every couple of seconds).
   const usedAt = new Map(); // when each front or prop last asked the game, so leaning on it doesn't spam
-  // Leaning on a thing asks the game once every 1.8 s at most. But once a box has been closed since, a fresh bump
-  // counts soon after (the short wait absorbs a key still held down).
-  const askAgain = (last, now) => now - last > 1800 || (boxClosedAt > last && now - boxClosedAt > 400);
-  function touch(b) {
+  // Leaning on a thing asks the game once per push: keep pushing (a thumb still on the stick, a key held down)
+  // and nothing more happens; let go and walk at it again and it asks again. A push goes on while every moving
+  // frame touches something (frames, not time, so a slow phone doesn't break it up), and a box closing counts as
+  // still pushing, so walking on after closing one doesn't open it again.
+  let moveFrame = 0, pushFrame = -2, pushStart = 0;
+  function pushed(now) {
+    if (pushFrame < moveFrame - 1) pushStart = now;
+    pushFrame = moveFrame;
+  }
+  const askAgain = (last) => pushStart > last;
+  // Only walking at a thing asks the game about it: brushing past a gravestone or a person, sidestepping or
+  // backing into them, just stops you (otherwise the box pops up again and again while you try to get by).
+  // Ahead means the cell's middle is within about 50° of where the wretches face.
+  function ahead(b) {
+    const dx = (b.cx + 0.5) * CELL - player.x, dz = (b.cy + 0.5) * CELL - player.z;
+    const off = Math.atan2(dz, dx) - player.a;
+    return Math.cos(off) > Math.cos(0.87);
+  }
+  function touch(b, front) {
     if (b.use) {
+      if (!front) return;
       const key = b.cx + ',' + b.cy, now = performance.now();
-      if (askAgain(usedAt.get(key) || 0, now)) { usedAt.set(key, now); hooks.onLocked && hooks.onLocked(b.cx, b.cy, tile(b.cx, b.cy)); }
+      pushed(now);
+      if (askAgain(usedAt.get(key) || 0)) { usedAt.set(key, now); hooks.onLocked && hooks.onLocked(b.cx, b.cy, tile(b.cx, b.cy)); }
       return;
     }
     if (!b.door) return;
     const d = doorAt(b.cx, b.cy);
     if (d && d.locked && !d.opening) {
+      if (!front) return;
       const now = performance.now();
-      if (askAgain(d.asked, now)) { d.asked = now; hooks.onLocked && hooks.onLocked(b.cx, b.cy, d.tile); }
+      pushed(now);
+      if (askAgain(d.asked || 0)) { d.asked = now; hooks.onLocked && hooks.onLocked(b.cx, b.cy, d.tile); }
       return;
     }
     if (d && !d.opening) {
@@ -1823,7 +1842,7 @@ export function createWorld(container, hooks) {
     },
     resume() { paused = false; lastTime = performance.now(); },
     // The game closed a box: walking into the same thing again asks again after a moment, not after the full wait.
-    boxClosed() { boxClosedAt = performance.now(); },
+    boxClosed() { pushFrame = moveFrame; },
     get paused() { return paused; },
     refreshTile(cx, cy) { placeItem(cx, cy); },
     openDoor(cx, cy) { const d = doorAt(cx, cy); if (d) { d.locked = false; d.opening = true; } },
