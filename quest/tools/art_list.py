@@ -22,12 +22,12 @@ GROUPS = [
     ('People in Skarnvik', 'Standing in the street, the same way as monsters: whole figure, facing you, feet on the bottom edge.',
      ['npc-stranger', 'npc-preacher', 'npc-fisher', 'npc-priest', 'npc-gravedigger', 'npc-watchman', 'npc-beggar', 'npc-freed', 'npc-widow']),
     ('Things in the world', 'Standing on the floor (remains, fonts, relics) or in the street (gallows, graves, trees, the board), and Saint Agne in her cave. Whole object, sitting on the bottom edge.',
-     ['remains', 'remains-scroll', 'font', 'relic', 'gallows', 'board', 'tombstones', 'dead-tree', 'bell', 'saltcart', 'saint-agne']),
-    ('House fronts', 'Stretched over a whole wall of a street, about 5 m tall and 2 m wide. One flat building front, straight on, filling the full width, its ground floor at the bottom edge. Everything above the roofline is transparent (the sky shows through). `facade-*` line the streets; `front-*` are the buildings you walk into, so their door is at the bottom, in the middle. `front-belldoor` is a wall in a hillside: no sky, no transparency.',
-     ['facade-timber', 'facade-stone', 'facade-derelict', 'front-inn', 'front-stall', 'front-church', 'front-manor', 'front-exchange', 'front-home', 'front-crypthouse', 'front-watchhouse', 'front-belldoor']),
+     ['remains', 'remains-scroll', 'font', 'relic', 'gallows', 'board', 'memorial', 'tombstones', 'dead-tree', 'bell', 'saltcart', 'saint-agne']),
+    ('House fronts', 'Stretched over a whole wall of a street, about 5 m tall and 2 m wide. One flat building front, straight on, filling the full width, its ground floor at the bottom edge. Everything above the roofline is transparent (the sky shows through). `facade-*` line the streets; `front-*` are the buildings you walk into, so their door is at the bottom, in the middle. `front-belldoor` is a wall in a hillside: no sky, no transparency. `front-gravegate` is the graveyard’s locked gates in its wall.',
+     ['facade-timber', 'facade-stone', 'facade-derelict', 'front-inn', 'front-stall', 'front-church', 'front-manor', 'front-exchange', 'front-home', 'front-crypthouse', 'front-watchhouse', 'front-belldoor', 'front-gravegate']),
     ('Walls, floors, ceilings, doors', 'Tiled over the dungeon’s surfaces, one picture per 2 × 2 m square. Must be seamless (its edges meet when repeated, left to right and top to bottom), flat and straight on, evenly lit, no perspective.',
      ['wall-stone', 'wall-ossuary', 'wall-relief', 'floor', 'ceiling', 'door', 'gaol-wall', 'gaol-bars', 'gaol-door', 'wall-salt', 'floor-salt']),
-    ('In your hands', 'Drawn over the view like DOOM’s weapons: a hand and what it holds, rising from the bottom edge. The torch is in the left hand; each weapon in the right. Transparent around them.',
+    ('In your hands', 'Drawn over the view like DOOM’s weapons: a hand and what it holds. **The forearm rises from the bottom edge of the picture, cut off by it, nearly upright, and the weapon points up**, filling the height of the picture (an arm coming in from the side comes out small in the game). The torch is in the left hand, the arm rising from the bottom left; each weapon in the right, rising from the bottom right. Transparent around them. Draw the torch unlit (a head of black oily rags): the game paints a live flame on its tip.',
      ['held-torch', 'held-femur', 'held-knife', 'held-staff', 'held-shortsword', 'held-warhammer', 'held-sword', 'held-flail', 'held-zweihander']),
     ('Faces', 'The portraits wretches get (picked from their name). Head and shoulders, looking at you.',
      [f'wretch-{i}' for i in range(8)]),
@@ -35,6 +35,10 @@ GROUPS = [
      ['title', 'inn', 'stall', 'stair', 'stranger', 'grave']),
 ]
 NOT_SHOWN = ['town']
+# Pictures the game will use that don't exist yet: name -> (size, transparent, what it shows, where it goes).
+NEW = {
+    'warden-bare': ((384, 576), True, 'the Drowned Warden in his second half: armor and coat thrown off, bare-chested, huge, still masked, his ring of keys at his belt', 'Monsters'),
+}
 
 
 # Where the picture came out differently from what was asked for.
@@ -75,10 +79,12 @@ This list is written by `python3 quest/tools/art_list.py`.
 
 ## The look
 
-MÖRK BORG: black ink on bone-white, rough and high-contrast, like a photocopied zine, with acid yellow
-(#FFE11A) and hot pink (#FF3D8B) only where something glows or bleeds. The current pictures are ink-wash
-greys with a little yellow and pink. You can go another way (full colour, painted), but the whole set should
-look like one artist made it: use the same style words for every picture.
+**Raw ink sketches**, like MÖRK BORG's own pages: fast, rough black ink strokes on white paper, scratchy
+hatching, ink splatter and drips, heavy blacks, hard contrast. No colour except **acid yellow (#FFE11A)** where
+something burns or glows (a lantern, a candle, the comet) and, rarely, **hot pink (#FF3D8B)** where something
+bleeds or is cursed. No painted colour, no parchment, no soft shading. The whole set must look like one artist
+drew it: use the same style words in every prompt, for example *"raw black ink sketch, rough fast strokes,
+scratchy hatching, ink splatter, white paper, high contrast, MÖRK BORG zine style"*.
 
 ## Making them with ChatGPT
 
@@ -90,7 +96,12 @@ look like one artist made it: use the same style words for every picture.
   taller than it is wide, centred, filling the picture top to bottom, transparent sky above the roof". The
   tool trims the transparent sides away and fits the building to the wall.
 - Textures: ask for "a seamless tileable texture, flat, straight on, even lighting, no perspective".
-- One subject per picture, nothing cut off at the edges, no text, no frame or border.
+- **One subject per file.** No sheets of several views, no titles, no labels, no handwriting, no frame or border,
+  no signature. Nothing cut off at the edges (except the hands' forearms, at the bottom edge).
+- **Name each file exactly like the list** (`guard.png`, `held-sword.png`, `wretch-3.png`), all lowercase.
+- Figures face the viewer, whole body in frame, standing, feet on the bottom edge, no ground or shadow.
+- Hand them over as PNG files in one folder (a shared Google Drive folder works), or commit them to
+  `quest/art-new/` on a branch of your own and open a pull request (see `CONTRIBUTING.md`).
 
 ## Bringing them in
 
@@ -112,8 +123,11 @@ If you don't like a new one, `git checkout quest/assets/<name>.webp` puts the ol
         for n in names:
             (w, h), alpha = shape(n)
             lines.append(f'| `{n}` | {w} × {h} | {"yes" if alpha else "no"} | {describe(n)} |')
+        for n, ((w, h), alpha, what, group) in NEW.items():
+            if group == title:
+                lines.append(f'| `{n}` (new) | {w} × {h} | {"yes" if alpha else "no"} | {what} |')
         lines.append('')
-    used = {n for _, _, names in GROUPS for n in names} | set(NOT_SHOWN)
+    used = {n for _, _, names in GROUPS for n in names} | set(NOT_SHOWN) | set(NEW)
     stray = sorted(f[:-5] for f in os.listdir(QUEST / 'assets') if f.endswith('.webp') and f[:-5] not in used)
     lines.append('## Not shown any more\n\n' + ', '.join(f'`{n}`' for n in NOT_SHOWN + stray) +
                  ': made for the old menu town; still loaded, never drawn. No need to remake it.\n')
