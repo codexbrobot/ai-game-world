@@ -613,6 +613,15 @@ He leans close. <em>“The salt down there is warm. Salt isn’t warm. Think abo
         await dm.say('Old graves', lines[dm.d(lines.length) - 1], [{ label: 'Step back' }]);
       },
     },
+    // ---------- the paupers' graveyard, off Gallows Square: locked (its memorial is in js/memorial.js) ----------
+    {
+      id: 'gravegate', floor: 'skarnvik',
+      async run(dm) {
+        await dm.say('The graveyard gates', `Iron gates under a stone arch, taller than two men, and chained shut. The padlock on the chain is new, and the chain is newer.
+
+Through the bars: the paupers’ field, where Skarnvik buries the ones nobody claims. Crooked stones, wooden crosses, fresh earth. <em>Your dead are in there.</em> The gates won’t open for you. Not yet. Beside them, somebody keeps a board of names.`, [{ label: 'Step back' }]);
+      },
+    },
     // ---------- the bell-ringers' door, behind the graves on Church Hill ----------
     {
       id: 'belldoor', floor: 'skarnvik',

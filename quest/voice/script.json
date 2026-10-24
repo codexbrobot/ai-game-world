@@ -548,7 +548,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "That blow goes below zero. And below zero, there is nothing to roll.",
-  "src": "js/battle.js:807",
+  "src": "js/battle.js:830",
   "re": "^⟪n⟫ had .+? hp left, and takes .+?\\. that is below #, and below # there is nothing to roll\\.$"
  },
  {
@@ -556,7 +556,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "Dead. The dark takes another one.",
-  "src": "js/battle.js:807",
+  "src": "js/battle.js:830",
   "re": "^⟪n⟫ is dead, killed by .+?\\.$"
  },
  {
@@ -564,7 +564,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "Already down at zero, and struck again. That is below zero. And below zero, there is nothing to roll.",
-  "src": "js/battle.js:807",
+  "src": "js/battle.js:830",
   "re": "^⟪n⟫ was already down at # hp, and takes .+? more\\. that is below #, and below # there is nothing to roll\\.$"
  },
  {
@@ -572,7 +572,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "That should have been death. The Pilgrim's Shroud takes their place instead, and falls to dust. One hit point.",
-  "src": "js/battle.js:807",
+  "src": "js/battle.js:830",
   "key": "⟪n⟫ should be dead. the pilgrim's shroud takes their place and falls to dust. # hp."
  },
  {
@@ -580,7 +580,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "A killing blow, and at this table that means Broken. The die comes up four.",
-  "src": "js/battle.js:830",
+  "src": "js/battle.js:853",
   "re": "^⟪n⟫ takes .+? with .+? hp left, and is broken\\. the d# comes up #\\.$"
  },
  {
@@ -588,7 +588,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "Down to zero hit points. Broken. The die comes up four.",
-  "src": "js/battle.js:830",
+  "src": "js/battle.js:853",
   "key": "⟪n⟫ drops to # hp: broken. the d# comes up #."
  },
  {
@@ -596,7 +596,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "The die says four: dead. But the Pilgrim's Shroud takes their place, and falls to dust. One hit point.",
-  "src": "js/battle.js:830",
+  "src": "js/battle.js:853",
   "key": "the d# says #: dead. but the pilgrim's shroud takes ⟪n⟫'s place and falls to dust. # hp."
  },
  {
@@ -604,7 +604,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "The Warden goes down on one knee in the black water, and for a moment you think it’s over.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "the warden goes down on one knee in the black water, and for a moment you think it's over."
  },
  {
@@ -612,7 +612,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "Then he laughs, a wet, bubbling sound, and tears off his mask. Underneath it, the sea has been at his face for months. “No one leaves,” he says. “No one ever leaves.”",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "then he laughs, a wet, bubbling sound, and tears off his mask. underneath it, the sea has been at his face for months. \"no one leaves,\" he says. \"no one ever leaves.\""
  },
  {
@@ -620,7 +620,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "He bellows down the hall for his guards. Nothing answers but the water.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "he bellows down the hall for his guards. nothing answers but the water."
  },
  {
@@ -628,7 +628,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "He has thrown off his armor. From now on he hits harder and acts twice each round.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round."
  },
  {
@@ -636,7 +636,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "He bellows down the hall, “GUARDS!”, and the guard you put down stands back up in the water, still on duty.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "he bellows down the hall, \"guards!\", and the guard you put down stands back up in the water, still on duty."
  },
  {
@@ -644,7 +644,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guard fights on at half strength.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guard fights on at half strength."
  },
  {
@@ -652,7 +652,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "He bellows down the hall, “GUARDS!”, and the guards you put down stand back up in the water, still on duty.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "he bellows down the hall, \"guards!\", and the guards you put down stand back up in the water, still on duty."
  },
  {
@@ -660,7 +660,7 @@
   "group": "battle",
   "floor": "gaol",
   "say": "He has thrown off his armor. From now on he hits harder and acts twice each round. The risen guards fight on at half strength.",
-  "src": "js/battle.js:706",
+  "src": "js/battle.js:729",
   "key": "he has thrown off his armor. from now on he hits harder (d#) and acts twice each round. the risen guards fight on at half strength."
  },
  {
@@ -1328,6 +1328,22 @@
   "key": "saint agne's bell-ringer. the bell is silent now."
  },
  {
+  "id": "29b32d1664",
+  "group": "gravegate",
+  "floor": "skarnvik",
+  "say": "Iron gates under a stone arch, taller than two men, and chained shut. The padlock on the chain is new, and the chain is newer.",
+  "src": "story:gravegate",
+  "key": "iron gates under a stone arch, taller than two men, and chained shut. the padlock on the chain is new, and the chain is newer."
+ },
+ {
+  "id": "ef97edd3be",
+  "group": "gravegate",
+  "floor": "skarnvik",
+  "say": "Through the bars: the paupers’ field, where Skarnvik buries the ones nobody claims. Crooked stones, wooden crosses, fresh earth. Your dead are in there. The gates won’t open for you. Not yet. Beside them, somebody keeps a board of names.",
+  "src": "story:gravegate",
+  "key": "through the bars: the paupers' field, where skarnvik buries the ones nobody claims. crooked stones, wooden crosses, fresh earth. your dead are in there. the gates won't open for you. not yet. beside them, somebody keeps a board of names."
+ },
+ {
   "id": "6868bec456",
   "group": "belldoor",
   "floor": "skarnvik",
@@ -1972,7 +1988,7 @@
   "group": "your-own-wretches",
   "floor": "skarnvik",
   "say": "To make your own wretches you roll them up yourself from the Mork Borg rulebook: their abilities, hit points, Omens, silver, gear and terrible traits, on the book’s own tables. This game doesn’t give you those tables. They’re the book’s, and the people who made it should be paid for them.",
-  "src": "js/game.js:493",
+  "src": "js/game.js:504",
   "key": "to make your own wretches you roll them up yourself from the mörk borg rulebook: their abilities, hit points, omens, silver, gear and terrible traits, on the book's own tables. this game doesn't give you those tables. they're the book's, and the people who made it should be paid for them."
  },
  {
@@ -1980,7 +1996,7 @@
   "group": "your-own-wretches",
   "floor": "skarnvik",
   "say": "Do you own Mork Borg?",
-  "src": "js/game.js:493",
+  "src": "js/game.js:504",
   "key": "do you own mörk borg?"
  },
  {
@@ -1988,7 +2004,7 @@
   "group": "the-salt-lords-watch",
   "floor": "skarnvik",
   "say": "Two watchmen in salt-white step into your way, halberds down. One of them holds up a wanted poster, wet through, and looks from it to your faces, and to your wrists.",
-  "src": "js/game.js:841",
+  "src": "js/game.js:860",
   "key": "two watchmen in salt-white step into your way, halberds down. one of them holds up a wanted poster, wet through, and looks from it to your faces, and to your wrists."
  },
  {
@@ -1996,7 +2012,7 @@
   "group": "the-salt-lords-watch",
   "floor": "skarnvik",
   "say": "“Gaol-pale,” he says. “Where did you two crawl up from?”",
-  "src": "js/game.js:841",
+  "src": "js/game.js:860",
   "key": "\"gaol-pale,\" he says. \"where did you two crawl up from?\""
  },
  {
@@ -2004,7 +2020,7 @@
   "group": "the-salt-lords-watch",
   "floor": "skarnvik",
   "say": "Two watchmen in salt-white step into your way, halberds down. \"Seal? No seal. Then it's the street toll: five silver, by order of the Salt Lords.\"",
-  "src": "js/game.js:841",
+  "src": "js/game.js:860",
   "re": "^two watchmen in salt-white step into your way, halberds down\\. \"seal\\? no seal\\. then it's the street toll: .+? silver, by order of the salt lords\\.\"$"
  },
  {
@@ -2012,7 +2028,7 @@
   "group": "the-salt-lords-watch",
   "floor": "skarnvik",
   "say": "The silver goes into a tabard. “Move along.”",
-  "src": "js/game.js:852",
+  "src": "js/game.js:871",
   "key": "the silver goes into a tabard. \"move along.\""
  },
  {
@@ -2020,7 +2036,7 @@
   "group": "the-salt-lords-watch",
   "floor": "skarnvik",
   "say": "“...Fine. Move along. And wash, for the saints’ sake.” They go off down the street with their halberds on their shoulders.",
-  "src": "js/game.js:852",
+  "src": "js/game.js:871",
   "key": "\"...fine. move along. and wash, for the saints' sake.\" they go off down the street with their halberds on their shoulders."
  },
  {
@@ -2028,7 +2044,7 @@
   "group": "the-salt-lords-watch",
   "floor": "skarnvik",
   "say": "“Liar.” The halberds come up.",
-  "src": "js/game.js:856",
+  "src": "js/game.js:875",
   "key": "\"liar.\" the halberds come up."
  },
  {
@@ -2036,7 +2052,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Fennick.” The Stranger says the name the way you would spit out a tooth. “The diggers from the Deep Mine: not to be released, not to be named. So they did find something down there, and the Salt Lords buried it in the Brine with the men who found it.”",
-  "src": "js/game.js:1167",
+  "src": "js/game.js:1188",
   "key": "\"fennick.\" the stranger says the name the way you would spit out a tooth. \"the diggers from the deep mine: not to be released, not to be named. so they did find something down there, and the salt lords buried it in the brine with the men who found it.\""
  },
  {
@@ -2044,7 +2060,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "He presses ten silver into your hand. “For your memory. Keep it sharp.”",
-  "src": "js/game.js:1167",
+  "src": "js/game.js:1188",
   "key": "he presses ten silver into your hand. \"for your memory. keep it sharp.\""
  },
  {
@@ -2052,7 +2068,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“The old hymns say seven saints hold Skarn up, one under each hill. The priests stopped singing those hymns the year the Salt Lords built their Exchange.”",
-  "src": "js/game.js:1175",
+  "src": "js/game.js:1196",
   "key": "\"the old hymns say seven saints hold skarn up, one under each hill. the priests stopped singing those hymns the year the salt lords built their exchange.\""
  },
  {
@@ -2060,7 +2076,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Church Hill had one. Saint Agne. The bell-ringers kept her: they rang every dawn so she’d know she wasn’t forgotten, until the Salt Lords forbade the bell. The last of them went down into the hill and never came up.”",
-  "src": "js/game.js:1175",
+  "src": "js/game.js:1196",
   "key": "\"church hill had one. saint agne. the bell-ringers kept her: they rang every dawn so she'd know she wasn't forgotten, until the salt lords forbade the bell. the last of them went down into the hill and never came up.\""
  },
  {
@@ -2068,7 +2084,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Find the bell-ringers’ way into Church Hill. It’s behind the graves. The gravedigger buried most of them; he’ll know how it opens.”",
-  "src": "js/game.js:1175",
+  "src": "js/game.js:1196",
   "key": "\"find the bell-ringers' way into church hill. it's behind the graves. the gravedigger buried most of them; he'll know how it opens.\""
  },
  {
@@ -2076,7 +2092,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "The Stranger looks at you a long time before he speaks.",
-  "src": "js/game.js:1175",
+  "src": "js/game.js:1196",
   "key": "the stranger looks at you a long time before he speaks."
  },
  {
@@ -2084,7 +2100,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Cut to the knee.” The Stranger is quiet for a long time. “And four of her sisters gone already. Their salt in the Exchange.”",
-  "src": "js/game.js:1187",
+  "src": "js/game.js:1208",
   "key": "\"cut to the knee.\" the stranger is quiet for a long time. \"and four of her sisters gone already. their salt in the exchange.\""
  },
  {
@@ -2092,7 +2108,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "He reads the overseer’s writ twice. “Leave the crown, so the hill stands until the Exchange has its fill. They know. They know exactly what they’re doing.”",
-  "src": "js/game.js:1187",
+  "src": "js/game.js:1208",
   "key": "he reads the overseer's writ twice. \"leave the crown, so the hill stands until the exchange has its fill. they know. they know exactly what they're doing.\""
  },
  {
@@ -2100,7 +2116,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "He presses fifty silver into your hand without counting it. “Then that’s where they grind them. Under the Exchange, down the white stair the old miners sang about. That’s where we go next. Not yet. Get stronger.”",
-  "src": "js/game.js:1187",
+  "src": "js/game.js:1208",
   "key": "he presses fifty silver into your hand without counting it. \"then that's where they grind them. under the exchange, down the white stair the old miners sang about. that's where we go next. not yet. get stronger.\""
  },
  {
@@ -2108,7 +2124,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Under the Exchange. The white stair. Get stronger, and come back.”",
-  "src": "js/game.js:1197",
+  "src": "js/game.js:1218",
   "key": "\"under the exchange. the white stair. get stronger, and come back.\""
  },
  {
@@ -2116,7 +2132,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Saint Agne. Under Church Hill. Find the bell-ringers’ way in.”",
-  "src": "js/game.js:1204",
+  "src": "js/game.js:1225",
   "key": "\"saint agne. under church hill. find the bell-ringers' way in.\""
  },
  {
@@ -2124,7 +2140,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Rising, you say. From under. Not rain, not a spring.” The Stranger presses forty silver into your hand without counting it.",
-  "src": "js/game.js:1213",
+  "src": "js/game.js:1234",
   "key": "\"rising, you say. from under. not rain, not a spring.\" the stranger presses forty silver into your hand without counting it."
  },
  {
@@ -2132,7 +2148,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Then it’s true. The island isn’t sinking. Something is pulling it down. And the Salt Lords are getting rich while it happens.”",
-  "src": "js/game.js:1213",
+  "src": "js/game.js:1234",
   "key": "\"then it's true. the island isn't sinking. something is pulling it down. and the salt lords are getting rich while it happens.\""
  },
  {
@@ -2140,7 +2156,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“And I think I know where to look.”",
-  "src": "js/game.js:1213",
+  "src": "js/game.js:1234",
   "key": "\"and i think i know where to look.\""
  },
  {
@@ -2148,7 +2164,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "A stranger with a sewn-shut eye takes your wrists in a cold grip, one each, and turns them over. Shackle-scars.",
-  "src": "js/game.js:1223",
+  "src": "js/game.js:1244",
   "key": "a stranger with a sewn-shut eye takes your wrists in a cold grip, one each, and turns them over. shackle-scars."
  },
  {
@@ -2156,7 +2172,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Gaol-pale. You came up out of the Brine, didn’t you? Nobody comes up out of the Brine.”",
-  "src": "js/game.js:1223",
+  "src": "js/game.js:1244",
   "key": "\"gaol-pale. you came up out of the brine, didn't you? nobody comes up out of the brine.\""
  },
  {
@@ -2164,7 +2180,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“The island is sinking, and the Salt Lords say it isn’t. Ask yourself why they aren’t afraid.”",
-  "src": "js/game.js:1223",
+  "src": "js/game.js:1244",
   "key": "\"the island is sinking, and the salt lords say it isn't. ask yourself why they aren't afraid.\""
  },
  {
@@ -2172,7 +2188,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "“Go under the basilica, into the Undercroft. Go all the way down. Tell me what the water is doing down there.”",
-  "src": "js/game.js:1223",
+  "src": "js/game.js:1244",
   "key": "\"go under the basilica, into the undercroft. go all the way down. tell me what the water is doing down there.\""
  },
  {
@@ -2180,7 +2196,7 @@
   "group": "stranger",
   "floor": "skarnvik",
   "say": "The Stranger hasn’t moved from the gallows’ shadow.",
-  "src": "js/game.js:1223",
+  "src": "js/game.js:1244",
   "key": "the stranger hasn't moved from the gallows' shadow."
  },
  {
@@ -2188,7 +2204,7 @@
   "group": "skarnvik",
   "floor": "skarnvik",
   "say": "You come up through a sewer grate in Gallows Square, an hour before dawn, and nobody looks twice. Why would they? Your faces are on posters on the gallows, so faded by rain you can barely tell they were ever faces.",
-  "src": "js/game.js:1237",
+  "src": "js/game.js:1258",
   "key": "you come up through a sewer grate in gallows square, an hour before dawn, and nobody looks twice. why would they? your faces are on posters on the gallows, so faded by rain you can barely tell they were ever faces."
  },
  {
@@ -2196,7 +2212,7 @@
   "group": "skarnvik",
   "floor": "skarnvik",
   "say": "The city has changed while you were inside. There is a comet over the harbor. Half the old docks are under black water, and the fishermen are moving their boats up into the streets. The dead walk in the low graveyards. The Salt Lords’ men walk everywhere else.",
-  "src": "js/game.js:1237",
+  "src": "js/game.js:1258",
   "key": "the city has changed while you were inside. there is a comet over the harbor. half the old docks are under black water, and the fishermen are moving their boats up into the streets. the dead walk in the low graveyards. the salt lords' men walk everywhere else."
  },
  {
@@ -2204,7 +2220,7 @@
   "group": "skarnvik",
   "floor": "skarnvik",
   "say": "And nobody, nobody, is talking about why the island is sinking.",
-  "src": "js/game.js:1237",
+  "src": "js/game.js:1258",
   "key": "and nobody, nobody, is talking about why the island is sinking."
  },
  {
@@ -2212,7 +2228,7 @@
   "group": "not-yet",
   "floor": "skarnvik",
   "say": "One of you has bled out, and should be dead. The Pilgrim's Shroud takes their place and falls to dust. One hit point, and the bleeding has stopped.",
-  "src": "js/game.js:1421",
+  "src": "js/game.js:1442",
   "key": "⟪n⟫ has bled out, and should be dead. the pilgrim's shroud takes their place and falls to dust. # hp, and the bleeding has stopped."
  },
  {
@@ -2220,7 +2236,7 @@
   "group": "dead",
   "floor": "skarnvik",
   "say": "One of you sits down against the wall, and doesn't get up. The haemorrhage was never treated, and the hours ran out.",
-  "src": "js/game.js:1431",
+  "src": "js/game.js:1452",
   "key": "⟪n⟫ sits down against the wall, and doesn't get up. the haemorrhage was never treated, and the hours ran out."
  },
  {
@@ -2228,7 +2244,7 @@
   "group": "dead",
   "floor": "skarnvik",
   "say": "Bled to death.",
-  "src": "js/game.js:1431",
+  "src": "js/game.js:1452",
   "key": "⟪n⟫ has bled to death."
  },
  {
@@ -2236,7 +2252,7 @@
   "group": "under-the-bones",
   "floor": "skarnvik",
   "say": "Under the bones, rolled tight in oilcloth, a scroll. The Psalm of Black Flame: black fire eats a foe for d8 damage.",
-  "src": "js/game.js:1454",
+  "src": "js/game.js:1475",
   "key": "under the bones, rolled tight in oilcloth, a scroll. the psalm of black flame: black fire eats a foe for d# damage."
  },
  {
@@ -2244,7 +2260,7 @@
   "group": "under-the-bones",
   "floor": "skarnvik",
   "say": "Read it in a fight, if one of you can: a Presence test, difficulty twelve, and it costs one of the reader's Powers. It keeps.",
-  "src": "js/game.js:1454",
+  "src": "js/game.js:1475",
   "key": "read it in a fight, if one of you can: presence dr #, and it costs one of the reader's powers. it keeps."
  },
  {
@@ -2252,7 +2268,7 @@
   "group": "under-the-bones",
   "floor": "skarnvik",
   "say": "Under the bones, rolled tight in oilcloth, a scroll. The Rite of Mending Bone: it knits flesh, d6 hit points back, and the bleeding stops.",
-  "src": "js/game.js:1454",
+  "src": "js/game.js:1475",
   "key": "under the bones, rolled tight in oilcloth, a scroll. the rite of mending bone: it knits flesh, d# hp back, and the bleeding stops."
  },
  {
@@ -2260,7 +2276,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "You pick the remains clean: a little silver, in a purse gone green.",
-  "src": "js/game.js:1477",
+  "src": "js/game.js:1498",
   "re": "^you pick the remains clean: .+? silver, in a purse gone green\\.$"
  },
  {
@@ -2268,7 +2284,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "A black poultice in a twist of rag, still sticky. One more poultice.",
-  "src": "js/game.js:1483",
+  "src": "js/game.js:1504",
   "key": "a black poultice in a twist of rag, still sticky. one more poultice."
  },
  {
@@ -2276,7 +2292,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Bind a wretch's wounds with it: d6 hit points back, and the bleeding stops.",
-  "src": "js/game.js:1483",
+  "src": "js/game.js:1504",
   "key": "bind a wretch's wounds with it (the poultice button): d# hp back, and the bleeding stops."
  },
  {
@@ -2284,7 +2300,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "A black feather twitches in the dust, and one of you pockets it. One more Omen.",
-  "src": "js/game.js:1492",
+  "src": "js/game.js:1513",
   "key": "a black feather twitches in the dust, and ⟪n⟫ pockets it. one more omen."
  },
  {
@@ -2292,7 +2308,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "When the dice go against you, spend an Omen to roll again.",
-  "src": "js/game.js:1492",
+  "src": "js/game.js:1513",
   "key": "when the dice go against you, spend an omen to roll again."
  },
  {
@@ -2300,7 +2316,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Under the bones, a weapon.",
-  "src": "js/game.js:1499",
+  "src": "js/game.js:1520",
   "re": "^under the bones, a weapon: a .+?, d.+? damage\\.$"
  },
  {
@@ -2308,7 +2324,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "Armor, cut from a corpse.",
-  "src": "js/game.js:1504",
+  "src": "js/game.js:1525",
   "re": "^.+?, cut from a corpse\\.$"
  },
  {
@@ -2316,7 +2332,7 @@
   "group": "in-the-remains",
   "floor": "skarnvik",
   "say": "The remains aren't finished. A cold hand closes around a wrist, and squeezes.",
-  "src": "js/game.js:1510",
+  "src": "js/game.js:1531",
   "key": "the remains aren't finished. a cold hand closes around ⟪n⟫'s wrist, and squeezes."
  },
  {
@@ -2324,7 +2340,7 @@
   "group": "skarnvik",
   "floor": "skarnvik",
   "say": "You have lived in Skarnvik all your short lives. You heard about the two who came up out of the Brine Gaol, and what they found, and how they died. Somebody has to finish it. It might as well be you.",
-  "src": "js/game.js:1927",
+  "src": "js/game.js:1963",
   "key": "you have lived in skarnvik all your short lives. you heard about the two who came up out of the brine gaol, and what they found, and how they died. somebody has to finish it. it might as well be you."
  },
  {
@@ -2332,7 +2348,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "You wake on the cold floor of the basilica’s vestry, under a painting of a saint with her eyes scratched out. The other priests are already at their prayers, or pretending to be.",
-  "src": "js/game.js:904",
+  "src": "js/game.js:924",
   "key": "you wake on the cold floor of the basilica's vestry, under a painting of a saint with her eyes scratched out. the other priests are already at their prayers, or pretending to be."
  },
  {
@@ -2340,7 +2356,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "The vestry: a cot, a cold font, and the other priests not quite looking at you.",
-  "src": "js/game.js:905",
+  "src": "js/game.js:925",
   "key": "the vestry: a cot, a cold font, and the other priests not quite looking at you."
  },
  {
@@ -2348,7 +2364,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "You wake in your crypt-house in the graveyard on Church Hill, between two coffins and a pile of books that should not exist. The dead were quiet company, as always.",
-  "src": "js/game.js:906",
+  "src": "js/game.js:926",
   "key": "you wake in your crypt-house in the graveyard on church hill, between two coffins and a pile of books that should not exist. the dead were quiet company, as always."
  },
  {
@@ -2356,7 +2372,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "Your crypt-house: a pallet between two coffins, your books, the candle stubs.",
-  "src": "js/game.js:907",
+  "src": "js/game.js:927",
   "key": "your crypt-house: a pallet between two coffins, your books, the candle stubs."
  },
  {
@@ -2364,7 +2380,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "You wake in the House of Vael, up on the Hill, in the last room with a bed in it. Everything else worth selling has been sold, and the Salt Lords’ men watch the door.",
-  "src": "js/game.js:908",
+  "src": "js/game.js:928",
   "key": "you wake in the house of vael, up on the hill, in the last room with a bed in it. everything else worth selling has been sold, and the salt lords' men watch the door."
  },
  {
@@ -2372,7 +2388,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "The House of Vael. Everything worth selling is sold, but the bed is still a bed.",
-  "src": "js/game.js:909",
+  "src": "js/game.js:929",
   "key": "the house of vael. everything worth selling is sold, but the bed is still a bed."
  },
  {
@@ -2380,7 +2396,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "You wake in your narrow house in Lantern Row, under bundles of herbs drying in the rafters, to the smell of rot and rosemary.",
-  "src": "js/game.js:910",
+  "src": "js/game.js:930",
   "key": "you wake in your narrow house in lantern row, under bundles of herbs drying in the rafters, to the smell of rot and rosemary."
  },
  {
@@ -2388,7 +2404,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "Your house: herbs in the rafters, jars on every shelf, a bed that smells of both.",
-  "src": "js/game.js:911",
+  "src": "js/game.js:931",
   "key": "your house: herbs in the rafters, jars on every shelf, a bed that smells of both."
  },
  {
@@ -2396,7 +2412,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "You wake in the old watch-house in the Gutter, where the deserters keep the door barred and the brazier lit. Nobody here asks which war you walked away from.",
-  "src": "js/game.js:912",
+  "src": "js/game.js:932",
   "key": "you wake in the old watch-house in the gutter, where the deserters keep the door barred and the brazier lit. nobody here asks which war you walked away from."
  },
  {
@@ -2404,7 +2420,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "The old watch-house. Your blanket by the brazier is where you left it.",
-  "src": "js/game.js:913",
+  "src": "js/game.js:933",
   "key": "the old watch-house. your blanket by the brazier is where you left it."
  },
  {
@@ -2412,7 +2428,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "You wake in your corner of the alley, in a nest of rags, with a wall at your back and a rat you have come to an arrangement with.",
-  "src": "js/game.js:914",
+  "src": "js/game.js:934",
   "key": "you wake in your corner of the alley, in a nest of rags, with a wall at your back and a rat you have come to an arrangement with."
  },
  {
@@ -2420,7 +2436,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "Your corner of the alley. A nest of rags, a wall at your back.",
-  "src": "js/game.js:915",
+  "src": "js/game.js:935",
   "key": "your corner of the alley. a nest of rags, a wall at your back."
  },
  {
@@ -2428,7 +2444,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "A crypt-house in the graveyard. The door is chained from the inside, and something in there is breathing, slowly.",
-  "src": "js/game.js:918",
+  "src": "js/game.js:938",
   "key": "a crypt-house in the graveyard. the door is chained from the inside, and something in there is breathing, slowly."
  },
  {
@@ -2436,7 +2452,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "The House of Vael. The shutters are nailed shut, and a Salt Lords’ notice of debt is nailed over the door.",
-  "src": "js/game.js:919",
+  "src": "js/game.js:939",
   "key": "the house of vael. the shutters are nailed shut, and a salt lords' notice of debt is nailed over the door."
  },
  {
@@ -2444,7 +2460,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "A narrow house hung with herbs. Somebody inside tells you to go away, and means it.",
-  "src": "js/game.js:920",
+  "src": "js/game.js:940",
   "key": "a narrow house hung with herbs. somebody inside tells you to go away, and means it."
  },
  {
@@ -2452,7 +2468,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "The old watch-house. Deserters squat in it. A voice behind the boards tells you to keep walking.",
-  "src": "js/game.js:921",
+  "src": "js/game.js:941",
   "key": "the old watch-house. deserters squat in it. a voice behind the boards tells you to keep walking."
  },
  {
@@ -2460,7 +2476,7 @@
   "group": "homes",
   "floor": "skarnvik",
   "say": "A nest of rags in a corner of the alley. It smells like somebody lives here, and they would not like you in it.",
-  "src": "js/game.js:922",
+  "src": "js/game.js:942",
   "key": "a nest of rags in a corner of the alley. it smells like somebody lives here, and they would not like you in it."
  },
  {

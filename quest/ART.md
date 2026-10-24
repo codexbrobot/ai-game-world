@@ -87,6 +87,7 @@ Standing on the floor (remains, fonts, relics) or in the street (gallows, graves
 | `relic` | 288 × 384 | yes | a black iron bell clapper relic glowing yellow, resting on a small stone altar |
 | `gallows` | 448 × 560 | yes | a wooden gallows with two hanged corpses dangling from ropes and a crow on the beam, front view |
 | `board` | 288 × 384 | yes | a weathered wooden notice board on two posts covered in nailed paper notices and wanted posters, a skull nailed on top, front view |
+| `memorial` | 288 × 384 | yes | a weathered wooden memorial board with rows of painted names, a small cross beside each, a carved skull on top, candle stubs and wilted flowers at its foot, front view |
 | `tombstones` | 384 × 288 | yes | a cluster of three crooked old gravestones and a leaning stone cross in the mud, front view |
 | `dead-tree` | 384 × 576 | yes | a gnarled dead leafless tree with twisted black branches and a crow |
 | `bell` | 384 × 288 | yes | a big bronze bell, cracked, lying on its side (a hanging bell, laid down after it was cut out) |
@@ -111,6 +112,7 @@ Stretched over a whole wall of a street, about 5 m tall and 2 m wide. One flat b
 | `front-crypthouse` | 320 × 800 | yes | front view of a small stone crypt house in a graveyard with a cross on its gable, a low iron door, skulls set in the wall |
 | `front-watchhouse` | 320 × 800 | yes | front view of an old stone watch tower with crenellations, a barred window, a boarded-up door, rags hanging from the window |
 | `front-belldoor` | 320 × 800 | no | an old arched door half under ivy, set in the stone of a hillside (the text no longer mentions a carved bell) |
+| `front-gravegate` | 320 × 800 | yes | tall wrought-iron graveyard gates under a pointed stone arch in a graveyard wall, chained and padlocked, gravestones and crosses seen through the bars; sky above the wall |
 
 ## Walls, floors, ceilings, doors
 

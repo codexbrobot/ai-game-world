@@ -59,7 +59,7 @@
       party, silver: party.reduce((s, p) => s + p.silver, 0), poultices: 3 + extra, scrolls: [], kills: 0, killsSinceBetter: 0,
       floors: buildFloors(), floorIx: 0, pose: null, where: 'crawl', metStranger: false, log: [],
       calendar: Q.calendarStart(), found: [], curios: [], deepest: 1, pendingMiseries: [],
-      flags: {}, scenes: {},
+      flags: {}, scenes: {}, game: Q.Memorial.newGame(),
     };
     setupFonts();
     // the Gaol keeps your things until you find them: femurs and rags until then
@@ -422,6 +422,7 @@
     if (!S || S.over) return;
     for (const line of Q.Journal.update(S)) log(line, 'dim');
     if (world && S.where === 'crawl') S.pose = world.pose();
+    Q.Memorial.record(S, deathPlace());
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(S, (k, v) => (unsaved.has(k) ? undefined : v))); } catch (e) { /* storage may be unavailable */ }
   }
   function loadSave() {
@@ -607,6 +608,14 @@
   function showJournal() {
     if (!S) return;
     modal('Journal', `<div class="journal">${Q.Journal.html(S)}</div>`, [{ label: 'Close' }], { wide: true, quiet: true });
+  }
+
+  // ---------- the memorial (js/memorial.js) ----------
+  // The board by the graveyard gates: every wretch who ever died, in every game.
+  function showMemorial() {
+    const n = Q.Memorial.list().length;
+    modal('The memorial', `<p class="small">A board by the graveyard gates, and on it, in white paint, the names of the ones the city buried in the paupers’ field. ${n ? `${n} of them are yours.` : 'None of them are yours. Yet.'}</p>
+      <div class="journal memorial">${Q.Memorial.html(esc)}</div>`, [{ label: 'Step back' }], { wide: true, quiet: true });
   }
 
   // ---------- the character sheet ----------
@@ -885,6 +894,7 @@
     else if (u.act === 'shop') visitShop();
     else if (u.act === 'stranger') visitStranger();
     else if (u.act === 'board') showBoard();
+    else if (u.act === 'memorial') showMemorial();
     else if (u.scene) {
       const sc = Q.SCENES.find((x) => x.id === u.scene);
       if (!sc) return;
@@ -1653,6 +1663,8 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
 
   function gameOver(cause) {
     if (S.over) return;
+    for (const pc of S.party) if (pc.dead && !pc.cause) pc.cause = cause;
+    Q.Memorial.record(S, deathPlace());
     S.over = true;
     if (world) world.pause();
     sfx('toll', { f: 82 });
@@ -1714,6 +1726,9 @@ When the dice go against you, spend an Omen to roll again.`, [{ label: 'Go on' }
     $('tPoultice').querySelector('small').textContent = S.poultices;
     $('tPoultice').disabled = S.poultices <= 0 || !alive().some((p) => p.hp < p.maxHp || p.bleeding);
   }
+
+  // Where someone died, for the memorial: the district and the city, or the floor below.
+  const deathPlace = () => (S.where !== 'crawl' || !world ? 'Skarnvik' : S.floorIx === cityIx() ? `${placeName()}, Skarnvik` : placeName());
 
   // The floor's name, or in the city the district you stand in.
   function placeName() {
@@ -2116,6 +2131,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
   Q.debugShop = () => visitShop();
   Q.debugRestoreGear = () => makeDM().restoreGear();
   Q.debugDie = (cause) => { for (const p of S.party) { p.hp = 0; p.dead = true; } gameOver(cause); };
+  Q.debugMemorial = () => showMemorial();
 
   if (Q.Dice) Q.Dice.init($('dice'));
   bind();

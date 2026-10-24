@@ -666,3 +666,11 @@ body.in-battle .facing { display: none; }
 .char .packbtns button { min-height: 36px; padding: 4px 10px; font-size: 12.5px; }
 .enc { font-style: normal; color: var(--pink); }
 .journal .died { margin: 4px 0 0; font-size: 13.5px; color: var(--pink); }
+/* the memorial by the graveyard gates: every wretch who ever died */
+.memorial .grave { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid rgba(235, 228, 208, 0.12); }
+.memorial .grave img { flex: none; width: 56px; height: 56px; object-fit: cover; filter: grayscale(1) contrast(1.2); border: 2px solid var(--bone); }
+.memorial .grave > div { flex: 1; min-width: 0; }
+.memorial .grave b { font-family: var(--display); font-size: 18px; color: var(--bone); }
+.memorial .grave small { display: block; color: var(--dim); font-size: 12px; }
+.memorial .grave p { margin: 2px 0 4px; color: var(--pink); font-size: 14px; }
+.memorial .grave .deeds { font-size: 13.5px; color: var(--bone); }

@@ -188,6 +188,9 @@ ART = {
     'front-watchhouse': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:watchhouse', strength=0.64,
                              prompt=f'front view of an old stone watch tower with crenellations, a barred window, a boarded-up door, '
                                     f'rags hanging from the window, flat facade, {FLAT}'),
+    'front-gravegate': dict(kind='facade', size=(384, 960), out=(320, 800), seed=None, init='facade:gravegate', strength=0.62,
+                            prompt=f'front view of tall wrought iron cemetery gates under a pointed stone arch in an old graveyard wall, '
+                                   f'a heavy chain and padlock on the gates, crooked gravestones and crosses seen through the bars, flat facade, {FLAT}'),
     # Skarnvik's people and things, cut out like the monsters.
     'npc-stranger': dict(kind='sprite', size=(384, 576), out=(384, 576), seed=None,
                          prompt=f'full body illustration of a tall gaunt stranger in a long hooded black cloak, one eye sewn shut with '
@@ -226,6 +229,9 @@ ART = {
     'board': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
                   prompt=f'a weathered wooden notice board on two posts covered in nailed paper notices and wanted posters, '
                          f'a skull nailed on top, front view, {ISOLATED}, {STYLE}'),
+    'memorial': dict(kind='sprite', size=(384, 512), out=(288, 384), seed=None,
+                     prompt=f'a weathered wooden memorial board with rows of painted names, a small cross beside each name, '
+                            f'a carved skull on top, candle stubs and wilted flowers at its foot, front view, {ISOLATED}, {STYLE}'),
     # --- the wretches' hands, seen in first person like Doom's weapons ---
     # Asked for a hand, the model paints a whole figure; so each starts from a drawn arm and fist entering
     # from the bottom of the frame, gripping the thing (init 'held:...'). The torch is drawn unlit; the game
@@ -309,7 +315,7 @@ LAYOUT_INFO = {}
 
 def _facade(d, rnd, w, h, style):
     roof = {'timber': 'gable', 'inn': 'gable', 'stone': 'flat', 'stall': 'flat', 'derelict': 'step', 'church': 'gable', 'home': 'gable',
-            'manor': 'flat', 'exchange': 'pediment', 'crypthouse': 'hut', 'watchhouse': 'cren', 'belldoor': 'none'}[style]
+            'manor': 'flat', 'exchange': 'pediment', 'crypthouse': 'hut', 'watchhouse': 'cren', 'belldoor': 'none', 'gravegate': 'gate'}[style]
     eave = h * rnd.uniform(0.17, 0.21)
     if roof == 'gable':
         outline = [(0, h), (0, eave), (w * 0.5, h * rnd.uniform(0.02, 0.04)), (w, eave), (w, h)]
@@ -329,6 +335,12 @@ def _facade(d, rnd, w, h, style):
         outline += [(w, top), (w, h)]
     elif roof == 'none':
         outline = [(0, h), (0, 0), (w, 0), (w, h)]
+    elif roof == 'gate':
+        # a graveyard wall with a pier at each end and a pointed arch over the gates; sky above the wall
+        import math as _m
+        wall_top, pier_top = h * 0.5, h * 0.36
+        arch = [(w * (0.5 - 0.26 * _m.cos(t)), wall_top - (wall_top - h * 0.3) * _m.sin(t) ** 0.7) for t in [k * _m.pi / 12 for k in range(13)]]
+        outline = [(0, h), (0, pier_top), (w * 0.15, pier_top), (w * 0.15, wall_top), *arch, (w * 0.85, wall_top), (w * 0.85, pier_top), (w, pier_top), (w, h)]
     elif roof == 'step':
         top, k = h * 0.04, 3
         outline = [(0, h), (0, eave)]
@@ -343,7 +355,7 @@ def _facade(d, rnd, w, h, style):
         cx1 = cx0 + w * 0.16
         outline = [(0, h), (0, top), (cx0, top), (cx0, h * 0.02), (cx1, h * 0.02), (cx1, top), (w, top), (w, h)]
     wall = {'timber': 150, 'inn': 150, 'stone': 118, 'stall': 128, 'derelict': 135, 'church': 112, 'home': 148,
-            'manor': 122, 'exchange': 132, 'crypthouse': 104, 'watchhouse': 110, 'belldoor': 98}[style]
+            'manor': 122, 'exchange': 132, 'crypthouse': 104, 'watchhouse': 110, 'belldoor': 98, 'gravegate': 104}[style]
     d.polygon(outline, fill=wall)
     # the roof: tiles above the eave, or a cornice
     if roof in ('gable', 'pediment', 'hut'):
@@ -368,10 +380,10 @@ def _facade(d, rnd, w, h, style):
         d.rectangle([0, eave, w, eave + 12], fill=beam)
         d.line([(14, storey - 8), (w * 0.3, eave + 12)], fill=beam, width=10)
         d.line([(w - 14, storey - 8), (w * 0.7, eave + 12)], fill=beam, width=10)
-    if style in ('stone', 'church', 'watchhouse', 'crypthouse', 'manor', 'exchange', 'belldoor'):
+    if style in ('stone', 'church', 'watchhouse', 'crypthouse', 'manor', 'exchange', 'belldoor', 'gravegate'):
         for y in range(int(eave if roof != 'none' else 0), int(plinth), 34):
             d.line([(outline[0][0], y), (outline[-1][0], y)], fill=88, width=3)
-    if style in ('church', 'exchange', 'manor', 'crypthouse', 'watchhouse', 'belldoor'):
+    if style in ('church', 'exchange', 'manor', 'crypthouse', 'watchhouse', 'belldoor', 'gravegate'):
         # the grand ones and the grim ones: their own fronts, drawn whole
         windows = []
         if style == 'church':
@@ -422,6 +434,29 @@ def _facade(d, rnd, w, h, style):
             d.ellipse([w * 0.33, h * 0.72, w * 0.67, h * 0.84], fill=22)
             for k in range(3):
                 d.line([(w * 0.33, h * (0.8 + 0.05 * k)), (w * 0.67, h * (0.8 + 0.05 * k))], fill=70, width=6)
+        elif style == 'gravegate':
+            gx0, gx1, gtop = w * 0.27, w * 0.73, h * 0.36                                   # the gateway, dark behind the bars
+            d.rectangle([gx0, gtop, gx1, plinth], fill=26)
+            d.ellipse([gx0, h * 0.31, gx1, h * 0.43], fill=26)
+            for k in range(4):                                                               # graves beyond, pale in the dark
+                x = w * (0.31 + 0.11 * k)
+                y = h * rnd.uniform(0.62, 0.7)
+                d.rectangle([x, y, x + w * 0.06, y + h * 0.08], fill=125)
+                d.ellipse([x, y - h * 0.02, x + w * 0.06, y + h * 0.02], fill=125)
+            d.line([(w * 0.47, h * 0.5), (w * 0.47, h * 0.6)], fill=125, width=7)            # a cross
+            d.line([(w * 0.43, h * 0.53), (w * 0.51, h * 0.53)], fill=125, width=7)
+            for k in range(9):                                                               # the iron bars, spiked
+                x = gx0 + (gx1 - gx0) * (k + 0.5) / 9
+                d.line([(x, h * 0.37), (x, plinth)], fill=12, width=7)
+                d.polygon([(x - 6, h * 0.37), (x, h * 0.345), (x + 6, h * 0.37)], fill=12)
+            for y in (h * 0.45, h * 0.86):
+                d.line([(gx0, y), (gx1, y)], fill=12, width=8)
+            d.line([(w * 0.5, h * 0.37), (w * 0.5, plinth)], fill=8, width=10)               # where the two gates meet
+            for k in range(5):                                                               # the chain, and its padlock
+                d.ellipse([w * (0.4 + 0.04 * k), h * 0.7 - 7, w * (0.4 + 0.04 * k) + 18, h * 0.7 + 7], outline=175, width=4)
+            d.rectangle([w * 0.46, h * 0.705, w * 0.54, h * 0.75], fill=175)
+            for x in (0.0, 0.85):                                                            # the piers' caps
+                d.rectangle([w * x, h * 0.36, w * (x + 0.15), h * 0.38], fill=150)
         else:  # watchhouse
             d.rectangle([w * 0.38, h * 0.3, w * 0.62, h * 0.42], fill=18)
             for k in range(4):

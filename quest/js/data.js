@@ -157,7 +157,9 @@ var Q = window.Q || (window.Q = {});
       // wretches wake in: V a crypt-house, M a manor, O a narrow house, W the old watch-house, Z a nest of
       // rags in an alley), people (X the Stranger, P the comet preacher, N a fishwife, Q a priest, d the
       // gravedigger, w the Salt Lords' watchmen, b a beggar) and things (Y the gallows, B the bounty board,
-      // t graves, y dead trees, l lamps, G the sewer grate you came up through). > is the crypt stair.
+      // t graves, y dead trees, l lamps, G the sewer grate you came up through). > is the crypt stair. Off the
+      // square to the south, the paupers' graveyard: its gates (r) are locked, and the memorial (m) beside them
+      // names every wretch who ever died (js/memorial.js).
       depth: 0,
       down: 'undercroft',
       // districts, for the HUD (the first that holds you): x0, y0, x1, y1
@@ -166,6 +168,7 @@ var Q = window.Q || (window.Q = {});
         { name: 'The Hill', rect: [27, 0, 39, 10] },
         { name: 'Gallows Square', rect: [15, 10, 28, 16] },
         { name: 'Rope Street', rect: [20, 17, 21, 22] },
+        { name: 'The graveyard gates', rect: [22, 17, 29, 21] },
         { name: 'Saltpan Lane', rect: [28, 11, 39, 22] },
         { name: 'The Harbor', rect: [13, 22, 39, 30] },
         { name: 'Lantern Row', rect: [0, 10, 14, 21] },
@@ -185,6 +188,7 @@ var Q = window.Q || (window.Q = {});
         walls: [['facade-timber', 4], ['facade-stone', 3], ['facade-derelict', 1]],
         // each district its own mix of walls (x0, y0, x1, y1 of the wall's square)
         zones: [
+          { rect: [22, 17, 26, 18], walls: [['wall-stone', 1]] }, // the graveyard's wall along the square
           { rect: [0, 0, 16, 10], walls: [['wall-stone', 3], ['wall-relief', 2], ['facade-stone', 1]] },
           { rect: [27, 0, 39, 10], walls: [['facade-stone', 4], ['wall-stone', 1]] },
           { rect: [0, 22, 13, 30], walls: [['facade-derelict', 4], ['facade-timber', 1]] },
@@ -224,6 +228,9 @@ var Q = window.Q || (window.Q = {});
         k: { prop: { art: 'npc-widow', h: 1.75 }, name: 'A woman in mourning black', scene: 'kin', mark: '●', unless: 'kinGone' },
         // the bell-ringers' door into Church Hill, behind the graves: down to Saint Agne's Hollow
         h: { front: 'front-belldoor', name: 'A little door in the hill', scene: 'belldoor', mark: '∩' },
+        // the paupers' graveyard, off the square: locked, and beside its gates the memorial to your dead
+        r: { front: 'front-gravegate', name: 'The graveyard gates', scene: 'gravegate', mark: '+' },
+        m: { prop: { art: 'memorial', h: 1.3, aspect: 0.75, posts: true, face: Math.PI / 2 }, name: 'The memorial', act: 'memorial', mark: '‡' },
       },
       rows: [
         '########################################',
@@ -243,8 +250,8 @@ var Q = window.Q || (window.Q = {});
         '###.l####.#####......................###',
         '###.##O##.#####...G......B..#######..###',
         '###..............l.........>######l..###',
-        '###.#####.##l#######..########....#..###',
-        '###.......##########..########.......###',
+        '###.#####.##l#######..#m..####....#..###',
+        '###.......##########..##r#####.......###',
         '###.....k.##########..########....#..###',
         '##l.#####.##########..#############..l##',
         '#.............######..#############..###',
