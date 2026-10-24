@@ -464,6 +464,7 @@ var Q = window.Q || (window.Q = {});
     },
     W: {
       kind: 'warden', name: 'The Drowned Warden', hp: () => 8 + d(4), die: 8, dr: 13, armor: 2, morale: 0, sight: 6, speed: 1.4,
+      art2: 'warden-bare', // his second half: the armor thrown off (js/battle.js)
       boss: true, silver: () => roll(3, 10), desc: 'He still makes his rounds. He still has the keys.',
     },
     r: {

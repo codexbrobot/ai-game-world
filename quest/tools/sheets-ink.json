@@ -1,0 +1,420 @@
+[
+ {
+  "name": "prisoner",
+  "src": "B1-prisoner-raw-ink.png",
+  "box": [
+   790,
+   25,
+   1050,
+   750
+  ],
+  "fit": "stand"
+ },
+ {
+  "name": "guard",
+  "src": "B2-guards-raw-ink.png",
+  "box": [
+   95,
+   95,
+   605,
+   948
+  ],
+  "erase": [
+   [
+    0,
+    0,
+    300,
+    185
+   ],
+   [
+    0,
+    0,
+    760,
+    100
+   ]
+  ],
+  "fit": "stand",
+  "unyellow": [
+   0,
+   0,
+   760,
+   130
+  ]
+ },
+ {
+  "name": "warden",
+  "src": "B3-warden-raw-ink.png",
+  "box": [
+   25,
+   121,
+   765,
+   945
+  ],
+  "erase": [
+   [
+    0,
+    0,
+    335,
+    190
+   ],
+   [
+    0,
+    0,
+    765,
+    121
+   ]
+  ],
+  "fit": "stand",
+  "unyellow": [
+   0,
+   0,
+   760,
+   140
+  ]
+ },
+ {
+  "name": "warden-bare",
+  "src": "warden-return-sketch-v2.png",
+  "box": [
+   0,
+   0,
+   1024,
+   1536
+  ],
+  "fit": "stand",
+  "size_of": "warden"
+ },
+ {
+  "name": "held-torch",
+  "src": "B4-hands-and-torch.png",
+  "box": [
+   585,
+   520,
+   945,
+   1020
+  ],
+  "fit": "held-left"
+ },
+ {
+  "name": "held-femur",
+  "src": "B5-weapons-light.png",
+  "box": [
+   255,
+   100,
+   795,
+   600
+  ],
+  "erase": [
+   [
+    260,
+    430,
+    405,
+    490
+   ],
+   [
+    0,
+    95,
+    300,
+    142
+   ],
+   [
+    0,
+    430,
+    300,
+    1024
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-knife",
+  "src": "B5-weapons-light.png",
+  "box": [
+   860,
+   60,
+   1385,
+   600
+  ],
+  "erase": [
+   [
+    865,
+    450,
+    990,
+    512
+   ],
+   [
+    800,
+    520,
+    1000,
+    640
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-staff",
+  "src": "B5-weapons-light.png",
+  "box": [
+   85,
+   470,
+   795,
+   1022
+  ],
+  "erase": [
+   [
+    205,
+    895,
+    385,
+    970
+   ],
+   [
+    300,
+    430,
+    800,
+    545
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-shortsword",
+  "src": "B5-weapons-light.png",
+  "box": [
+   860,
+   530,
+   1495,
+   1022
+  ],
+  "erase": [
+   [
+    920,
+    900,
+    1115,
+    972
+   ],
+   [
+    1000,
+    500,
+    1500,
+    585
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-warhammer",
+  "src": "B6-weapons-heavy.png",
+  "box": [
+   240,
+   140,
+   795,
+   640
+  ],
+  "erase": [
+   [
+    200,
+    118,
+    300,
+    172
+   ],
+   [
+    280,
+    488,
+    465,
+    545
+   ],
+   [
+    150,
+    555,
+    420,
+    645
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-sword",
+  "src": "B6-weapons-heavy.png",
+  "box": [
+   900,
+   20,
+   1425,
+   600
+  ],
+  "erase": [
+   [
+    1010,
+    485,
+    1115,
+    548
+   ],
+   [
+    850,
+    420,
+    990,
+    610
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-flail",
+  "src": "B6-weapons-heavy.png",
+  "box": [
+   150,
+   560,
+   765,
+   1015
+  ],
+  "erase": [
+   [
+    305,
+    930,
+    440,
+    985
+   ],
+   [
+    560,
+    550,
+    770,
+    620
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "held-zweihander",
+  "src": "B6-weapons-heavy.png",
+  "box": [
+   800,
+   430,
+   1445,
+   1024
+  ],
+  "erase": [
+   [
+    885,
+    918,
+    1082,
+    988
+   ],
+   [
+    990,
+    420,
+    1445,
+    562
+   ]
+  ],
+  "fit": "held-right",
+  "tilt": 28
+ },
+ {
+  "name": "wretch-0",
+  "src": "01-wretch-portraits-0-to-3.png",
+  "box": [
+   46,
+   100,
+   513,
+   645
+  ],
+  "erase": [
+   [
+    0,
+    0,
+    340,
+    152
+   ]
+  ],
+  "fit": "fill",
+  "unyellow": [
+   0,
+   0,
+   400,
+   200
+  ]
+ },
+ {
+  "name": "wretch-1",
+  "src": "01-wretch-portraits-0-to-3.png",
+  "box": [
+   549,
+   100,
+   1016,
+   645
+  ],
+  "fit": "fill"
+ },
+ {
+  "name": "wretch-2",
+  "src": "01-wretch-portraits-0-to-3.png",
+  "box": [
+   1078,
+   80,
+   1545,
+   625
+  ],
+  "fit": "fill"
+ },
+ {
+  "name": "wretch-3",
+  "src": "01-wretch-portraits-0-to-3.png",
+  "box": [
+   1652,
+   90,
+   2119,
+   635
+  ],
+  "fit": "fill"
+ },
+ {
+  "name": "wretch-4",
+  "src": "02-wretch-portraits-4-to-7.png",
+  "box": [
+   24,
+   170,
+   504,
+   730
+  ],
+  "fit": "fill"
+ },
+ {
+  "name": "wretch-5",
+  "src": "02-wretch-portraits-4-to-7.png",
+  "box": [
+   482,
+   170,
+   962,
+   730
+  ],
+  "fit": "fill"
+ },
+ {
+  "name": "wretch-6",
+  "src": "02-wretch-portraits-4-to-7.png",
+  "box": [
+   968,
+   140,
+   1448,
+   700
+  ],
+  "fit": "fill"
+ },
+ {
+  "name": "wretch-7",
+  "src": "02-wretch-portraits-4-to-7.png",
+  "box": [
+   1461,
+   160,
+   1941,
+   720
+  ],
+  "fit": "fill"
+ }
+]

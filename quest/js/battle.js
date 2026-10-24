@@ -56,7 +56,8 @@ var Q = window.Q || (window.Q = {});
       card.dataset.i = i;
       const marks = `${f.stunned ? ' · kneels' : ''}${f.poison ? ' · poisoned' : ''}${f.raised && f.hp > 0 ? ' · risen' : ''}`;
       const health = Q.anyHas(B.party, 'eye') ? `${f.hp}/${f.maxHp} HP` : Q.healthWord(f.hp, f.maxHp);
-      card.innerHTML = `<img src="${Q.assetUrl(f.def.art || f.kind)}" alt=""><span class="foe-label"><b>${esc(f.name)}</b><small>${f.hp > 0 ? health + marks : f.fled ? 'Fled' : 'Dead'}</small></span>`;
+      const art = f.phase === 2 && f.def.art2 ? f.def.art2 : f.def.art || f.kind; // a boss's second half can look different
+      card.innerHTML = `<img src="${Q.assetUrl(art)}" alt=""><span class="foe-label"><b>${esc(f.name)}</b><small>${f.hp > 0 ? health + marks : f.fled ? 'Fled' : 'Dead'}</small></span>`;
       card.disabled = f.hp <= 0;
       card.addEventListener('click', () => pick('foe', i));
       row.appendChild(card);
