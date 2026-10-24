@@ -20,6 +20,13 @@ module.exports = {
     await t.step();
     await t.closeAll();
     check(JSON.stringify(await t.where()) === JSON.stringify([24, 17]), 'and you can’t walk in', await t.where());
+    // straight back into them: a box that has come and gone doesn't make you wait to ask again
+    await t.tp('skarnvik', 24, 17, 'S');
+    check(await t.bump() === 'The graveyard gates', 'walk into them again');
+    await t.closeAll();
+    await t.wait(500);
+    check(await t.bump() === 'The graveyard gates', 'and again, right after closing the box (it used to ignore you for nearly two seconds)');
+    await t.closeAll();
 
     // nobody on it yet
     await t.tp('skarnvik', 24, 17, 'W');

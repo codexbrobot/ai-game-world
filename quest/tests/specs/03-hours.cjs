@@ -8,7 +8,8 @@ module.exports = {
     const groups = (tag) => S((tag) => Q.debug().floors.find((f) => f.id === 'skarnvik').groups.filter((g) => g.alive && (!tag || g[tag]))
       .map((g) => ({ x: g.x, z: g.z, cx: Math.floor(g.x / 2), cy: Math.floor(g.z / 2), keys: g.members.map((m) => m.key) })), tag);
     const clearStreets = () => S(() => { for (const g of Q.debug().floors.find((f) => f.id === 'skarnvik').groups) g.alive = false; });
-    const meet = (g) => S((g) => Q.debugEnter(Q.FLOORS.findIndex((f) => f.id === 'skarnvik'), { x: g.x + 1.0, z: g.z, a: Math.PI }), g);
+    // (onto the group's own square: they spawn on random ones, and a step beside them can be a wall)
+    const meet = (g) => S((g) => Q.debugEnter(Q.FLOORS.findIndex((f) => f.id === 'skarnvik'), { x: g.x, z: g.z, a: Math.PI }), g);
     await t.open();
     await t.newGame();
     await t.escaped({ silver: 60 });
@@ -77,15 +78,15 @@ module.exports = {
     await choose(/Ask what he knows/);
     check((await t.flags()).bellStair && /bell-ringer’s stair/.test(await t.body()), 'he tells you of the bell-ringer’s stair');
     await t.closeAll();
-    // (a busy page can miss the step into him; walk up again)
-    const visit = async () => { for (let i = 0; i < 3; i++) { await t.tp('skarnvik', 9, 28, 'W'); if (await t.bump()) return; } };
-    await visit();
+    await t.tp('skarnvik', 9, 28, 'W');
+    await t.bump();
     await choose(/owed us/);
     await choose(/Unwrap/);
     check(await waitModal() === 'Found', 'he pays you back from his stash');
     await t.closeAll();
     await S(() => { const p = Q.debug().party[1]; p.hp = 0; p.dead = true; });
-    await visit();
+    await t.tp('skarnvik', 9, 28, 'W');
+    await t.bump();
     await choose(/come with you/);
     await t.closeAll();
     await t.wait(600);

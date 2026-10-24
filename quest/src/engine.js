@@ -207,6 +207,7 @@ export function createWorld(container, hooks) {
   let level = null; // { grid, h, c, W, H, root, doors, items, groups }
   const player = { x: 0, z: 0, a: 0, pitch: 0, y: EYE, vy: 0, phase: 0, moving: 0, safe: { x: 0, z: 0 }, cell: null };
   let paused = true;
+  let boxClosedAt = 0; // when the game last closed a box (boxClosed)
   let needRender = true;
   let falling = false;
   let lastTime = performance.now();
@@ -1148,17 +1149,20 @@ export function createWorld(container, hooks) {
 
   // Bumping a closed door opens it; a locked one asks the game (no more than every couple of seconds).
   const usedAt = new Map(); // when each front or prop last asked the game, so leaning on it doesn't spam
+  // Leaning on a thing asks the game once every 1.8 s at most. But once a box has been closed since, a fresh bump
+  // counts soon after (the short wait absorbs a key still held down).
+  const askAgain = (last, now) => now - last > 1800 || (boxClosedAt > last && now - boxClosedAt > 400);
   function touch(b) {
     if (b.use) {
       const key = b.cx + ',' + b.cy, now = performance.now();
-      if (now - (usedAt.get(key) || 0) > 1800) { usedAt.set(key, now); hooks.onLocked && hooks.onLocked(b.cx, b.cy, tile(b.cx, b.cy)); }
+      if (askAgain(usedAt.get(key) || 0, now)) { usedAt.set(key, now); hooks.onLocked && hooks.onLocked(b.cx, b.cy, tile(b.cx, b.cy)); }
       return;
     }
     if (!b.door) return;
     const d = doorAt(b.cx, b.cy);
     if (d && d.locked && !d.opening) {
       const now = performance.now();
-      if (now - d.asked > 1800) { d.asked = now; hooks.onLocked && hooks.onLocked(b.cx, b.cy, d.tile); }
+      if (askAgain(d.asked, now)) { d.asked = now; hooks.onLocked && hooks.onLocked(b.cx, b.cy, d.tile); }
       return;
     }
     if (d && !d.opening) {
@@ -1818,6 +1822,8 @@ export function createWorld(container, hooks) {
       if (step.active) { player.x = step.x1; player.z = step.z1; player.a = step.a1; step.active = false; }
     },
     resume() { paused = false; lastTime = performance.now(); },
+    // The game closed a box: walking into the same thing again asks again after a moment, not after the full wait.
+    boxClosed() { boxClosedAt = performance.now(); },
     get paused() { return paused; },
     refreshTile(cx, cy) { placeItem(cx, cy); },
     openDoor(cx, cy) { const d = doorAt(cx, cy); if (d) { d.locked = false; d.opening = true; } },
