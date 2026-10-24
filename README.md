@@ -4,6 +4,8 @@ A Neverwinter Nights-style 3D game set in the world of MÖRK BORG, playable in a
 
 This repo also holds a second, separate game in [`quest/`](quest/README.md): a first-person Mörk Borg dungeon crawler in the style of the iPhone game *The Quest*, set on the sinking island of Skarnvik. Every DM box is read aloud by a recorded narrator. Play it at <https://codexbrobot.github.io/ai-game-world/quest/> (on a phone, add it to the home screen to play it fullscreen). It has its own build (`npm run build:quest`), browser tests (`npm run test:quest`, see [`quest/tests/`](quest/tests/README.md)) and art guide ([`quest/ART.md`](quest/ART.md)).
 
+To work on either game, see [CONTRIBUTING.md](CONTRIBUTING.md): work happens on branches, and reaches `main` through pull requests once the tests pass.
+
 ## Build and play
 
 ```sh
