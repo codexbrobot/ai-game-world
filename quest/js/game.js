@@ -6,7 +6,7 @@
 (function () {
   const { d, fmt } = Q;
   // The version of the game, as published: one up with every publish, shown on the title screen.
-  Q.VERSION = 39;
+  Q.VERSION = 40;
   const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);

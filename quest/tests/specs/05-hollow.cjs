@@ -94,8 +94,10 @@ module.exports = {
     check((await t.party()).every((p) => p.hp === p.maxHp), 'praying with her heals you fully');
     await choose(/Go on/);
     const d0 = await S(() => Q.debug().calendar.days);
+    await S(() => { Q.realTest = Q.test; Q.test = (ab, dr) => Q.realTest(ab, dr, 15); }); // the Strength test passes (it's dice)
     await choose(/Bring down/);
-    await t.wait(400);
+    await waitModal();
+    await S(() => { Q.test = Q.realTest; });
     check((await t.flags()).agneSealed && await S(() => Q.debug().calendar.days) > d0, 'bringing down the cutters’ tunnel pushes the next Misery back');
     await choose(/Go on/);
     const s1 = await S(() => Q.debug().silver), d1 = await S(() => Q.debug().calendar.days);
