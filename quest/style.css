@@ -47,30 +47,64 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 /* ---------- screens ---------- */
 .screen { min-height: 100%; padding: 20px 16px; }
 
-.title { display: grid; place-items: center; background:
-  linear-gradient(180deg, rgba(10, 10, 8, 0.15) 0%, rgba(10, 10, 8, 0.55) 45%, rgba(10, 10, 8, 0.96) 72%),
-  url("assets/title.webp") center top / cover no-repeat, var(--ink); }
-.title-block { padding-top: 38vh; }
-@media (min-width: 860px) {
-  .title { background:
-    linear-gradient(90deg, rgba(10, 10, 8, 0) 30%, rgba(10, 10, 8, 0.9) 58%, var(--ink) 75%),
-    url("assets/title.webp") left center / auto 100% no-repeat, var(--ink); justify-items: end; padding-right: 8vw; }
-  .title-block { padding-top: 0; }
+/* The title: Skarnvik going under, the comet over it, rain. On a phone the city fills the top of the screen
+   and the words sit over the pink sea; on a wide screen the city fills it all and the words stand on the left. */
+.title { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;
+  min-height: 100dvh; padding: 0 16px 18px; background: var(--ink); }
+.title-art { position: absolute; z-index: -1; inset: 0 0 auto; height: 52svh; overflow: hidden; }
+.title-art::before { content: ""; position: absolute; inset: -3%; background: url("assets/title.webp") 76% 40% / cover no-repeat;
+  animation: title-drift 38s ease-in-out infinite alternate; }
+.title-art::after { content: ""; position: absolute; inset: 0; background:
+  linear-gradient(180deg, rgba(10, 10, 8, 0.35) 0%, rgba(10, 10, 8, 0) 18%, rgba(10, 10, 8, 0) 46%, rgba(10, 10, 8, 0.82) 78%, var(--ink) 100%); }
+.title-rain { position: absolute; inset: 0; z-index: 1; opacity: 0.55; mix-blend-mode: screen; background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='180'%3E%3Cg stroke='%23ebe4d0' stroke-opacity='.22' stroke-width='1'%3E%3Cpath d='M12 0l-6 34M47 60l-6 34M78 20l-6 34M30 120l-6 34M66 128l-6 30'/%3E%3C/g%3E%3C/svg%3E"),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .3 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: title-rain 0.7s linear infinite; }
+@keyframes title-drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.06) translate(-1.5%, 1%); } }
+@keyframes title-rain { from { background-position: 0 0, 0 0; } to { background-position: -30px 180px, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .title-art::before, .title-rain { animation: none; } }
+.title-block { position: relative; max-width: 30rem; width: 100%; margin-top: 31svh; }
+.title .kicker { display: inline-block; margin-bottom: 10px; padding: 3px 7px 2px; background: rgba(10, 10, 8, 0.82); font-size: 11.5px; letter-spacing: 0.1em; }
+.title-small button { padding: 8px 10px; font-size: 12.5px; }
+@media (max-width: 374px) { .title-small { gap: 6px; } .title-small button { padding: 8px 7px; font-size: 11.5px; letter-spacing: 0.03em; } }
+@media (max-height: 780px) and (max-aspect-ratio: 3/4) {
+  .title-art { height: 46svh; }
+  .title-block { margin-top: 24svh; }
+  .title h1 { font-size: clamp(70px, 21vw, 120px); }
+  .title .blurb { font-size: 15px; margin: 12px 0 10px; }
+  .title-rules { font-size: 13.5px; margin-bottom: 16px; }
 }
-.title-block { max-width: 30rem; width: 100%; }
 .title h1 {
   font-family: var(--fraktur); font-weight: 400; color: var(--yellow);
-  font-size: clamp(92px, 30vw, 170px); line-height: 0.82; margin: 0;
+  font-size: clamp(78px, 23vw, 150px); line-height: 0.82; margin: 0;
   transform: rotate(-4deg); transform-origin: left bottom;
-  text-shadow: 5px 5px 0 var(--pink);
+  text-shadow: 5px 5px 0 var(--pink), 0 0 28px rgba(10, 10, 8, 0.7);
 }
 .title .sub {
-  display: inline-block; margin: 14px 0 0; padding: 4px 12px 6px;
-  background: var(--bone); color: var(--ink); font-family: var(--display); font-weight: 900; font-size: 28px;
-  transform: rotate(2deg);
+  display: inline-block; margin: 12px 0 0; padding: 4px 12px 6px;
+  background: var(--bone); color: var(--ink); font-family: var(--display); font-weight: 900; font-size: 26px;
+  transform: rotate(2deg); box-shadow: 4px 4px 0 var(--ink);
 }
-.title .blurb { font-size: 18px; margin: 22px 0 24px; max-width: 26rem; }
-.version { margin: 22px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--yellow); opacity: 0.75; }
+.title .blurb { font-size: 16px; margin: 14px 0 12px; max-width: 26rem; text-shadow: 0 1px 8px var(--ink); }
+.title-rules { list-style: none; counter-reset: rule; margin: 0 0 20px; padding: 12px 0 0; border-top: 2px solid var(--pink);
+  display: grid; gap: 6px; max-width: 26rem; font-size: 14px; line-height: 1.35; color: var(--dim); }
+.title-rules li { counter-increment: rule; position: relative; padding-left: 1.9em; }
+.title-rules li::before { content: counter(rule, upper-roman); position: absolute; left: 0; top: 0.05em; font-family: var(--fraktur); font-size: 19px; line-height: 1; color: var(--pink); }
+.title-rules b { color: var(--bone); }
+.title-main button { min-width: 9.5rem; box-shadow: 4px 4px 0 var(--pink); }
+.title-foot { margin-top: 18px; }
+@media (min-width: 860px) {
+  .title { justify-content: flex-end; padding: 40px 6vw 6vh; }
+  .title-art { inset: 0; height: auto; }
+  .title-art::before { background-position: 60% 40%; }
+  .title-art::after { background:
+    radial-gradient(ellipse 48% 62% at 18% 62%, rgba(10, 10, 8, 0.93) 0%, rgba(10, 10, 8, 0.8) 55%, rgba(10, 10, 8, 0) 100%),
+    linear-gradient(0deg, rgba(10, 10, 8, 0.85) 0%, rgba(10, 10, 8, 0) 30%); }
+  .title-block { margin-top: 0; max-width: 28rem; }
+  .title .blurb { font-size: 17px; margin: 18px 0 14px; }
+  .title-rules { font-size: 15px; gap: 8px; }
+}
+.version { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--yellow); opacity: 0.75; }
 .legal { margin-top: 10px; font-size: 11.5px; color: #6c6657; line-height: 1.35; }
 
 /* the character sheet: a slab of yellow paper, slightly askew */
@@ -613,14 +647,23 @@ body.in-battle .facing { display: none; }
 
 /* ---------- short screens: a phone on its side ---------- */
 @media (max-height: 560px) and (min-aspect-ratio: 4/3) {
-  .title { background:
-    linear-gradient(90deg, rgba(10, 10, 8, 0) 25%, rgba(10, 10, 8, 0.9) 50%, var(--ink) 62%),
-    url("assets/title.webp") left center / auto 100% no-repeat, var(--ink); justify-items: end; padding: 12px 5vw 12px 16px; }
-  .title-block { padding-top: 0; max-width: 26rem; }
-  .title h1 { font-size: clamp(64px, 22vh, 120px); }
-  .title .sub { font-size: 20px; margin-top: 8px; }
-  .title .blurb { font-size: 15px; margin: 12px 0 14px; }
-  .legal { margin-top: 14px; font-size: 10px; }
+  .title { justify-content: center; padding: 12px 16px 12px 5vw; }
+  .title-art { inset: 0; height: auto; }
+  .title-art::before { background-position: 60% 40%; }
+  .title-art::after { background: linear-gradient(90deg, rgba(10, 10, 8, 0.94) 0%, rgba(10, 10, 8, 0.82) 38%, rgba(10, 10, 8, 0.2) 62%, rgba(10, 10, 8, 0) 75%); }
+  .title-block { margin-top: 0; max-width: 26rem; }
+  .title h1 { font-size: clamp(60px, 20vh, 110px); }
+  .title .sub { font-size: 19px; margin-top: 8px; }
+  .title .blurb { display: none; }
+  .title .sub { margin-bottom: 10px; }
+  .title-rules { font-size: 12.5px; gap: 2px; padding-top: 6px; margin-bottom: 10px; max-width: 24rem; }
+  .title .kicker { background: none; padding: 0; margin-bottom: 4px; }
+  .title-main, .title-small { display: inline-flex; vertical-align: middle; }
+  .title-main button { min-height: 40px; }
+  .title-small button { margin-top: 0; }
+  .title-rules li::before { font-size: 16px; }
+  .title-foot { margin-top: 10px; }
+  .legal { margin-top: 6px; font-size: 10px; }
   .modal { padding: 8px; }
   .modal .card { width: min(100%, 44rem); max-height: 96dvh; padding: 10px 16px 12px; }
   .modal h2 { font-size: 26px; margin-bottom: 4px; }

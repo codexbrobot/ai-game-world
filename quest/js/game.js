@@ -6,7 +6,7 @@
 (function () {
   const { d, fmt } = Q;
   // The version of the game, as published: one up with every publish, shown on the title screen.
-  Q.VERSION = 40;
+  Q.VERSION = 41;
   const SAVE_KEY = 'quest-borg-save-v3'; // v3: the run starts in the Brine Gaol
   const CELL = 2; // world units per map cell (matches the engine)
   const $ = (id) => document.getElementById(id);
@@ -462,6 +462,8 @@
     $('btnContinue').hidden = !loadSave();
     $('version').textContent = `Version ${Q.VERSION}`;
     $('btnCodex').textContent = `Codex (${Q.Codex.count()}/${Object.keys(Q.ITEMS).length})`;
+    const dead = Q.Memorial.list().length;
+    $('btnMemorial').textContent = dead ? `Memorial (${dead})` : 'Memorial';
   }
 
   // ---------- the party ----------
@@ -2085,6 +2087,7 @@ You have lived in Skarnvik all your short lives. You heard about the two who cam
     });
     $('btnContinue').addEventListener('click', continueRun);
     $('btnCodex').addEventListener('click', showCodex);
+    $('btnMemorial').addEventListener('click', showMemorial);
     $('btnAccept').addEventListener('click', acceptParty);
     $('btnReroll').addEventListener('click', rerollBoth);
     $('btnCustom').addEventListener('click', askOwnBook);

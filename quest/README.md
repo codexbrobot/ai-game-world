@@ -39,6 +39,10 @@ Under the mini-map, five square icons: **Journal**, **Map**, **Party** (the char
 | Sound on or off | ♪ (or the Sound button on the title screen) | |
 | Use a poultice outside battle | the Poultice button | |
 
+## The title page
+
+Skarnvik going under the sea, the comet over it, rain falling: the title page says what the game is in three lines (you lead two wretches; they will die and whoever comes next carries on; seven Miseries and the world ends), and has Continue or New game, the Codex, the Memorial (every wretch of yours who ever died) and Settings. On a phone the city fills the top of the screen and the words sit over the pink sea; on a computer or a phone on its side, the city fills the screen and the words stand on the left.
+
 ## The game
 
 You lead two wretches. A **new game** always starts with the same two in the Brine Gaol: **Varg Hollowtooth**, a Fanged Deserter who walked off the walls at Grift (Strength +2, Toughness +1, 11 HP, in front), and **Wren Sixpence**, a Gutterborn Scum who cut the wrong purse on the Salt Quay (Agility +2, Presence +1, 7 HP, behind). Their abilities and HP are set; the things waiting for them in the evidence room are rolled, but never worse than a d6 weapon and boiled leather. If you've been through the Gaol before, **roll your own instead** (a smaller button under them). Wretches you roll come up from the gutter: 3d6 abilities shifted by their class, Toughness + a class HP die, Omens, random weapon, armor and silver, and so do the heirs who carry on after the first two die. On the wretches page you can **roll both again** (always the pair together, so nobody keeps the good one and fishes for a better partner). Or **create your own**: the DM asks whether you own the MÖRK BORG book (the tables for rolling a wretch up are the book's, not the game's); if you do, you get two blank character sheets to fill in by hand (name, class or none, the four abilities, HP, Omens, silver, weapon, armor, row and a terrible trait), and **save these wretches** to play them. You can edit them by hand until you go into the dark. Skarnvik, the island-city they come from, is sinking, and the Salt Lords say it isn't.

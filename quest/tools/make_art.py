@@ -244,9 +244,10 @@ ART = {
     'town': dict(kind='scene', size=(768, 416), out=(1280, 693), seed=None, light=YELLOW, crop=0.97,
                  prompt=f'a crooked medieval town at night under a huge burning yellow comet, leaning houses with glowing '
                         f'yellow windows, a gallows with a hanged man, a crooked church spire, muddy street, {STYLE}'),
-    'title': dict(kind='scene', size=(512, 768), out=(640, 960), seed=None,
-                  prompt=f'an undead abbess with a spiked iron crown rising from a crypt, weeping black tears, '
-                         f'a burning yellow comet in the black sky, {STYLE}'),
+    'title': dict(kind='scene', size=(768, 432), out=(1600, 900), seed=None,
+                  prompt=f'the sinking island city of Skarnvik seen from a broken pier, a cathedral on the hill and tenements '
+                         f'tumbling into the sea, half-drowned houses with lit yellow windows, a burning yellow comet in the '
+                         f'black sky, the waves streaked hot pink, {STYLE}'),
     'inn': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None,
                 prompt=f'a grim medieval tavern interior with a dying hearth fire and drunken peasants, {STYLE}'),
     'stall': dict(kind='scene', size=(512, 384), out=(512, 384), seed=None,

@@ -60,6 +60,12 @@ module.exports = {
     await t.closeAll();
     await page.reload();
     await t.wait(500);
+    // the title page has the memorial too
+    check(await page.textContent('#btnMemorial') === 'Memorial (2)', 'the title page counts the dead', await page.textContent('#btnMemorial'));
+    await page.click('#btnMemorial');
+    const shown = (await t.waitModal()) && await t.body();
+    check(/The memorial/.test(await t.title()) && first.every((n) => shown.includes(n)), 'and opens the memorial', shown.slice(0, 120));
+    await t.closeAll();
     await page.click('#btnContinue');
     await t.wait(800);
     await t.closeAll();
