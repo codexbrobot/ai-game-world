@@ -177,7 +177,7 @@ The portraits wretches get (picked from their name). Head and shoulders, looking
 
 | File | Size (px) | Transparent | What it shows now |
 |---|---|---|---|
-| `title` | 640 × 960 | no | an undead abbess with a spiked iron crown rising from a crypt, weeping black tears, a burning yellow comet in the black sky |
+| `title` | 1600 × 900 | no | the sinking island city of Skarnvik seen from a broken pier, a cathedral on the hill and tenements tumbling into the sea, half-drowned houses with lit yellow windows, a burning yellow comet in the black sky, the waves streaked hot pink |
 | `inn` | 512 × 384 | no | a grim medieval tavern interior with a dying hearth fire and drunken peasants |
 | `stall` | 512 × 384 | no | a ragged market stall selling rusty swords, axes and dented armor |
 | `stair` | 512 × 384 | no | worn stone stairs descending into a dark crypt entrance under a ruined arch |
